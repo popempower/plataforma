@@ -192,10 +192,6 @@ async function doLogin() {
     .eq('id', data.user.id)
     .single();
 
-  console.log('USER ID:', data.user.id);
-  console.log('PROFILE:', profile);
-  console.log('PROFILE ERROR:', profileError);
-
   const role = profile?.role || 'patient';
   localStorage.setItem('pop_session', JSON.stringify({
     email: data.user.email,
