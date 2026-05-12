@@ -188,7 +188,7 @@ async function doLogin() {
 
   const { data: profile } = await sb
     .from('profiles')
-    .select('role, nombre')
+    .select('role, full_name')
     .eq('id', data.user.id)
     .single();
 
@@ -196,7 +196,7 @@ async function doLogin() {
   localStorage.setItem('pop_session', JSON.stringify({
     email: data.user.email,
     role,
-    name: profile?.nombre || data.user.email
+    name: profile?.full_name || data.user.email
   }));
 
   window.location.href = REDIRECTS[role] || REDIRECTS.patient;
@@ -236,7 +236,7 @@ document.getElementById('forgotOverlay').addEventListener('click', function(e) {
   if (session) {
     const { data: profile } = await sb
       .from('profiles')
-      .select('role')
+      .select('role, full_name')
       .eq('id', session.user.id)
       .single();
     const role = profile?.role || 'patient';
