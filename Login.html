@@ -51,6 +51,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fafafa;min
 .footer{text-align:center;margin-top:20px;font-size:12px;color:#9ca3af}
 .footer a{color:#20dc95;text-decoration:none;font-weight:600}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -129,25 +130,15 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fafafa;min
 </div>
 
 <script>
-// Usuarios demo — en producción esto se reemplaza por Supabase Auth
-const USERS = [
-  { email: 'admin@popempower.com', password: 'admin123', role: 'admin',    redirect: 'Admin_Dashboard (2).html' },
-  { email: 'ana@gmail.com',        password: '1234',     role: 'paciente', redirect: 'Patient Portal (14).html' },
-  { email: 'carlos@gmail.com',     password: '1234',     role: 'paciente', redirect: 'Patient Portal (14).html' },
-  { email: 'laura@psico.com',      password: '1234',     role: 'psicologa',redirect: 'Psychologist_Dashboard.html' },
-  { email: 'sofia@psico.com',      password: '1234',     role: 'psicologa',redirect: 'Psychologist_Dashboard.html' },
-  { email: 'empresa@empresa.com',  password: '1234',     role: 'admin',    redirect: 'Admin_Dashboard (2).html' },
-  { email: 'adam.vazquez@amadeus.com', password: 'POP2026', role: 'b2b', redirect: 'B2B_Portal.html' },
-];
+const SUPABASE_URL = 'https://kfekcgmwoatjjovhaaiq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_TOgfdFj9WzbSjswtV3miGQ_dSeY1EY_';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const NAMES = {
-  'admin@popempower.com': 'Administrador',
-  'ana@gmail.com':        'Ana Martínez',
-  'carlos@gmail.com':     'Carlos Ruiz',
-  'laura@psico.com':      'Laura González',
-  'sofia@psico.com':      'Sofía Herrera',
-  'empresa@empresa.com':  'TechCorp SL',
-  'adam.vazquez@amadeus.com': 'Adam Vazquez',
+const REDIRECTS = {
+  admin:        'Admin_Dashboard (2).html',
+  patient:      'Patient Portal (14).html',
+  psychologist: 'Psychologist_Dashboard.html',
+  b2b:          'B2B_Portal.html',
 };
 
 let passVisible = false;
@@ -166,7 +157,7 @@ function fillDemo(email, pass) {
   document.getElementById('errMsg').style.display = 'none';
 }
 
-function doLogin() {
+async function doLogin() {
   const email    = document.getElementById('emailInput').value.trim().toLowerCase();
   const password = document.getElementById('passInput').value;
   const errMsg   = document.getElementById('errMsg');
@@ -182,36 +173,42 @@ function doLogin() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Entrando...';
 
-  setTimeout(() => {
-    const user = USERS.find(u => u.email === email && u.password === password);
-    if (user) {
-      localStorage.setItem('pop_session', JSON.stringify({
-        email: user.email,
-        role:  user.role,
-        name:  NAMES[user.email] || user.email
-      }));
-      window.location.href = user.redirect;
-    } else {
-      btn.disabled = false;
-      btn.innerHTML = 'Entrar';
-      errMsg.style.display = 'block';
-      document.getElementById('emailInput').classList.add('error');
-      document.getElementById('passInput').classList.add('error');
-      document.getElementById('passInput').value = '';
-    }
-  }, 800);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    btn.disabled = false;
+    btn.innerHTML = 'Entrar';
+    errMsg.textContent = 'Email o contraseña incorrectos. Inténtalo de nuevo.';
+    errMsg.style.display = 'block';
+    document.getElementById('emailInput').classList.add('error');
+    document.getElementById('passInput').classList.add('error');
+    document.getElementById('passInput').value = '';
+    return;
+  }
+
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('role, nombre')
+    .eq('id', data.user.id)
+    .single();
+
+  const role = profile?.role || 'patient';
+  localStorage.setItem('pop_session', JSON.stringify({
+    email: data.user.email,
+    role,
+    name: profile?.nombre || data.user.email
+  }));
+
+  window.location.href = REDIRECTS[role] || REDIRECTS.patient;
 }
 
-// Enter para login
 document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-// Modal contraseña olvidada
 function showForgot(e) {
   e.preventDefault();
   const email = document.getElementById('emailInput').value.trim();
   if (email) document.getElementById('forgotEmail').value = email;
-  const overlay = document.getElementById('forgotOverlay');
-  overlay.style.display = 'flex';
+  document.getElementById('forgotOverlay').style.display = 'flex';
 }
 
 function closeForgot() {
@@ -220,10 +217,12 @@ function closeForgot() {
   document.getElementById('forgotEmail').value = '';
 }
 
-function sendReset() {
+async function sendReset() {
   const email = document.getElementById('forgotEmail').value.trim();
   if (!email) return;
-  // En producción: supabase.auth.resetPasswordForEmail(email)
+  await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/Login.html'
+  });
   document.getElementById('forgotOk').style.display = 'block';
   setTimeout(closeForgot, 2500);
 }
@@ -232,17 +231,18 @@ document.getElementById('forgotOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeForgot();
 });
 
-// Si ya hay sesión activa, redirigir sin pasar por login
-const session = localStorage.getItem('pop_session');
-if (session) {
-  try {
-    const user = JSON.parse(session);
-    const found = USERS.find(u => u.email === user.email);
-    if (found) window.location.href = found.redirect;
-  } catch(e) {
-    localStorage.removeItem('pop_session');
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+    const role = profile?.role || 'patient';
+    window.location.href = REDIRECTS[role] || REDIRECTS.patient;
   }
-}
+})();
 </script>
 </body>
 </html>
