@@ -331,32 +331,7 @@ function step3(){
     <button onclick="applyPromo()" style="padding:0 16px;border-radius:9px;border:1.5px solid ${S.promoOk?'#20dc95':'#e5e7eb'};background:${S.promoOk?'#f0fdf8':'#fff'};color:${S.promoOk?'#065f46':'#374151'};font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .12s">${S.promoOk?'✓ Aplicado':'Aplicar'}</button>
   </div>
 
-  <!-- Formulario de tarjeta -->
-  <div class="card-wrap">
-    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:14px;display:flex;align-items:center;gap:6px">
-      🔒 Datos de pago
-      <span style="margin-left:auto;font-size:10px;font-weight:500;color:#9ca3af">Cifrado SSL 256-bit</span>
-    </div>
-    <label class="field-label" style="margin-top:0">Número de tarjeta</label>
-    <div class="input-wrap">
-      <span class="input-icon">💳</span>
-      <input class="field-input has-icon" id="cardNum" placeholder="1234 5678 9012 3456" maxlength="19" oninput="fmtCard(this)" style="letter-spacing:.06em;font-variant-numeric:tabular-nums">
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-      <div>
-        <label class="field-label" style="margin-top:0">Caducidad</label>
-        <input class="field-input" id="cardExp" placeholder="MM/AA" maxlength="5" oninput="fmtExp(this)">
-      </div>
-      <div>
-        <label class="field-label" style="margin-top:0">CVC</label>
-        <input class="field-input" id="cardCvc" placeholder="123" maxlength="3" type="password">
-      </div>
-    </div>
-    <label class="field-label">Titular de la tarjeta</label>
-    <input class="field-input" id="cardName" placeholder="Nombre como aparece en la tarjeta">
-  </div>
-
-  <button class="btn-primary" id="payBtn" onclick="doPay()">Pagar ${total}€ →</button>
+  <button class="btn-primary" id="payBtn" onclick="doPay()">Pagar ${total}€ con Stripe →</button>
   <button class="btn-back" onclick="S.step=3;rerender()">← Atrás</button>
 
   <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;font-size:11px;color:#9ca3af">
