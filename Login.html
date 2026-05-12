@@ -186,11 +186,15 @@ async function doLogin() {
     return;
   }
 
-  const { data: profile } = await sb
+  const { data: profile, error: profileError } = await sb
     .from('profiles')
     .select('role, full_name')
     .eq('id', data.user.id)
     .single();
+
+  console.log('USER ID:', data.user.id);
+  console.log('PROFILE:', profile);
+  console.log('PROFILE ERROR:', profileError);
 
   const role = profile?.role || 'patient';
   localStorage.setItem('pop_session', JSON.stringify({
