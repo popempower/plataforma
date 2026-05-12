@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Dashboard Psicólogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+</style>
+</head>
+<body>
+<script type="text/babel">
+const { useState } = React;
+
+// ── TOKENS ────────────────────────────────────────────────────────
+const T = {
+  green: '#20dc95', greenDark: '#0bbf7a', greenDeep: '#065f46',
+  greenLight: '#f0fdf8', greenMid: '#d1fae5',
+  white: '#ffffff', gray50: '#fafafa', gray100: '#f3f4f6',
+  gray200: '#e5e7eb', gray400: '#9ca3af', gray500: '#6b7280',
+  gray700: '#374151', gray900: '#111827',
+  amber: '#f59e0b', amberLight: '#fffbeb', amberMid: '#fde68a',
+  red: '#ef4444', redLight: '#fef2f2',
+  blue: '#3b82f6', blueLight: '#eff6ff',
+};
+
+// ── MOCK DATA ─────────────────────────────────────────────────────
+const PSYCH = { name: 'Elena García', initials: 'EG', specialty: 'Psicología Clínica' };
+
+const TODAY_SESSIONS = [
+  { id:1, time:'09:00', patient:'Carlos Ruiz',      initials:'CR', duration:50, status:'realizada',  notes:true  },
+  { id:2, time:'10:30', patient:'Laura Sánchez',    initials:'LS', duration:50, status:'realizada',  notes:false },
+  { id:3, time:'12:00', patient:'Miguel Torres',    initials:'MT', duration:50, status:'en_curso',   notes:false },
+  { id:4, time:'16:00', patient:'Ana Martínez',     initials:'AM', duration:50, status:'programada', notes:false },
+  { id:5, time:'17:30', patient:'Sofía Delgado',    initials:'SD', duration:50, status:'programada', notes:false },
+  { id:6, time:'19:00', patient:'Javier Morales',   initials:'JM', duration:50, status:'programada', notes:false },
+];
+
+const PATIENTS = [
+  { id:1, name:'Ana Martínez',    initials:'AM', plan:'12 ses', used:4,  next:'Hoy 16:00',   status:'activo',   unread:2 },
+  { id:2, name:'Carlos Ruiz',     initials:'CR', plan:'12 ses', used:9,  next:'Miérc 10:00', status:'activo',   unread:0 },
+  { id:3, name:'Laura Sánchez',   initials:'LS', plan:'8 ses',  used:5,  next:'Juev 11:00',  status:'activo',   unread:1 },
+  { id:4, name:'Miguel Torres',   initials:'MT', plan:'12 ses', used:12, next:'—',            status:'baja',     unread:0 },
+  { id:5, name:'Sofía Delgado',   initials:'SD', plan:'12 ses', used:2,  next:'Hoy 17:30',   status:'activo',   unread:0 },
+  { id:6, name:'Javier Morales',  initials:'JM', plan:'6 ses',  used:1,  next:'Hoy 19:00',   status:'activo',   unread:3 },
+  { id:7, name:'Isabel Fernández',initials:'IF', plan:'12 ses', used:6,  next:'Viern 10:00', status:'pausa',    unread:0 },
+];
+
+const MESSAGES = [
+  { patient:'Ana Martínez',   initials:'AM', text:'Hola Elena, quería comentarte que esta semana...', time:'09:14', unread:2 },
+  { patient:'Javier Morales', initials:'JM', text:'¿Podemos adelantar la sesión del viernes?',        time:'08:50', unread:3 },
+  { patient:'Laura Sánchez',  initials:'LS', text:'Muchas gracias por los ejercicios 🙏',             time:'Ayer',  unread:1 },
+];
+
+const NAV = [
+  { id:'inicio',    icon:'⌂', label:'Inicio' },
+  { id:'agenda',    icon:'◷', label:'Agenda' },
+  { id:'pacientes', icon:'👤', label:'Pacientes' },
+  { id:'mensajes',  icon:'✉', label:'Mensajes', badge:6 },
+  { id:'notas',     icon:'📋', label:'Notas clínicas' },
+  { id:'facturacion',icon:'◫', label:'Facturación' },
+  { id:'ajustes',   icon:'⚙', label:'Ajustes' },
+];
+
+// ── STATUS CONFIGS ────────────────────────────────────────────────
+const SESSION_STATUS = {
+  realizada:  { label:'Realizada',  bg:'#f0fdf8', color:T.greenDeep, dot:T.green },
+  en_curso:   { label:'En curso',   bg:'#fffbeb', color:'#92400e',   dot:T.amber },
+  programada: { label:'Programada', bg:T.gray100, color:T.gray500,   dot:T.gray400 },
+  cancelada:  { label:'Cancelada',  bg:'#fef2f2', color:'#b91c1c',   dot:T.red },
+};
+const PATIENT_STATUS = {
+  activo: { label:'Activo', bg:'#f0fdf8', color:T.greenDeep },
+  pausa:  { label:'Pausa',  bg:'#fffbeb', color:'#92400e' },
+  baja:   { label:'Baja',   bg:'#fef2f2', color:'#b91c1c' },
+};
+
+// ── AVATAR ────────────────────────────────────────────────────────
+const Av = ({ initials, size=32, green=false }) => (
+  <div style={{ width:size, height:size, borderRadius:'50%', background: green ? T.green : T.gray200, display:'flex', alignItems:'center', justifyContent:'center', fontSize:size*0.33, fontWeight:700, color: green ? T.greenDeep : T.gray600, flexShrink:0 }}>{initials}</div>
+);
+
+// ── BADGE ─────────────────────────────────────────────────────────
+const Badge = ({ label, bg, color }) => (
+  <span style={{ background:bg, color, borderRadius:999, padding:'2px 8px', fontSize:11, fontWeight:600 }}>{label}</span>
+);
+
+// ── MODALS ────────────────────────────────────────────────────────
+function NotesModal({ session, onClose }) {
+  const [note, setNote] = useState('');
+  const [status, setStatus] = useState('realizada');
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200, backdropFilter:'blur(4px)' }}>
+      <div style={{ background:T.white, borderRadius:16, width:480, boxShadow:'0 20px 60px rgba(0,0,0,.18)', overflow:'hidden' }}>
+        <div style={{ padding:'20px 24px', borderBottom:`1px solid ${T.gray200}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div>
+            <div style={{ fontWeight:700, fontSize:15, color:T.gray900 }}>Notas de sesión</div>
+            <div style={{ fontSize:12, color:T.gray500 }}>{session.patient} · {session.time}</div>
+          </div>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:T.gray400 }}>✕</button>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+          <div style={{ fontSize:12, fontWeight:600, color:T.gray700, marginBottom:6 }}>Estado de la sesión</div>
+          <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+            {['realizada','no_presentado','cancelada'].map(s => (
+              <button key={s} onClick={() => setStatus(s)} style={{ padding:'7px 14px', borderRadius:8, border:`1.5px solid ${status===s ? T.green : T.gray200}`, background: status===s ? T.greenLight : T.white, color: status===s ? T.greenDeep : T.gray600, fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit', textTransform:'capitalize' }}>
+                {s.replace('_',' ')}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize:12, fontWeight:600, color:T.gray700, marginBottom:6 }}>Notas privadas (solo tú las ves)</div>
+          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Observaciones, evolución del paciente, objetivos para próxima sesión..." style={{ width:'100%', height:120, padding:12, borderRadius:8, border:`1.5px solid ${T.gray200}`, fontFamily:'inherit', fontSize:13, resize:'none', outline:'none', color:T.gray900 }}/>
+          <div style={{ fontSize:12, fontWeight:600, color:T.gray700, margin:'12px 0 6px' }}>Próxima sesión</div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button style={{ flex:2, padding:'9px', borderRadius:8, border:`1px solid ${T.green}`, background:T.green, color:T.greenDeep, fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>Programar ahora</button>
+            <button style={{ flex:1, padding:'9px', borderRadius:8, border:`1px solid ${T.gray200}`, background:T.white, color:T.gray600, fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>Después</button>
+          </div>
+        </div>
+        <div style={{ padding:'12px 24px', borderTop:`1px solid ${T.gray200}`, display:'flex', justifyContent:'flex-end', gap:8 }}>
+          <button onClick={onClose} style={{ padding:'8px 16px', borderRadius:8, border:`1px solid ${T.gray200}`, background:T.white, color:T.gray600, fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>Cancelar</button>
+          <button onClick={onClose} style={{ padding:'8px 20px', borderRadius:8, border:'none', background:T.green, color:T.greenDeep, fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>Guardar y cerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PatientModal({ patient, onClose }) {
+  const [tab, setTab] = useState('perfil');
+  const tabs = ['perfil','sesiones','objetivos','documentos'];
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200, backdropFilter:'blur(4px)' }}>
+      <div style={{ background:T.white, borderRadius:16, width:520, maxHeight:'80vh', overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,.18)' }}>
+        <div style={{ padding:'20px 24px', borderBottom:`1px solid ${T.gray200}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+            <Av initials={patient.initials} size={44} green/>
+            <div>
+              <div style={{ fontWeight:700, fontSize:16, color:T.gray900 }}>{patient.name}</div>
+              <div style={{ display:'flex', gap:6, marginTop:3 }}>
+                <Badge {...PATIENT_STATUS[patient.status]}/>
+                <span style={{ fontSize:11, color:T.gray400 }}>{patient.plan} · {patient.used} usadas</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:T.gray400 }}>✕</button>
+        </div>
+        <div style={{ display:'flex', borderBottom:`1px solid ${T.gray200}`, padding:'0 24px' }}>
+          {tabs.map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding:'10px 14px', background:'none', border:'none', fontSize:13, fontWeight: tab===t ? 600 : 400, color: tab===t ? T.gray900 : T.gray500, borderBottom: tab===t ? `2px solid ${T.green}` : '2px solid transparent', cursor:'pointer', fontFamily:'inherit', textTransform:'capitalize' }}>{t}</button>
+          ))}
+        </div>
+        <div style={{ flex:1, overflow:'auto', padding:'20px 24px' }}>
+          {tab==='perfil' && (
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {[['Email','ana.martinez@email.com'],['Teléfono','+34 612 345 678'],['Fecha de alta','1 Marzo 2026'],['Plan','12 sesiones · Plan Mensual'],['Psicólogo asignado','Dra. Elena García'],['Empresa','—']].map(([k,v]) => (
+                <div key={k} style={{ display:'flex', justifyContent:'space-between', paddingBottom:10, borderBottom:`1px solid ${T.gray100}` }}>
+                  <span style={{ fontSize:12, color:T.gray500, fontWeight:500 }}>{k}</span>
+                  <span style={{ fontSize:12, color:T.gray900, fontWeight:600 }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab==='sesiones' && (
+            <div>
+              {[{d:'22 Abr',t:'16:00',s:'programada'},{d:'9 Abr',t:'16:00',s:'realizada'},{d:'2 Abr',t:'16:00',s:'realizada'},{d:'26 Mar',t:'16:00',s:'cancelada'}].map((s,i) => {
+                const st = SESSION_STATUS[s.s];
+                return (
+                  <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${T.gray100}` }}>
+                    <span style={{ fontSize:13, color:T.gray900 }}>{s.d} · {s.t}</span>
+                    <span style={{ background:st.bg, color:st.color, borderRadius:6, padding:'2px 8px', fontSize:11, fontWeight:600 }}>{st.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {tab==='objetivos' && (
+            <div>
+              {[{t:'Gestión de la ansiedad',p:65},{t:'Técnicas de respiración',p:80},{t:'Reestructuración cognitiva',p:40}].map((o,i) => (
+                <div key={i} style={{ marginBottom:14 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+                    <span style={{ fontSize:13, color:T.gray900 }}>{o.t}</span>
+                    <span style={{ fontSize:12, color:T.green, fontWeight:700 }}>{o.p}%</span>
+                  </div>
+                  <div style={{ height:4, background:T.gray100, borderRadius:2 }}>
+                    <div style={{ height:'100%', width:`${o.p}%`, background:T.green, borderRadius:2 }}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab==='documentos' && (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {['Informe inicial.pdf','Consentimiento informado.pdf','Escala de ansiedad — Mar 2026.pdf'].map(f => (
+                <div key={f} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:T.gray50, borderRadius:8, border:`1px solid ${T.gray200}` }}>
+                  <span style={{ fontSize:16 }}>📄</span>
+                  <span style={{ fontSize:12, color:T.gray900, fontWeight:500 }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN DASHBOARD ────────────────────────────────────────────────
+function App() {
+  const [activeNav, setActiveNav] = useState('inicio');
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [activeSessionId, setActiveSessionId] = useState(3); // session en curso
+
+  const completedToday = TODAY_SESSIONS.filter(s => s.status==='realizada').length;
+  const pendingToday = TODAY_SESSIONS.filter(s => s.status==='programada').length;
+
+  return (
+    <div style={{ display:'flex', height:'100vh', fontFamily:"'Plus Jakarta Sans', sans-serif", fontSize:13, overflow:'hidden' }}>
+
+      {/* SIDEBAR */}
+      <div style={{ width:220, background:T.white, borderRight:`1px solid ${T.gray200}`, display:'flex', flexDirection:'column', padding:'18px 12px', flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 8px', marginBottom:28 }}>
+          <div style={{ width:28, height:28, background:T.green, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <span style={{ color:'white', fontWeight:800, fontSize:11 }}>P</span>
+          </div>
+          <span style={{ fontWeight:700, fontSize:14, color:T.gray900 }}>POP Empower</span>
+        </div>
+
+        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:2 }}>
+          {NAV.map(n => {
+            const active = activeNav===n.id;
+            return (
+              <button key={n.id} onClick={() => setActiveNav(n.id)} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:7, border:'none', cursor:'pointer', textAlign:'left', background: active ? T.greenLight : 'transparent', color: active ? T.greenDeep : T.gray500, fontWeight: active ? 600 : 400, fontSize:13, fontFamily:'inherit', position:'relative' }}>
+                <span style={{ fontSize:14, width:18, textAlign:'center' }}>{n.icon}</span>
+                {n.label}
+                {n.badge && <span style={{ marginLeft:'auto', background:T.green, color:T.greenDeep, borderRadius:10, padding:'1px 6px', fontSize:11, fontWeight:700 }}>{n.badge}</span>}
+                {active && <div style={{ position:'absolute', right:0, top:'50%', transform:'translateY(-50%)', width:3, height:20, background:T.green, borderRadius:2 }}/>}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ borderTop:`1px solid ${T.gray200}`, paddingTop:12, display:'flex', alignItems:'center', gap:9 }}>
+          <Av initials="EG" size={32} green/>
+          <div>
+            <div style={{ fontWeight:600, fontSize:12, color:T.gray900 }}>Elena García</div>
+            <div style={{ fontSize:11, color:T.gray400 }}>Psicóloga</div>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', background:'#fafafa' }}>
+        {/* TOPBAR */}
+        <div style={{ height:52, background:T.white, borderBottom:`1px solid ${T.gray200}`, display:'flex', alignItems:'center', padding:'0 24px', gap:12, flexShrink:0 }}>
+          <div style={{ flex:1 }}>
+            <span style={{ fontWeight:700, fontSize:14, color:T.gray900 }}>Buenos días, Elena ☀️</span>
+            <span style={{ color:T.gray400, marginLeft:8, fontSize:12 }}>Martes 22 de abril · {completedToday} sesiones realizadas · {pendingToday} pendientes</span>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ width:8, height:8, borderRadius:'50%', background:T.green }}/>
+            <span style={{ fontSize:12, color:T.gray500 }}>En consulta</span>
+          </div>
+          <div style={{ width:30, height:30, borderRadius:7, border:`1px solid ${T.gray200}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:T.gray500, fontSize:14, position:'relative' }}>
+            🔔
+            <div style={{ position:'absolute', top:5, right:5, width:7, height:7, borderRadius:'50%', background:T.green }}/>
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div style={{ flex:1, padding:'20px 24px', overflow:'hidden', display:'flex', gap:20 }}>
+
+          {/* LEFT: Agenda + Estadísticas */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:16, minWidth:0 }}>
+
+            {/* Stats row */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
+              {[
+                { label:'Hoy',            val:`${completedToday}/${TODAY_SESSIONS.length}`, sub:'sesiones',         accent: T.green },
+                { label:'Esta semana',    val:'18',   sub:'sesiones',         accent: T.green },
+                { label:'Pacientes activos', val:'14', sub:'asignados',       accent: T.blue },
+                { label:'Mensajes sin leer', val:'6', sub:'de 3 pacientes',   accent: T.amber },
+              ].map((s,i) => (
+                <div key={i} style={{ background:T.white, border:`1px solid ${T.gray200}`, borderRadius:10, padding:'12px 16px', borderLeft:`3px solid ${s.accent}` }}>
+                  <div style={{ fontSize:11, color:T.gray500, marginBottom:4, fontWeight:500 }}>{s.label}</div>
+                  <div style={{ fontSize:22, fontWeight:800, color:T.gray900 }}>{s.val}</div>
+                  <div style={{ fontSize:11, color:T.gray400 }}>{s.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Session list */}
+            <div style={{ background:T.white, border:`1px solid ${T.gray200}`, borderRadius:10, flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+              <div style={{ padding:'14px 20px', borderBottom:`1px solid ${T.gray200}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontWeight:700, fontSize:13, color:T.gray900 }}>Agenda de hoy — Martes 22 Abr</span>
+                <button style={{ fontSize:12, color:T.greenDeep, background:T.greenLight, border:'none', borderRadius:6, padding:'4px 10px', fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Ver semana →</button>
+              </div>
+              <div style={{ flex:1, overflow:'auto' }}>
+                {TODAY_SESSIONS.map(s => {
+                  const st = SESSION_STATUS[s.status];
+                  const isActive = s.status==='en_curso';
+                  return (
+                    <div key={s.id} style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 20px', borderBottom:`1px solid ${T.gray100}`, background: isActive ? '#fffbeb' : 'transparent', cursor:'pointer' }}
+                      onClick={() => s.status!=='programada' && setSelectedSession(s)}>
+                      {/* Time */}
+                      <div style={{ width:42, fontSize:13, fontWeight:700, color: isActive ? T.amber : T.gray900, flexShrink:0 }}>{s.time}</div>
+                      {/* Dot */}
+                      <div style={{ width:8, height:8, borderRadius:'50%', background:st.dot, flexShrink:0 }}/>
+                      {/* Patient */}
+                      <Av initials={s.initials} size={28} green={isActive}/>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontWeight:600, fontSize:13, color:T.gray900 }}>{s.patient}</div>
+                        <div style={{ fontSize:11, color:T.gray400 }}>{s.duration} min · Videollamada</div>
+                      </div>
+                      {/* Status badge */}
+                      <span style={{ background:st.bg, color:st.color, borderRadius:6, padding:'3px 9px', fontSize:11, fontWeight:600 }}>
+                        {isActive ? '● En curso' : st.label}
+                      </span>
+                      {/* Actions */}
+                      <div style={{ display:'flex', gap:6, marginLeft:4 }}>
+                        {s.status==='en_curso' && (
+                          <button onClick={e => { e.stopPropagation(); }} style={{ background:T.amber, color:'white', border:'none', borderRadius:6, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>Entrar →</button>
+                        )}
+                        {s.status==='programada' && (
+                          <button style={{ background:T.gray100, color:T.gray600, border:'none', borderRadius:6, padding:'5px 10px', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>Recordar</button>
+                        )}
+                        {s.status==='realizada' && (
+                          <button onClick={e => { e.stopPropagation(); setSelectedSession(s); }} style={{ background: s.notes ? T.greenLight : T.gray100, color: s.notes ? T.greenDeep : T.gray500, border:'none', borderRadius:6, padding:'5px 10px', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+                            {s.notes ? '✓ Notas' : '+ Notas'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: Pacientes + Mensajes */}
+          <div style={{ width:310, display:'flex', flexDirection:'column', gap:16, flexShrink:0 }}>
+
+            {/* Pacientes */}
+            <div style={{ background:T.white, border:`1px solid ${T.gray200}`, borderRadius:10, overflow:'hidden', flex:1, display:'flex', flexDirection:'column' }}>
+              <div style={{ padding:'14px 16px', borderBottom:`1px solid ${T.gray200}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontWeight:700, fontSize:13, color:T.gray900 }}>Mis pacientes</span>
+                <span style={{ background:T.gray100, color:T.gray500, borderRadius:10, padding:'1px 7px', fontSize:11, fontWeight:600 }}>14</span>
+              </div>
+              <div style={{ flex:1, overflow:'auto' }}>
+                {PATIENTS.map(p => {
+                  const st = PATIENT_STATUS[p.status];
+                  return (
+                    <div key={p.id} onClick={() => setSelectedPatient(p)} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:`1px solid ${T.gray100}`, cursor:'pointer' }}
+                      onMouseEnter={e => e.currentTarget.style.background=T.gray50}
+                      onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                      <Av initials={p.initials} size={30} green={p.status==='activo'}/>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontWeight:600, fontSize:12, color:T.gray900, display:'flex', alignItems:'center', gap:6 }}>
+                          {p.name}
+                          {p.unread > 0 && <span style={{ background:T.green, color:T.greenDeep, borderRadius:10, padding:'0px 5px', fontSize:10, fontWeight:700 }}>{p.unread}</span>}
+                        </div>
+                        <div style={{ fontSize:11, color:T.gray400 }}>{p.next}</div>
+                      </div>
+                      <span style={{ background:st.bg, color:st.color, borderRadius:5, padding:'2px 7px', fontSize:10, fontWeight:600 }}>{st.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mensajes recientes */}
+            <div style={{ background:T.white, border:`1px solid ${T.gray200}`, borderRadius:10, overflow:'hidden' }}>
+              <div style={{ padding:'14px 16px', borderBottom:`1px solid ${T.gray200}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontWeight:700, fontSize:13, color:T.gray900 }}>Mensajes</span>
+                <span style={{ background:T.green, color:T.greenDeep, borderRadius:10, padding:'1px 7px', fontSize:11, fontWeight:700 }}>6</span>
+              </div>
+              {MESSAGES.map((m,i) => (
+                <div key={i} style={{ display:'flex', gap:10, padding:'10px 14px', borderBottom:`1px solid ${T.gray100}`, cursor:'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background=T.gray50}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                  <Av initials={m.initials} size={28} green/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:600, fontSize:12, color:T.gray900, display:'flex', justifyContent:'space-between' }}>
+                      {m.patient}
+                      <span style={{ fontSize:10, color:T.gray400, fontWeight:400 }}>{m.time}</span>
+                    </div>
+                    <div style={{ fontSize:11, color:T.gray500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.text}</div>
+                  </div>
+                  {m.unread > 0 && <div style={{ width:7, height:7, borderRadius:'50%', background:T.green, flexShrink:0, marginTop:4 }}/>}
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* MODALS */}
+      {selectedSession && <NotesModal session={selectedSession} onClose={() => setSelectedSession(null)}/>}
+      {selectedPatient && <PatientModal patient={selectedPatient} onClose={() => setSelectedPatient(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<div id="root" style="height:100vh"></div>
+</body>
+</html>

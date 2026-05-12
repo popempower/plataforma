@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Patient Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #111; }
+  :root { --pop-green: #20dc95; }
+</style>
+</head>
+<body>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ─── SHARED DATA ────────────────────────────────────────────────
+const DATA = {
+  user: { name: "Ana Martínez", initials: "AM", plan: "Plan Mensual — 12 sesiones" },
+  therapist: { name: "Dra. Elena García", specialty: "Psicología Clínica", initials: "EG" },
+  nextSession: { date: "Miércoles, 23 Apr", time: "18:00 h", daysLeft: 1 },
+  bono: { used: 4, total: 12, expiry: "15 Jul 2026" },
+  messages: [
+    { text: "Hola Ana, ¿cómo te has sentido esta semana con los ejercicios?", time: "10:32", unread: true },
+    { text: "Te dejo el recurso que comentamos en nuestra última sesión.", time: "Ayer", unread: true },
+  ],
+  sessions: [
+    { date: "16 Abr", status: "Realizada", mins: 52 },
+    { date: "9 Abr",  status: "Realizada", mins: 48 },
+    { date: "2 Abr",  status: "Realizada", mins: 55 },
+  ],
+  objectives: [
+    { title: "Gestión de la ansiedad", pct: 65 },
+    { title: "Técnicas de respiración", pct: 80 },
+    { title: "Reestructuración cognitiva", pct: 40 },
+  ]
+};
+
+const NAV = [
+  { id: "inicio",    label: "Inicio",       icon: "⌂" },
+  { id: "sesiones",  label: "Sesiones",     icon: "◷" },
+  { id: "mensajes",  label: "Mensajes",     icon: "✉", badge: 2 },
+  { id: "progreso",  label: "Mi progreso",  icon: "◎" },
+  { id: "docs",      label: "Documentos",   icon: "⬚" },
+  { id: "config",    label: "Ajustes",      icon: "⚙" },
+];
+
+// ─── SHARED LOGO ────────────────────────────────────────────────
+function PopLogo({ size = 32, color = "#20dc95" }) {
+  return (
+    <svg width={size} height={size * 1.05} viewBox="0 0 420 443" fill="none">
+      <rect width="420" height="443" fill={color}/>
+      <path d="M40 60 H200 C260 60 300 100 300 160 C300 220 260 260 200 260 H120 V360 H40 Z M120 180 H190 C210 180 220 172 220 160 C220 148 210 140 190 140 H120 Z" fill="white"/>
+      <path d="M40 220 H200 C260 220 300 260 300 320 C300 380 260 420 200 420 H120 V520 H40 Z M120 340 H190 C210 340 220 332 220 320 C220 308 210 300 190 300 H120 Z" fill="white" transform="translate(0 60)"/>
+      <text x="230" y="310" fontFamily="sans-serif" fontWeight="700" fontSize="72" fill="white">EM</text>
+      <text x="230" y="380" fontFamily="sans-serif" fontWeight="700" fontSize="72" fill="white">POW</text>
+      <text x="230" y="450" fontFamily="sans-serif" fontWeight="700" fontSize="72" fill="white">ER</text>
+    </svg>
+  );
+}
+
+// ─── V1: CLEAN / LINEAR ─────────────────────────────────────────
+function DashboardClean({ activeNav, onNav, showSessionModal, onShowModal }) {
+  const bg = "#ffffff";
+  const sidebar = "#fafafa";
+  const border = "#e5e7eb";
+  const text = "#111827";
+  const muted = "#6b7280";
+  const green = "#20dc95";
+  const greenLight = "#f0fdf8";
+
+  return (
+    <div style={{ display:"flex", height:"100%", background: bg, fontFamily:"'Plus Jakarta Sans', sans-serif", fontSize:13 }}>
+      {/* Sidebar */}
+      <div style={{ width:220, background: sidebar, borderRight:`1px solid ${border}`, display:"flex", flexDirection:"column", padding:"20px 12px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 8px", marginBottom:28 }}>
+          <div style={{ width:28, height:28, background: green, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <span style={{ color:"white", fontWeight:800, fontSize:11 }}>P</span>
+          </div>
+          <span style={{ fontWeight:700, fontSize:14, color: text }}>POP Empower</span>
+        </div>
+
+        <div style={{ flex:1, display:"flex", flexDirection:"column", gap:2 }}>
+          {NAV.map(n => {
+            const active = activeNav === n.id;
+            return (
+              <button key={n.id} onClick={() => onNav(n.id)} style={{
+                display:"flex", alignItems:"center", gap:10, padding:"8px 10px",
+                borderRadius:7, border:"none", cursor:"pointer", textAlign:"left",
+                background: active ? greenLight : "transparent",
+                color: active ? "#065f46" : muted,
+                fontWeight: active ? 600 : 400, fontSize:13,
+                fontFamily:"inherit", position:"relative"
+              }}>
+                <span style={{ fontSize:15, width:18, textAlign:"center" }}>{n.icon}</span>
+                {n.label}
+                {n.badge && <span style={{ marginLeft:"auto", background: green, color:"#065f46", borderRadius:10, padding:"1px 6px", fontSize:11, fontWeight:700 }}>{n.badge}</span>}
+                {active && <div style={{ position:"absolute", right:0, top:"50%", transform:"translateY(-50%)", width:3, height:20, background: green, borderRadius:2 }}/>}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ borderTop:`1px solid ${border}`, paddingTop:12, display:"flex", alignItems:"center", gap:9 }}>
+          <div style={{ width:30, height:30, borderRadius:"50%", background: green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"#065f46", flexShrink:0 }}>AM</div>
+          <div>
+            <div style={{ fontWeight:600, fontSize:12, color: text }}>Ana Martínez</div>
+            <div style={{ fontSize:11, color: muted }}>Paciente</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+        {/* Topbar */}
+        <div style={{ height:52, borderBottom:`1px solid ${border}`, display:"flex", alignItems:"center", padding:"0 24px", gap:16 }}>
+          <span style={{ flex:1, fontWeight:600, fontSize:14, color: text }}>Buenos días, Ana ☀️</span>
+          <div style={{ width:28, height:28, borderRadius:6, border:`1px solid ${border}`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color: muted }}>🔔</div>
+        </div>
+
+        {/* Content */}
+        <div style={{ flex:1, padding:"20px 24px", display:"flex", flexDirection:"column", gap:16, overflow:"hidden" }}>
+          {/* Top row */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+            {/* Next session */}
+            <div style={{ gridColumn:"span 2", border:`1px solid ${border}`, borderRadius:10, padding:"16px 20px", background:"#fff" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div>
+                  <div style={{ fontSize:11, color: muted, fontWeight:500, textTransform:"uppercase", letterSpacing:.5, marginBottom:6 }}>Próxima sesión</div>
+                  <div style={{ fontWeight:700, fontSize:18, color: text, marginBottom:2 }}>{DATA.nextSession.date}</div>
+                  <div style={{ fontSize:13, color: muted }}>{DATA.nextSession.time} · {DATA.therapist.name}</div>
+                </div>
+                <button onClick={onShowModal} style={{ background: green, color:"#065f46", border:"none", borderRadius:7, padding:"9px 18px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
+                  Entrar →
+                </button>
+              </div>
+              <div style={{ marginTop:12, display:"flex", gap:8 }}>
+                <span style={{ background: greenLight, color:"#065f46", borderRadius:5, padding:"2px 8px", fontSize:11, fontWeight:600 }}>Confirmada</span>
+                <span style={{ background:"#f3f4f6", color: muted, borderRadius:5, padding:"2px 8px", fontSize:11 }}>Videollamada</span>
+              </div>
+            </div>
+
+            {/* Bono */}
+            <div style={{ border:`1px solid ${border}`, borderRadius:10, padding:"16px 20px" }}>
+              <div style={{ fontSize:11, color: muted, fontWeight:500, textTransform:"uppercase", letterSpacing:.5, marginBottom:10 }}>Tu bono</div>
+              <div style={{ fontWeight:800, fontSize:24, color: text }}>{DATA.bono.used}<span style={{ fontSize:14, fontWeight:400, color: muted }}>/{DATA.bono.total}</span></div>
+              <div style={{ fontSize:11, color: muted, marginBottom:8 }}>sesiones usadas</div>
+              <div style={{ height:4, background:"#f3f4f6", borderRadius:2 }}>
+                <div style={{ height:"100%", width:`${(DATA.bono.used/DATA.bono.total)*100}%`, background: green, borderRadius:2 }}/>
+              </div>
+              <div style={{ fontSize:11, color: muted, marginTop:6 }}>Caduca {DATA.bono.expiry}</div>
+            </div>
+          </div>
+
+          {/* Middle row */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, flex:1 }}>
+            {/* Messages */}
+            <div style={{ border:`1px solid ${border}`, borderRadius:10, padding:"16px 20px", overflow:"hidden" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+                <span style={{ fontSize:11, color: muted, fontWeight:500, textTransform:"uppercase", letterSpacing:.5 }}>Mensajes</span>
+                <span style={{ background: green, color:"#065f46", borderRadius:10, padding:"1px 7px", fontSize:11, fontWeight:700 }}>2</span>
+              </div>
+              {DATA.messages.map((m, i) => (
+                <div key={i} style={{ display:"flex", gap:10, paddingBottom:10, marginBottom:10, borderBottom: i < DATA.messages.length-1 ? `1px solid ${border}` : "none" }}>
+                  <div style={{ width:28, height:28, borderRadius:"50%", background: green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#065f46", flexShrink:0 }}>{DATA.therapist.initials}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:600, fontSize:12, color: text, marginBottom:2 }}>{DATA.therapist.name}</div>
+                    <div style={{ fontSize:11, color: muted, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{m.text}</div>
+                  </div>
+                  <div style={{ fontSize:10, color: muted, whiteSpace:"nowrap" }}>{m.time}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Objetivos */}
+            <div style={{ border:`1px solid ${border}`, borderRadius:10, padding:"16px 20px" }}>
+              <div style={{ fontSize:11, color: muted, fontWeight:500, textTransform:"uppercase", letterSpacing:.5, marginBottom:12 }}>Mi progreso</div>
+              {DATA.objectives.map((o, i) => (
+                <div key={i} style={{ marginBottom:12 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                    <span style={{ fontSize:12, color: text, fontWeight:500 }}>{o.title}</span>
+                    <span style={{ fontSize:11, color: muted }}>{o.pct}%</span>
+                  </div>
+                  <div style={{ height:3, background:"#f3f4f6", borderRadius:2 }}>
+                    <div style={{ height:"100%", width:`${o.pct}%`, background: green, borderRadius:2 }}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── V2: WARM / CALM ─────────────────────────────────────────────
+function DashboardWarm({ activeNav, onNav, showSessionModal, onShowModal }) {
+  const bg = "#f5fdf9";
+  const cardBg = "#ffffff";
+  const green = "#20dc95";
+  const darkGreen = "#065f46";
+  const text = "#1a2e27";
+  const muted = "#6b9988";
+  const radius = 16;
+
+  return (
+    <div style={{ display:"flex", height:"100%", background: bg, fontFamily:"'Plus Jakarta Sans', sans-serif", fontSize:13 }}>
+      {/* Sidebar */}
+      <div style={{ width:72, background:"#ffffff", display:"flex", flexDirection:"column", alignItems:"center", padding:"20px 0", boxShadow:"2px 0 8px rgba(0,0,0,0.04)" }}>
+        <div style={{ width:40, height:40, background: green, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:32, boxShadow:`0 4px 12px ${green}55` }}>
+          <span style={{ color:"white", fontWeight:800, fontSize:15 }}>P</span>
+        </div>
+
+        {NAV.map(n => {
+          const active = activeNav === n.id;
+          return (
+            <button key={n.id} onClick={() => onNav(n.id)} title={n.label} style={{
+              width:44, height:44, borderRadius:12, border:"none", cursor:"pointer",
+              background: active ? "#f0fdf8" : "transparent",
+              color: active ? darkGreen : muted,
+              fontSize:17, marginBottom:4, position:"relative",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              transition:"background .15s"
+            }}>
+              {n.icon}
+              {n.badge && <div style={{ position:"absolute", top:6, right:6, width:8, height:8, background: green, borderRadius:"50%" }}/>}
+            </button>
+          );
+        })}
+
+        <div style={{ marginTop:"auto" }}>
+          <div style={{ width:36, height:36, borderRadius:"50%", background: green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color: darkGreen }}>AM</div>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div style={{ flex:1, padding:"24px 28px", overflow:"hidden", display:"flex", flexDirection:"column", gap:20 }}>
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+          <div>
+            <div style={{ fontSize:22, fontWeight:800, color: text, marginBottom:2 }}>Hola, Ana 👋</div>
+            <div style={{ fontSize:13, color: muted }}>Tu próxima sesión es mañana</div>
+          </div>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <div style={{ background: cardBg, borderRadius:10, padding:"7px 14px", fontSize:12, color: text, fontWeight:600, boxShadow:"0 1px 4px rgba(0,0,0,0.06)", cursor:"pointer" }}>
+              🔔 <span style={{ background: green, color: darkGreen, borderRadius:10, padding:"1px 6px", fontSize:11, fontWeight:700, marginLeft:4 }}>2</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Session card */}
+        <div style={{ background:`linear-gradient(135deg, #20dc95 0%, #0bbf7a 100%)`, borderRadius:20, padding:"22px 24px", color:"white", boxShadow:`0 8px 24px ${green}44` }}>
+          <div style={{ fontSize:12, opacity:.8, marginBottom:8, fontWeight:500 }}>PRÓXIMA SESIÓN</div>
+          <div style={{ fontSize:20, fontWeight:800, marginBottom:4 }}>{DATA.nextSession.date} · {DATA.nextSession.time}</div>
+          <div style={{ fontSize:13, opacity:.85, marginBottom:18 }}>con {DATA.therapist.name} · {DATA.therapist.specialty}</div>
+          <div style={{ display:"flex", gap:10 }}>
+            <button onClick={onShowModal} style={{ background:"white", color: darkGreen, border:"none", borderRadius:10, padding:"10px 22px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              Entrar a la sesión →
+            </button>
+            <button style={{ background:"rgba(255,255,255,.2)", color:"white", border:"none", borderRadius:10, padding:"10px 16px", fontWeight:600, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              Reagendar
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom grid */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, flex:1 }}>
+          {/* Bono */}
+          <div style={{ background: cardBg, borderRadius:radius, padding:"18px 20px", boxShadow:"0 2px 8px rgba(0,0,0,0.05)" }}>
+            <div style={{ fontSize:11, color: muted, fontWeight:600, textTransform:"uppercase", letterSpacing:.6, marginBottom:12 }}>Tu bono</div>
+            <div style={{ display:"flex", gap:2, marginBottom:8 }}>
+              {Array.from({length: DATA.bono.total}).map((_, i) => (
+                <div key={i} style={{ flex:1, height:6, borderRadius:3, background: i < DATA.bono.used ? green : "#e6f7f0" }}/>
+              ))}
+            </div>
+            <div style={{ fontSize:24, fontWeight:800, color: text }}>{DATA.bono.total - DATA.bono.used} <span style={{ fontSize:13, fontWeight:400, color: muted }}>restantes</span></div>
+            <div style={{ fontSize:11, color: muted, marginTop:4 }}>Caduca el {DATA.bono.expiry}</div>
+          </div>
+
+          {/* Messages */}
+          <div style={{ background: cardBg, borderRadius:radius, padding:"18px 20px", boxShadow:"0 2px 8px rgba(0,0,0,0.05)" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <span style={{ fontSize:11, color: muted, fontWeight:600, textTransform:"uppercase", letterSpacing:.6 }}>Mensajes</span>
+              <span style={{ background:"#f0fdf8", color: darkGreen, borderRadius:8, padding:"2px 8px", fontSize:11, fontWeight:700 }}>2 nuevos</span>
+            </div>
+            {DATA.messages.map((m, i) => (
+              <div key={i} style={{ display:"flex", gap:8, marginBottom:10 }}>
+                <div style={{ width:26, height:26, borderRadius:"50%", background: green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color: darkGreen, flexShrink:0 }}>EG</div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:11, color: text, fontWeight:600, marginBottom:1 }}>{DATA.therapist.name}</div>
+                  <div style={{ fontSize:11, color: muted, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{m.text}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Progreso */}
+          <div style={{ background: cardBg, borderRadius:radius, padding:"18px 20px", boxShadow:"0 2px 8px rgba(0,0,0,0.05)" }}>
+            <div style={{ fontSize:11, color: muted, fontWeight:600, textTransform:"uppercase", letterSpacing:.6, marginBottom:12 }}>Mi progreso</div>
+            {DATA.objectives.map((o, i) => (
+              <div key={i} style={{ marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                  <span style={{ fontSize:11, color: text, fontWeight:500 }}>{o.title}</span>
+                  <span style={{ fontSize:11, color: muted }}>{o.pct}%</span>
+                </div>
+                <div style={{ height:4, background:"#e6f7f0", borderRadius:4 }}>
+                  <div style={{ height:"100%", width:`${o.pct}%`, background: green, borderRadius:4 }}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── V3: BOLD / SAAS ─────────────────────────────────────────────
+function DashboardBold({ activeNav, onNav, showSessionModal, onShowModal }) {
+  const sidebarBg = "#0f172a";
+  const mainBg = "#f8fafc";
+  const cardBg = "#ffffff";
+  const green = "#20dc95";
+  const text = "#0f172a";
+  const muted = "#64748b";
+  const border = "#e2e8f0";
+
+  return (
+    <div style={{ display:"flex", height:"100%", fontFamily:"'Plus Jakarta Sans', sans-serif", fontSize:13 }}>
+      {/* Dark Sidebar */}
+      <div style={{ width:240, background: sidebarBg, display:"flex", flexDirection:"column", padding:"20px 16px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"4px 8px", marginBottom:32 }}>
+          <div style={{ width:30, height:30, background: green, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <span style={{ color: sidebarBg, fontWeight:800, fontSize:13 }}>P</span>
+          </div>
+          <span style={{ fontWeight:700, fontSize:14, color:"white" }}>POP Empower</span>
+        </div>
+
+        <div style={{ fontSize:10, color:"#475569", fontWeight:600, textTransform:"uppercase", letterSpacing:1, padding:"0 8px", marginBottom:8 }}>Principal</div>
+
+        {NAV.map(n => {
+          const active = activeNav === n.id;
+          return (
+            <button key={n.id} onClick={() => onNav(n.id)} style={{
+              display:"flex", alignItems:"center", gap:10, padding:"9px 10px",
+              borderRadius:8, border:"none", cursor:"pointer", textAlign:"left",
+              background: active ? "rgba(32,220,149,.12)" : "transparent",
+              color: active ? green : "#94a3b8",
+              fontWeight: active ? 600 : 400, fontSize:13,
+              fontFamily:"inherit", marginBottom:2, position:"relative"
+            }}>
+              <span style={{ fontSize:15, width:18, textAlign:"center" }}>{n.icon}</span>
+              {n.label}
+              {n.badge && <span style={{ marginLeft:"auto", background: green, color: sidebarBg, borderRadius:10, padding:"1px 6px", fontSize:11, fontWeight:700 }}>{n.badge}</span>}
+            </button>
+          );
+        })}
+
+        <div style={{ marginTop:"auto", padding:"12px 8px", borderTop:"1px solid #1e293b", display:"flex", alignItems:"center", gap:9 }}>
+          <div style={{ width:32, height:32, borderRadius:"50%", background: green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color: sidebarBg }}>AM</div>
+          <div>
+            <div style={{ fontWeight:600, fontSize:12, color:"white" }}>Ana Martínez</div>
+            <div style={{ fontSize:11, color:"#475569" }}>Plan Pro · 12 sesiones</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div style={{ flex:1, background: mainBg, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        {/* Topbar */}
+        <div style={{ height:56, background:"white", borderBottom:`1px solid ${border}`, display:"flex", alignItems:"center", padding:"0 28px", gap:16 }}>
+          <div style={{ flex:1 }}>
+            <span style={{ fontWeight:700, fontSize:15, color: text }}>Dashboard</span>
+            <span style={{ color: muted, marginLeft:8, fontSize:13 }}>Martes, 22 de abril 2026</span>
+          </div>
+          <button style={{ background: green, color:"#065f46", border:"none", borderRadius:8, padding:"8px 16px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
+            + Nueva sesión
+          </button>
+          <div style={{ width:34, height:34, borderRadius:8, border:`1px solid ${border}`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:15 }}>🔔</div>
+        </div>
+
+        {/* Content */}
+        <div style={{ flex:1, padding:"24px 28px", overflow:"hidden", display:"flex", flexDirection:"column", gap:16 }}>
+          {/* Stats row */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:14 }}>
+            {[
+              { label:"Sesiones completadas", val:"4", sub:"de 12 en tu bono" },
+              { label:"Próxima sesión", val:"Mañana", sub:"18:00 · Dra. García" },
+              { label:"Días activo", val:"23", sub:"desde tu alta" },
+              { label:"Racha actual", val:"4 sem", sub:"de constancia 🔥" },
+            ].map((s, i) => (
+              <div key={i} style={{ background: cardBg, border:`1px solid ${border}`, borderRadius:10, padding:"14px 18px" }}>
+                <div style={{ fontSize:11, color: muted, marginBottom:6, fontWeight:500 }}>{s.label}</div>
+                <div style={{ fontSize:22, fontWeight:800, color: text, marginBottom:2 }}>{s.val}</div>
+                <div style={{ fontSize:11, color: muted }}>{s.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Main row */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:16, flex:1 }}>
+            {/* Left */}
+            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              {/* Next session banner */}
+              <div style={{ background: cardBg, border:`1px solid ${border}`, borderRadius:10, padding:"18px 22px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div>
+                    <div style={{ fontSize:11, color: muted, fontWeight:500, marginBottom:6, textTransform:"uppercase", letterSpacing:.5 }}>Próxima sesión programada</div>
+                    <div style={{ fontSize:18, fontWeight:800, color: text }}>{DATA.nextSession.date} a las {DATA.nextSession.time}</div>
+                    <div style={{ fontSize:13, color: muted, marginTop:3 }}>{DATA.therapist.name} · {DATA.therapist.specialty}</div>
+                  </div>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button style={{ background:"#f1f5f9", color: text, border:"none", borderRadius:8, padding:"9px 16px", fontWeight:600, fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>Reagendar</button>
+                    <button onClick={onShowModal} style={{ background: green, color:"#065f46", border:"none", borderRadius:8, padding:"9px 20px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+                      Entrar a sesión →
+                    </button>
+                  </div>
+                </div>
+                <div style={{ marginTop:12, display:"flex", gap:6 }}>
+                  <span style={{ background:"#f0fdf8", color:"#065f46", borderRadius:5, padding:"3px 10px", fontSize:11, fontWeight:600, border:"1px solid #bbf7d0" }}>✓ Confirmada</span>
+                  <span style={{ background:"#f8fafc", color: muted, borderRadius:5, padding:"3px 10px", fontSize:11, border:`1px solid ${border}` }}>Videollamada · 50 min</span>
+                  <span style={{ background:"#f8fafc", color: muted, borderRadius:5, padding:"3px 10px", fontSize:11, border:`1px solid ${border}` }}>Recordatorio activado</span>
+                </div>
+              </div>
+
+              {/* Session history */}
+              <div style={{ background: cardBg, border:`1px solid ${border}`, borderRadius:10, padding:"18px 22px", flex:1 }}>
+                <div style={{ fontWeight:700, fontSize:13, color: text, marginBottom:14 }}>Historial de sesiones</div>
+                <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                  <thead>
+                    <tr style={{ borderBottom:`1px solid ${border}` }}>
+                      {["Fecha","Psicólogo","Duración","Estado"].map(h => (
+                        <th key={h} style={{ textAlign:"left", padding:"0 0 8px", fontSize:11, color: muted, fontWeight:500 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {DATA.sessions.map((s, i) => (
+                      <tr key={i} style={{ borderBottom: i < DATA.sessions.length-1 ? `1px solid ${border}` : "none" }}>
+                        <td style={{ padding:"10px 0", color: text, fontWeight:500, fontSize:12 }}>{s.date} 2026</td>
+                        <td style={{ padding:"10px 0", color: muted, fontSize:12 }}>{DATA.therapist.name}</td>
+                        <td style={{ padding:"10px 0", color: muted, fontSize:12 }}>{s.mins} min</td>
+                        <td style={{ padding:"10px 0" }}>
+                          <span style={{ background:"#f0fdf8", color:"#065f46", borderRadius:4, padding:"2px 8px", fontSize:11, fontWeight:600 }}>{s.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Right column */}
+            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              {/* Progress */}
+              <div style={{ background: cardBg, border:`1px solid ${border}`, borderRadius:10, padding:"18px 20px" }}>
+                <div style={{ fontWeight:700, fontSize:13, color: text, marginBottom:14 }}>Objetivos terapéuticos</div>
+                {DATA.objectives.map((o, i) => (
+                  <div key={i} style={{ marginBottom:12 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                      <span style={{ fontSize:12, color: text, fontWeight:500 }}>{o.title}</span>
+                      <span style={{ fontSize:12, color: green, fontWeight:700 }}>{o.pct}%</span>
+                    </div>
+                    <div style={{ height:5, background:"#f1f5f9", borderRadius:3 }}>
+                      <div style={{ height:"100%", width:`${o.pct}%`, background: green, borderRadius:3 }}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Messages */}
+              <div style={{ background: cardBg, border:`1px solid ${border}`, borderRadius:10, padding:"18px 20px", flex:1 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14 }}>
+                  <span style={{ fontWeight:700, fontSize:13, color: text }}>Mensajes</span>
+                  <span style={{ background:"#f0fdf8", color:"#065f46", borderRadius:6, padding:"2px 8px", fontSize:11, fontWeight:700, border:"1px solid #bbf7d0" }}>2 sin leer</span>
+                </div>
+                {DATA.messages.map((m, i) => (
+                  <div key={i} style={{ display:"flex", gap:10, padding:"10px 0", borderBottom: i < DATA.messages.length-1 ? `1px solid ${border}` : "none" }}>
+                    <div style={{ width:32, height:32, borderRadius:"50%", background: green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#065f46", flexShrink:0 }}>EG</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:600, fontSize:12, color: text, marginBottom:3 }}>{DATA.therapist.name} <span style={{ fontSize:10, color: muted, fontWeight:400 }}>{m.time}</span></div>
+                      <div style={{ fontSize:11, color: muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.text}</div>
+                    </div>
+                  </div>
+                ))}
+                <button style={{ marginTop:12, width:"100%", background:"#f8fafc", color: muted, border:`1px solid ${border}`, borderRadius:8, padding:"8px", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>
+                  Abrir chat →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SESSION MODAL ─────────────────────────────────────────────
+function SessionModal({ onClose, variant }) {
+  const green = "#20dc95";
+  const darkGreen = "#065f46";
+  const isDark = variant === "bold";
+
+  return (
+    <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,.45)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, backdropFilter:"blur(4px)" }}>
+      <div style={{ background:"white", borderRadius:16, padding:"32px", width:380, boxShadow:"0 20px 60px rgba(0,0,0,.2)", textAlign:"center" }}>
+        <div style={{ width:64, height:64, background: green, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 20px" }}>🎥</div>
+        <div style={{ fontWeight:800, fontSize:18, color:"#0f172a", marginBottom:8 }}>Sesión con {DATA.therapist.name}</div>
+        <div style={{ color:"#64748b", fontSize:13, marginBottom:24 }}>{DATA.nextSession.date} · {DATA.nextSession.time}</div>
+        <div style={{ background:"#f0fdf8", border:"1px solid #bbf7d0", borderRadius:10, padding:"12px 16px", marginBottom:24, textAlign:"left" }}>
+          <div style={{ fontSize:12, color:"#065f46", fontWeight:600, marginBottom:4 }}>Antes de entrar</div>
+          <div style={{ fontSize:11, color:"#4b7a65" }}>✓ Comprueba tu cámara y micrófono</div>
+          <div style={{ fontSize:11, color:"#4b7a65", marginTop:3 }}>✓ Busca un lugar tranquilo y privado</div>
+          <div style={{ fontSize:11, color:"#4b7a65", marginTop:3 }}>✓ La sesión dura 50 minutos</div>
+        </div>
+        <div style={{ display:"flex", gap:10 }}>
+          <button onClick={onClose} style={{ flex:1, background:"#f1f5f9", color:"#64748b", border:"none", borderRadius:10, padding:"12px", fontWeight:600, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Cancelar</button>
+          <button style={{ flex:2, background: green, color: darkGreen, border:"none", borderRadius:10, padding:"12px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+            Entrar ahora →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── WRAPPER per variant ─────────────────────────────────────
+function DashboardWrapper({ variant }) {
+  const [activeNav, setActiveNav] = useState("inicio");
+  const [showModal, setShowModal] = useState(false);
+
+  const commonProps = { activeNav, onNav: setActiveNav, showSessionModal: showModal, onShowModal: () => setShowModal(true) };
+
+  return (
+    <div style={{ width:"100%", height:"100%", position:"relative", overflow:"hidden" }}>
+      {variant === "clean" && <DashboardClean {...commonProps}/>}
+      {variant === "warm"  && <DashboardWarm  {...commonProps}/>}
+      {variant === "bold"  && <DashboardBold  {...commonProps}/>}
+      {showModal && <SessionModal onClose={() => setShowModal(false)} variant={variant}/>}
+    </div>
+  );
+}
+
+// ─── TWEAKS ──────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "showLabels": true,
+  "artboardScale": 0.72
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+
+  useEffect(() => {
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    window.addEventListener('message', e => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    });
+  }, []);
+
+  const updateTweak = (key, val) => {
+    const next = { ...tweaks, [key]: val };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+
+  const W = 1300, H = 820;
+
+  return (
+    <>
+      <DesignCanvas>
+        <DCSection id="variants" title="Dashboard del paciente — 3 variaciones">
+          <DCArtboard id="v1" label="Clean / Minimal" width={W} height={H}>
+            <DashboardWrapper variant="clean"/>
+          </DCArtboard>
+          <DCArtboard id="v2" label="Warm / Wellness" width={W} height={H}>
+            <DashboardWrapper variant="warm"/>
+          </DCArtboard>
+          <DCArtboard id="v3" label="Bold SaaS / Pro" width={W} height={H}>
+            <DashboardWrapper variant="bold"/>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      {tweaksOpen && (
+        <div style={{ position:"fixed", bottom:20, right:20, background:"white", border:"1px solid #e2e8f0", borderRadius:12, padding:"16px 18px", width:220, boxShadow:"0 8px 24px rgba(0,0,0,.12)", zIndex:9999, fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13 }}>
+          <div style={{ fontWeight:700, marginBottom:12 }}>Tweaks</div>
+          <label style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, color:"#374151" }}>
+            Etiquetas de sección
+            <input type="checkbox" checked={tweaks.showLabels} onChange={e => updateTweak("showLabels", e.target.checked)}/>
+          </label>
+          <label style={{ display:"block", color:"#374151", marginBottom:6 }}>Escala artboard: {Math.round(tweaks.artboardScale*100)}%</label>
+          <input type="range" min={0.4} max={1} step={0.04} value={tweaks.artboardScale} onChange={e => updateTweak("artboardScale", +e.target.value)} style={{ width:"100%" }}/>
+        </div>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<div id="root"></div>
+</body>
+</html>

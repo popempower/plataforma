@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Sala de Sesión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0d1117; overflow: hidden; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const T = {
+  green:'#20dc95', greenDark:'#0bbf7a', greenDeep:'#065f46', greenLight:'#f0fdf8',
+  white:'#ffffff', gray50:'#fafafa', gray100:'#f3f4f6', gray200:'#e5e7eb',
+  gray400:'#9ca3af', gray500:'#6b7280', gray700:'#374151', gray900:'#111827',
+  dark:'#0d1117', dark2:'#161b22', dark3:'#21262d', dark4:'#30363d',
+  red:'#ef4444', amber:'#f59e0b',
+};
+
+// ── TIMER HOOK ────────────────────────────────────────────────────
+function useTimer(running) {
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => setSecs(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+  const m = String(Math.floor(secs / 60)).padStart(2,'0');
+  const s = String(secs % 60).padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+// ── CHAT MESSAGES ─────────────────────────────────────────────────
+const CHAT_INIT = [
+  { from:'psych', text:'Hola Ana, ¿cómo te encuentras hoy?', time:'18:00' },
+  { from:'patient', text:'Hola Elena, bien aunque un poco tensa esta semana', time:'18:01' },
+  { from:'psych', text:'Cuéntame qué ha pasado. ¿Fue algo concreto o más general?', time:'18:01' },
+];
+
+// ── VIDEO TILE ─────────────────────────────────────────────────────
+const VideoTile = ({ label, initials, muted: isMuted, camOff, main, onClick, style }) => {
+  const bg = main ? '#1c2333' : '#161b22';
+  return (
+    <div onClick={onClick} style={{ position:'relative', borderRadius: main ? 12 : 10, overflow:'hidden', background:bg, display:'flex', alignItems:'center', justifyContent:'center', cursor: onClick ? 'pointer' : 'default', ...style }}>
+      {camOff ? (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+          <div style={{ width: main ? 80 : 44, height: main ? 80 : 44, borderRadius:'50%', background:T.green, display:'flex', alignItems:'center', justifyContent:'center', fontSize: main ? 28 : 16, fontWeight:800, color:T.greenDeep }}>{initials}</div>
+          <span style={{ fontSize: main ? 14 : 11, color:'rgba(255,255,255,.5)', fontWeight:500 }}>{label}</span>
+        </div>
+      ) : (
+        <>
+          {/* Simulated video bg */}
+          <div style={{ position:'absolute', inset:0, background:`linear-gradient(135deg, ${bg} 0%, #1a2540 100%)`, opacity:.9 }}/>
+          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ width: main ? 90 : 50, height: main ? 90 : 50, borderRadius:'50%', background:T.green, display:'flex', alignItems:'center', justifyContent:'center', fontSize: main ? 32 : 18, fontWeight:800, color:T.greenDeep, opacity:.85 }}>{initials}</div>
+          </div>
+          {/* subtle scan lines for "video" feel */}
+          <div style={{ position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.015) 2px, rgba(255,255,255,.015) 4px)' }}/>
+        </>
+      )}
+      {/* Label */}
+      <div style={{ position:'absolute', bottom:10, left:12, display:'flex', alignItems:'center', gap:6 }}>
+        <span style={{ fontSize: main ? 12 : 10, color:'rgba(255,255,255,.8)', fontWeight:600, background:'rgba(0,0,0,.4)', borderRadius:5, padding:'2px 8px', backdropFilter:'blur(4px)' }}>{label}</span>
+        {isMuted && <span style={{ background:'rgba(0,0,0,.5)', borderRadius:4, padding:'2px 5px', fontSize:10 }}>🔇</span>}
+      </div>
+      {/* Active speaking ring */}
+      {main && !isMuted && <div style={{ position:'absolute', inset:0, borderRadius:12, border:`2px solid ${T.green}`, opacity:.4, animation:'pulse 2s infinite' }}/>}
+    </div>
+  );
+};
+
+// ── END SESSION MODAL ─────────────────────────────────────────────
+function EndModal({ onClose, isPsych }) {
+  const [status, setStatus] = useState('realizada');
+  const [note, setNote] = useState('');
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:300, backdropFilter:'blur(8px)', animation:'fadeIn .2s ease' }}>
+      <div style={{ background:'#161b22', border:'1px solid #30363d', borderRadius:16, width:420, overflow:'hidden', boxShadow:'0 24px 64px rgba(0,0,0,.5)' }}>
+        <div style={{ padding:'20px 24px', borderBottom:'1px solid #30363d' }}>
+          <div style={{ fontWeight:700, fontSize:16, color:T.white }}>Finalizar sesión</div>
+          <div style={{ fontSize:12, color:'rgba(255,255,255,.4)', marginTop:2 }}>Ana Martínez · Duración: 52 min</div>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+          {isPsych ? (
+            <>
+              <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,.6)', marginBottom:8 }}>Estado de la sesión</div>
+              <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+                {[['realizada','Realizada'],['no_presentado','No presentado'],['cancelada','Cancelada']].map(([val,lbl]) => (
+                  <button key={val} onClick={() => setStatus(val)} style={{ flex:1, padding:'8px 4px', borderRadius:8, border:`1.5px solid ${status===val ? T.green : '#30363d'}`, background: status===val ? 'rgba(32,220,149,.1)' : 'transparent', color: status===val ? T.green : 'rgba(255,255,255,.5)', fontWeight:600, fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,.6)', marginBottom:6 }}>Notas de cierre</div>
+              <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Resumen de la sesión, próximos pasos..." style={{ width:'100%', height:80, padding:10, borderRadius:8, border:'1px solid #30363d', background:'#0d1117', fontFamily:'inherit', fontSize:12, color:T.white, resize:'none', outline:'none' }}/>
+              <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,.6)', margin:'12px 0 6px' }}>Próxima sesión</div>
+              <div style={{ display:'flex', gap:8 }}>
+                <button style={{ flex:2, padding:'9px', borderRadius:8, border:'none', background:T.green, color:T.greenDeep, fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Programar ahora</button>
+                <button style={{ flex:1, padding:'9px', borderRadius:8, border:'1px solid #30363d', background:'transparent', color:'rgba(255,255,255,.5)', fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Después</button>
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign:'center', padding:'8px 0 16px' }}>
+              <div style={{ fontSize:40, marginBottom:12 }}>🙏</div>
+              <div style={{ fontWeight:700, fontSize:16, color:T.white, marginBottom:6 }}>¡Sesión completada!</div>
+              <div style={{ fontSize:13, color:'rgba(255,255,255,.5)', lineHeight:1.5 }}>Tu psicóloga Elena se pondrá en contacto contigo para programar la próxima sesión.</div>
+            </div>
+          )}
+        </div>
+        <div style={{ padding:'12px 24px', borderTop:'1px solid #30363d', display:'flex', justifyContent:'flex-end', gap:8 }}>
+          <button onClick={onClose} style={{ padding:'8px 16px', borderRadius:8, border:'1px solid #30363d', background:'transparent', color:'rgba(255,255,255,.5)', fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Volver</button>
+          <button onClick={onClose} style={{ padding:'8px 20px', borderRadius:8, border:'none', background:T.red, color:'white', fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Salir de la sesión</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────
+function App() {
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
+  const [chatOpen, setChatOpen] = useState(true);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [endModal, setEndModal] = useState(false);
+  const [isPsych, setIsPsych] = useState(true);
+  const [msgs, setMsgs] = useState(CHAT_INIT);
+  const [input, setInput] = useState('');
+  const [noteText, setNoteText] = useState('');
+  const [activePanel, setActivePanel] = useState('chat'); // chat | notes | objectives
+  const timer = useTimer(true);
+  const chatRef = useRef(null);
+
+  const sendMsg = () => {
+    if (!input.trim()) return;
+    setMsgs(m => [...m, { from: isPsych ? 'psych' : 'patient', text: input.trim(), time: new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) }]);
+    setInput('');
+    setTimeout(() => { if (chatRef.current) chatRef.current.scrollTop = 9999; }, 50);
+  };
+
+  const panelBtnStyle = (id) => ({
+    padding:'6px 12px', borderRadius:6, border:'none', fontFamily:'inherit', fontSize:12, fontWeight:600,
+    cursor:'pointer', background: activePanel===id ? 'rgba(32,220,149,.15)' : 'transparent',
+    color: activePanel===id ? T.green : 'rgba(255,255,255,.4)',
+  });
+
+  return (
+    <div style={{ height:'100vh', display:'flex', flexDirection:'column', background:T.dark, color:T.white, fontFamily:"'Plus Jakarta Sans',sans-serif", overflow:'hidden' }}>
+
+      {/* TOP BAR */}
+      <div style={{ height:50, background:T.dark2, borderBottom:'1px solid #21262d', display:'flex', alignItems:'center', padding:'0 20px', gap:16, flexShrink:0 }}>
+        <div style={{ width:24, height:24, background:T.green, borderRadius:5, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <span style={{ color:'white', fontWeight:800, fontSize:9 }}>P</span>
+        </div>
+        <div style={{ flex:1, display:'flex', alignItems:'center', gap:16 }}>
+          <span style={{ fontWeight:700, fontSize:13 }}>Sesión activa</span>
+          <span style={{ color:'rgba(255,255,255,.3)', fontSize:12 }}>Ana Martínez · {isPsych ? 'Dra. Elena García' : 'Paciente'}</span>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <div style={{ width:7, height:7, borderRadius:'50%', background:T.green, animation:'pulse 2s infinite' }}/>
+            <span style={{ fontSize:12, color:T.green, fontWeight:600, fontFamily:'monospace' }}>{timer}</span>
+          </div>
+        </div>
+        {/* View toggle for demo */}
+        <div style={{ display:'flex', gap:4, background:'#21262d', borderRadius:8, padding:4 }}>
+          <button onClick={() => setIsPsych(true)} style={{ padding:'4px 10px', borderRadius:5, border:'none', fontSize:11, cursor:'pointer', fontFamily:'inherit', fontWeight:600, background: isPsych ? T.green : 'transparent', color: isPsych ? T.greenDeep : 'rgba(255,255,255,.4)' }}>Psicólogo</button>
+          <button onClick={() => setIsPsych(false)} style={{ padding:'4px 10px', borderRadius:5, border:'none', fontSize:11, cursor:'pointer', fontFamily:'inherit', fontWeight:600, background: !isPsych ? T.green : 'transparent', color: !isPsych ? T.greenDeep : 'rgba(255,255,255,.4)' }}>Paciente</button>
+        </div>
+        <button onClick={() => setEndModal(true)} style={{ background:'rgba(239,68,68,.15)', color:T.red, border:'1px solid rgba(239,68,68,.3)', borderRadius:8, padding:'5px 14px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>Finalizar</button>
+      </div>
+
+      {/* MAIN AREA */}
+      <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+
+        {/* VIDEO AREA */}
+        <div style={{ flex:1, padding:16, display:'flex', flexDirection:'column', gap:12, position:'relative' }}>
+
+          {/* Main video */}
+          <VideoTile
+            label={isPsych ? "Ana Martínez (paciente)" : "Dra. Elena García"}
+            initials={isPsych ? "AM" : "EG"}
+            muted={false}
+            camOff={false}
+            main={true}
+            style={{ flex:1, minHeight:0 }}
+          />
+
+          {/* Self PIP */}
+          <VideoTile
+            label={isPsych ? "Tú (Elena)" : "Tú (Ana)"}
+            initials={isPsych ? "EG" : "AM"}
+            muted={!micOn}
+            camOff={!camOn}
+            style={{ position:'absolute', top:28, right:28, width:160, height:112, border:'2px solid #30363d', zIndex:10 }}
+          />
+
+          {/* CONTROLS */}
+          <div style={{ display:'flex', justifyContent:'center', gap:12, padding:'4px 0', flexShrink:0 }}>
+            {[
+              { icon: micOn ? '🎙' : '🔇', label: micOn ? 'Mic' : 'Silencio', active: micOn, action: () => setMicOn(m => !m), danger: !micOn },
+              { icon: camOn ? '📷' : '📷', label: camOn ? 'Cámara' : 'Sin cam', active: camOn, action: () => setCamOn(c => !c), danger: !camOn },
+              { icon: '💻', label: 'Compartir', active: false, action: () => {} },
+              { icon: '💬', label: 'Chat', active: activePanel==='chat' && chatOpen, action: () => { setChatOpen(true); setActivePanel('chat'); } },
+              ...(isPsych ? [
+                { icon: '📋', label: 'Notas', active: activePanel==='notes' && chatOpen, action: () => { setChatOpen(true); setActivePanel('notes'); } },
+                { icon: '◎', label: 'Objetivos', active: activePanel==='objectives' && chatOpen, action: () => { setChatOpen(true); setActivePanel('objectives'); } },
+              ] : []),
+            ].map((btn, i) => (
+              <button key={i} onClick={btn.action} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 16px', borderRadius:10, border:'none', cursor:'pointer', fontFamily:'inherit', background: btn.danger ? 'rgba(239,68,68,.2)' : btn.active ? 'rgba(32,220,149,.15)' : '#21262d', color: btn.danger ? T.red : btn.active ? T.green : 'rgba(255,255,255,.6)', transition:'all .15s', minWidth:64 }}>
+                <span style={{ fontSize:18 }}>{btn.icon}</span>
+                <span style={{ fontSize:10, fontWeight:600 }}>{btn.label}</span>
+              </button>
+            ))}
+            <div style={{ width:1, background:'#30363d', margin:'0 4px' }}/>
+            <button onClick={() => setEndModal(true)} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 16px', borderRadius:10, border:'none', cursor:'pointer', fontFamily:'inherit', background:'rgba(239,68,68,.15)', color:T.red, minWidth:64 }}>
+              <span style={{ fontSize:18 }}>📵</span>
+              <span style={{ fontSize:10, fontWeight:600 }}>Colgar</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SIDE PANEL */}
+        {chatOpen && (
+          <div style={{ width:300, background:T.dark2, borderLeft:'1px solid #21262d', display:'flex', flexDirection:'column', flexShrink:0 }}>
+            {/* Panel tabs */}
+            <div style={{ borderBottom:'1px solid #21262d', padding:'10px 14px', display:'flex', gap:4 }}>
+              <button style={panelBtnStyle('chat')} onClick={() => setActivePanel('chat')}>Chat</button>
+              {isPsych && <>
+                <button style={panelBtnStyle('notes')} onClick={() => setActivePanel('notes')}>Notas</button>
+                <button style={panelBtnStyle('objectives')} onClick={() => setActivePanel('objectives')}>Objetivos</button>
+              </>}
+              <button onClick={() => setChatOpen(false)} style={{ marginLeft:'auto', background:'none', border:'none', color:'rgba(255,255,255,.3)', cursor:'pointer', fontSize:14 }}>✕</button>
+            </div>
+
+            {/* CHAT */}
+            {activePanel==='chat' && (
+              <>
+                <div ref={chatRef} style={{ flex:1, overflow:'auto', padding:'14px 14px 4px', display:'flex', flexDirection:'column', gap:10 }}>
+                  {msgs.map((m,i) => {
+                    const mine = (isPsych && m.from==='psych') || (!isPsych && m.from==='patient');
+                    return (
+                      <div key={i} style={{ display:'flex', flexDirection:'column', alignItems: mine ? 'flex-end' : 'flex-start', animation:'fadeIn .2s ease' }}>
+                        <div style={{ maxWidth:'80%', padding:'8px 12px', borderRadius: mine ? '12px 12px 2px 12px' : '12px 12px 12px 2px', background: mine ? 'rgba(32,220,149,.15)' : '#21262d', color: mine ? '#a7f3d0' : 'rgba(255,255,255,.85)', fontSize:12, lineHeight:1.5 }}>
+                          {m.text}
+                        </div>
+                        <span style={{ fontSize:10, color:'rgba(255,255,255,.25)', marginTop:3 }}>{m.time}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ padding:'10px 12px', borderTop:'1px solid #21262d', display:'flex', gap:8 }}>
+                  <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==='Enter' && sendMsg()} placeholder="Escribe un mensaje..." style={{ flex:1, background:'#21262d', border:'1px solid #30363d', borderRadius:8, padding:'8px 11px', color:T.white, fontSize:12, fontFamily:'inherit', outline:'none' }}/>
+                  <button onClick={sendMsg} style={{ background:T.green, border:'none', borderRadius:8, width:34, height:34, cursor:'pointer', fontSize:14 }}>→</button>
+                </div>
+              </>
+            )}
+
+            {/* NOTES (psych only) */}
+            {activePanel==='notes' && isPsych && (
+              <div style={{ flex:1, display:'flex', flexDirection:'column', padding:14, gap:10 }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,.3)', fontWeight:600, textTransform:'uppercase', letterSpacing:.5 }}>Notas privadas — Ana Martínez</div>
+                <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Observaciones durante la sesión, referencias para seguimiento..." style={{ flex:1, background:'#21262d', border:'1px solid #30363d', borderRadius:8, padding:10, color:T.white, fontSize:12, fontFamily:'inherit', resize:'none', outline:'none', lineHeight:1.6 }}/>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,.25)' }}>Solo visible para ti · Auto-guardado</div>
+              </div>
+            )}
+
+            {/* OBJECTIVES (psych only) */}
+            {activePanel==='objectives' && isPsych && (
+              <div style={{ flex:1, overflow:'auto', padding:14 }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,.3)', fontWeight:600, textTransform:'uppercase', letterSpacing:.5, marginBottom:14 }}>Objetivos terapéuticos</div>
+                {[{t:'Gestión de la ansiedad',p:65},{t:'Técnicas de respiración',p:80},{t:'Reestructuración cognitiva',p:40}].map((o,i) => (
+                  <div key={i} style={{ marginBottom:16 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                      <span style={{ fontSize:12, color:'rgba(255,255,255,.7)' }}>{o.t}</span>
+                      <span style={{ fontSize:11, color:T.green, fontWeight:700 }}>{o.p}%</span>
+                    </div>
+                    <div style={{ height:4, background:'#21262d', borderRadius:2 }}>
+                      <div style={{ height:'100%', width:`${o.p}%`, background:T.green, borderRadius:2 }}/>
+                    </div>
+                    <div style={{ display:'flex', gap:6, marginTop:8 }}>
+                      <button style={{ padding:'4px 10px', borderRadius:5, border:'1px solid #30363d', background:'transparent', color:'rgba(255,255,255,.4)', fontSize:10, cursor:'pointer', fontFamily:'inherit' }}>−5%</button>
+                      <button style={{ padding:'4px 10px', borderRadius:5, border:'1px solid #30363d', background:'transparent', color:'rgba(255,255,255,.4)', fontSize:10, cursor:'pointer', fontFamily:'inherit' }}>+5%</button>
+                      <button style={{ padding:'4px 10px', borderRadius:5, border:'1px solid #30363d', background:'transparent', color:'rgba(255,255,255,.4)', fontSize:10, cursor:'pointer', fontFamily:'inherit' }}>+10%</button>
+                    </div>
+                  </div>
+                ))}
+                <button style={{ width:'100%', marginTop:4, padding:'9px', borderRadius:8, border:`1px solid ${T.green}`, background:'rgba(32,220,149,.1)', color:T.green, fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>+ Nuevo objetivo</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {endModal && <EndModal onClose={() => setEndModal(false)} isPsych={isPsych}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<div id="root" style="height:100vh"></div>
+</body>
+</html>

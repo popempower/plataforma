@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f4f4f0; color: #111827; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+</style>
+</head>
+<body>
+<script type="text/babel">
+const { useState } = React;
+
+// ── TOKENS ────────────────────────────────────────────────────────
+const T = {
+  // Brand
+  green:       '#20dc95',
+  greenDark:   '#0bbf7a',
+  greenDeep:   '#065f46',
+  greenLight:  '#f0fdf8',
+  greenMid:    '#d1fae5',
+  // Neutrals
+  white:       '#ffffff',
+  gray50:      '#fafafa',
+  gray100:     '#f3f4f6',
+  gray200:     '#e5e7eb',
+  gray300:     '#d1d5db',
+  gray400:     '#9ca3af',
+  gray500:     '#6b7280',
+  gray600:     '#4b5563',
+  gray700:     '#374151',
+  gray800:     '#1f2937',
+  gray900:     '#111827',
+  // Semantic
+  blue:        '#3b82f6',
+  blueLight:   '#eff6ff',
+  amber:       '#f59e0b',
+  amberLight:  '#fffbeb',
+  red:         '#ef4444',
+  redLight:    '#fef2f2',
+  // Typography
+  fontFamily:  "'Plus Jakarta Sans', sans-serif",
+  // Radius
+  radiusSm:    6,
+  radiusMd:    8,
+  radiusLg:    12,
+  radiusXl:    16,
+  radiusFull:  999,
+  // Shadow
+  shadow1:     '0 1px 3px rgba(0,0,0,0.08)',
+  shadow2:     '0 4px 12px rgba(0,0,0,0.08)',
+  shadow3:     '0 8px 24px rgba(0,0,0,0.10)',
+};
+
+// ── LAYOUT HELPERS ────────────────────────────────────────────────
+const Section = ({ title, subtitle, children, id }) => (
+  <section id={id} style={{ marginBottom: 64 }}>
+    <div style={{ marginBottom: 28 }}>
+      <h2 style={{ fontSize: 20, fontWeight: 800, color: T.gray900, marginBottom: 4 }}>{title}</h2>
+      {subtitle && <p style={{ fontSize: 14, color: T.gray500 }}>{subtitle}</p>}
+    </div>
+    {children}
+  </section>
+);
+
+const Row = ({ children, gap = 12, wrap = true }) => (
+  <div style={{ display: 'flex', flexWrap: wrap ? 'wrap' : 'nowrap', gap, alignItems: 'flex-start' }}>{children}</div>
+);
+
+const Label = ({ children }) => (
+  <div style={{ fontSize: 11, fontWeight: 600, color: T.gray400, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{children}</div>
+);
+
+const Card = ({ children, style }) => (
+  <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.gray200}`, padding: '20px 22px', ...style }}>{children}</div>
+);
+
+// ── COLOR SWATCH ─────────────────────────────────────────────────
+const Swatch = ({ color, label, textColor = '#fff', hex }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 80 }}>
+    <div style={{ width: 64, height: 64, borderRadius: T.radiusMd, background: color, border: color === '#ffffff' ? `1px solid ${T.gray200}` : 'none', boxShadow: T.shadow1 }}/>
+    <div style={{ fontSize: 11, fontWeight: 600, color: T.gray700, textAlign: 'center' }}>{label}</div>
+    <div style={{ fontSize: 10, color: T.gray400, fontFamily: 'monospace' }}>{hex || color}</div>
+  </div>
+);
+
+// ── BUTTON COMPONENT ─────────────────────────────────────────────
+const Btn = ({ variant = 'primary', size = 'md', children, icon, disabled }) => {
+  const [hov, setHov] = useState(false);
+  const sizes = { sm: { padding: '6px 12px', fontSize: 12, radius: T.radiusMd }, md: { padding: '9px 18px', fontSize: 13, radius: T.radiusMd }, lg: { padding: '12px 24px', fontSize: 14, radius: T.radiusLg } };
+  const variants = {
+    primary:   { bg: hov ? T.greenDark : T.green, color: T.greenDeep, border: 'none', shadow: hov ? `0 4px 12px ${T.green}55` : 'none' },
+    secondary: { bg: hov ? T.gray100 : T.gray50,  color: T.gray700,   border: `1px solid ${T.gray200}` },
+    ghost:     { bg: hov ? T.gray100 : 'transparent', color: T.gray600, border: 'none' },
+    danger:    { bg: hov ? '#dc2626' : T.red, color: '#fff', border: 'none' },
+    outline:   { bg: 'transparent', color: T.greenDeep, border: `1.5px solid ${T.green}` },
+  };
+  const s = sizes[size]; const v = variants[variant];
+  return (
+    <button onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} disabled={disabled}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: T.fontFamily, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1, transition: 'all .15s', ...s, ...v, borderRadius: s.radius, padding: s.padding, fontSize: s.fontSize }}>
+      {icon && <span>{icon}</span>}{children}
+    </button>
+  );
+};
+
+// ── BADGE ────────────────────────────────────────────────────────
+const Badge = ({ label, color = 'green' }) => {
+  const colors = {
+    green:  { bg: T.greenLight, text: T.greenDeep, border: T.greenMid },
+    blue:   { bg: T.blueLight,  text: '#1d4ed8', border: '#bfdbfe' },
+    amber:  { bg: T.amberLight, text: '#92400e', border: '#fde68a' },
+    red:    { bg: T.redLight,   text: '#b91c1c', border: '#fecaca' },
+    gray:   { bg: T.gray100,    text: T.gray600,  border: T.gray200 },
+  };
+  const c = colors[color];
+  return <span style={{ display: 'inline-block', background: c.bg, color: c.text, border: `1px solid ${c.border}`, borderRadius: T.radiusFull, padding: '3px 10px', fontSize: 11, fontWeight: 600 }}>{label}</span>;
+};
+
+// ── INPUT ────────────────────────────────────────────────────────
+const Input = ({ placeholder, label, type = 'text', icon, error, helperText }) => {
+  const [focus, setFocus] = useState(false);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 220 }}>
+      {label && <label style={{ fontSize: 12, fontWeight: 600, color: T.gray700 }}>{label}</label>}
+      <div style={{ position: 'relative' }}>
+        {icon && <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: T.gray400 }}>{icon}</span>}
+        <input type={type} placeholder={placeholder} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+          style={{ width: '100%', fontFamily: T.fontFamily, fontSize: 13, padding: `9px ${icon ? '12px 9px 32px' : '12px'}`, borderRadius: T.radiusMd, border: `1.5px solid ${error ? T.red : focus ? T.green : T.gray200}`, outline: 'none', color: T.gray900, background: T.white, transition: 'border .15s', boxShadow: focus ? `0 0 0 3px ${error ? '#fecaca' : T.greenMid}55` : 'none' }}/>
+      </div>
+      {(error || helperText) && <span style={{ fontSize: 11, color: error ? T.red : T.gray500 }}>{error || helperText}</span>}
+    </div>
+  );
+};
+
+// ── AVATAR ───────────────────────────────────────────────────────
+const Avatar = ({ initials, size = 36, color = T.green }) => (
+  <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.33, fontWeight: 700, color: T.greenDeep, flexShrink: 0 }}>{initials}</div>
+);
+
+// ── NAV ITEM ─────────────────────────────────────────────────────
+const NavItem = ({ icon, label, active, badge }) => {
+  const [hov, setHov] = useState(false);
+  return (
+    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: T.radiusMd, background: active ? T.greenLight : hov ? T.gray50 : 'transparent', cursor: 'pointer', color: active ? T.greenDeep : T.gray500, fontWeight: active ? 600 : 400, fontSize: 13, position: 'relative', userSelect: 'none' }}>
+      <span style={{ fontSize: 15, width: 18, textAlign: 'center' }}>{icon}</span>
+      {label}
+      {badge && <span style={{ marginLeft: 'auto', background: T.green, color: T.greenDeep, borderRadius: T.radiusFull, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{badge}</span>}
+      {active && <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, background: T.green, borderRadius: 2 }}/>}
+    </div>
+  );
+};
+
+// ── CARD VARIANTS ────────────────────────────────────────────────
+const SessionCard = () => (
+  <div style={{ background: T.white, border: `1px solid ${T.gray200}`, borderRadius: T.radiusLg, padding: '16px 20px', width: 340 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div>
+        <Label>Próxima sesión</Label>
+        <div style={{ fontWeight: 700, fontSize: 16, color: T.gray900, marginBottom: 2 }}>Miércoles, 23 Apr</div>
+        <div style={{ fontSize: 12, color: T.gray500 }}>18:00 h · Dra. Elena García</div>
+      </div>
+      <Btn size="sm">Entrar →</Btn>
+    </div>
+    <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+      <Badge label="✓ Confirmada" color="green"/>
+      <Badge label="Videollamada" color="gray"/>
+    </div>
+  </div>
+);
+
+const BonoCard = () => (
+  <div style={{ background: T.white, border: `1px solid ${T.gray200}`, borderRadius: T.radiusLg, padding: '16px 20px', width: 200 }}>
+    <Label>Bono de sesiones</Label>
+    <div style={{ fontWeight: 800, fontSize: 28, color: T.gray900 }}>4<span style={{ fontSize: 14, fontWeight: 400, color: T.gray400 }}>/12</span></div>
+    <div style={{ height: 4, background: T.gray100, borderRadius: 2, margin: '10px 0 6px' }}>
+      <div style={{ height: '100%', width: '33%', background: T.green, borderRadius: 2 }}/>
+    </div>
+    <div style={{ fontSize: 11, color: T.gray500 }}>Caduca 15 Jul 2026</div>
+  </div>
+);
+
+const MessageRow = ({ initials, name, text, time, unread }) => (
+  <div style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: `1px solid ${T.gray100}` }}>
+    <Avatar initials={initials} size={32}/>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontWeight: 600, fontSize: 12, color: T.gray900, marginBottom: 2 }}>{name}</div>
+      <div style={{ fontSize: 12, color: T.gray500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{text}</div>
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+      <span style={{ fontSize: 10, color: T.gray400 }}>{time}</span>
+      {unread && <div style={{ width: 7, height: 7, borderRadius: '50%', background: T.green }}/>}
+    </div>
+  </div>
+);
+
+// ── PROGRESS BAR ─────────────────────────────────────────────────
+const ProgressBar = ({ label, pct }) => (
+  <div style={{ marginBottom: 12 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+      <span style={{ fontSize: 12, color: T.gray800, fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: 12, color: T.green, fontWeight: 700 }}>{pct}%</span>
+    </div>
+    <div style={{ height: 4, background: T.gray100, borderRadius: 2 }}>
+      <div style={{ height: '100%', width: `${pct}%`, background: T.green, borderRadius: 2, transition: 'width .4s ease' }}/>
+    </div>
+  </div>
+);
+
+// ── STAT CARD ────────────────────────────────────────────────────
+const StatCard = ({ label, value, sub }) => (
+  <div style={{ background: T.white, border: `1px solid ${T.gray200}`, borderRadius: T.radiusMd, padding: '14px 16px', minWidth: 140 }}>
+    <div style={{ fontSize: 11, color: T.gray500, marginBottom: 6, fontWeight: 500 }}>{label}</div>
+    <div style={{ fontSize: 22, fontWeight: 800, color: T.gray900, marginBottom: 2 }}>{value}</div>
+    <div style={{ fontSize: 11, color: T.gray400 }}>{sub}</div>
+  </div>
+);
+
+// ── TOAST ────────────────────────────────────────────────────────
+const Toast = ({ type = 'success', message }) => {
+  const types = { success: { bg: T.greenLight, color: T.greenDeep, border: T.greenMid, icon: '✓' }, error: { bg: T.redLight, color: '#b91c1c', border: '#fecaca', icon: '✕' }, info: { bg: T.blueLight, color: '#1d4ed8', border: '#bfdbfe', icon: 'ℹ' }, warning: { bg: T.amberLight, color: '#92400e', border: '#fde68a', icon: '⚠' } };
+  const t = types[type];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: t.bg, border: `1px solid ${t.border}`, borderRadius: T.radiusMd, padding: '11px 16px', fontSize: 13, color: t.color, fontWeight: 500, width: 300, boxShadow: T.shadow2 }}>
+      <span style={{ fontWeight: 700 }}>{t.icon}</span>
+      {message}
+    </div>
+  );
+};
+
+// ── MAIN APP ─────────────────────────────────────────────────────
+function App() {
+  const [activeNav, setActiveNav] = useState('inicio');
+
+  return (
+    <div style={{ minHeight: '100vh', padding: '40px 60px 80px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52, paddingBottom: 24, borderBottom: `1px solid ${T.gray200}` }}>
+        <div style={{ width: 40, height: 40, background: T.green, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: 'white', fontWeight: 800, fontSize: 16 }}>P</span>
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 22, color: T.gray900, lineHeight: 1 }}>POP Empower</div>
+          <div style={{ fontSize: 13, color: T.gray400, marginTop: 2 }}>Design System · v2.0 · 2026</div>
+        </div>
+      </div>
+
+      {/* COLORS */}
+      <Section id="colors" title="Colores" subtitle="Paleta principal y escala de grises">
+        <Card style={{ marginBottom: 20 }}>
+          <Label>Marca</Label>
+          <Row>
+            <Swatch color={T.green}      label="Green"      hex="#20dc95"/>
+            <Swatch color={T.greenDark}  label="Green Dark" hex="#0bbf7a"/>
+            <Swatch color={T.greenDeep}  label="Green Deep" hex="#065f46"/>
+            <Swatch color={T.greenLight} label="Green Light" hex="#f0fdf8" textColor={T.greenDeep}/>
+            <Swatch color={T.greenMid}   label="Green Mid"  hex="#d1fae5" textColor={T.greenDeep}/>
+          </Row>
+        </Card>
+        <Card style={{ marginBottom: 20 }}>
+          <Label>Neutros</Label>
+          <Row>
+            {[['white','#fff'],['gray50','#fafafa'],['gray100','#f3f4f6'],['gray200','#e5e7eb'],['gray300','#d1d5db'],['gray400','#9ca3af'],['gray500','#6b7280'],['gray600','#4b5563'],['gray700','#374151'],['gray800','#1f2937'],['gray900','#111827']].map(([l,h]) => (
+              <Swatch key={l} color={h} label={l} hex={h}/>
+            ))}
+          </Row>
+        </Card>
+        <Card>
+          <Label>Semánticos</Label>
+          <Row>
+            <Swatch color={T.blue}       label="Info"     hex="#3b82f6"/>
+            <Swatch color={T.blueLight}  label="Info bg"  hex="#eff6ff" textColor={T.gray700}/>
+            <Swatch color={T.amber}      label="Warning"  hex="#f59e0b"/>
+            <Swatch color={T.amberLight} label="Warn bg"  hex="#fffbeb" textColor={T.gray700}/>
+            <Swatch color={T.red}        label="Error"    hex="#ef4444"/>
+            <Swatch color={T.redLight}   label="Error bg" hex="#fef2f2" textColor={T.gray700}/>
+          </Row>
+        </Card>
+      </Section>
+
+      {/* TYPOGRAPHY */}
+      <Section id="type" title="Tipografía" subtitle="Plus Jakarta Sans — display, heading, body, label">
+        <Card>
+          {[
+            { name: 'Display',   size: 32, weight: 800, sample: 'Bienvenida de nuevo, Ana' },
+            { name: 'Heading 1', size: 24, weight: 700, sample: 'Tus sesiones este mes' },
+            { name: 'Heading 2', size: 18, weight: 700, sample: 'Próxima sesión programada' },
+            { name: 'Heading 3', size: 15, weight: 600, sample: 'Objetivos terapéuticos' },
+            { name: 'Body',      size: 14, weight: 400, sample: 'Dra. Elena García ha confirmado vuestra sesión del miércoles.' },
+            { name: 'Body Sm',   size: 13, weight: 400, sample: 'Caduca el 15 de julio de 2026. Renueva tu bono para continuar.' },
+            { name: 'Label',     size: 11, weight: 600, sample: 'PRÓXIMA SESIÓN  ·  BONO ACTIVO', extra: { textTransform: 'uppercase', letterSpacing: '0.06em', color: T.gray500 } },
+            { name: 'Mono',      size: 12, weight: 400, sample: '#20dc95  ·  0.72rem  ·  12px', extra: { fontFamily: 'monospace', color: T.gray500 } },
+          ].map(t => (
+            <div key={t.name} style={{ display: 'flex', alignItems: 'baseline', gap: 24, paddingBottom: 14, marginBottom: 14, borderBottom: `1px solid ${T.gray100}` }}>
+              <div style={{ minWidth: 100, fontSize: 11, color: T.gray400, fontWeight: 600 }}>{t.name}</div>
+              <div style={{ minWidth: 60, fontSize: 11, color: T.gray400, fontFamily: 'monospace' }}>{t.size}px · {t.weight}</div>
+              <div style={{ fontSize: t.size, fontWeight: t.weight, color: T.gray900, lineHeight: 1.2, ...t.extra }}>{t.sample}</div>
+            </div>
+          ))}
+        </Card>
+      </Section>
+
+      {/* SPACING & RADIUS */}
+      <Section id="spacing" title="Espaciado y Radio" subtitle="Escala 4px · radios reutilizables">
+        <Row gap={20}>
+          <Card style={{ flex: 1 }}>
+            <Label>Espaciado (base 4px)</Label>
+            {[4,8,12,16,20,24,32,40,48,64].map(v => (
+              <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
+                <div style={{ width: v, height: 16, background: T.green, borderRadius: 2, flexShrink: 0 }}/>
+                <span style={{ fontSize: 11, color: T.gray500, fontFamily: 'monospace' }}>{v}px</span>
+              </div>
+            ))}
+          </Card>
+          <Card style={{ flex: 1 }}>
+            <Label>Radio de borde</Label>
+            {[{ name:'radius-sm', px: 6 },{ name:'radius-md', px: 8 },{ name:'radius-lg', px: 12 },{ name:'radius-xl', px: 16 },{ name:'radius-full', px: 999 }].map(r => (
+              <div key={r.name} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+                <div style={{ width: 56, height: 32, background: T.greenLight, border: `1.5px solid ${T.green}`, borderRadius: r.px }}/>
+                <span style={{ fontSize: 12, color: T.gray700, fontWeight: 600 }}>{r.name}</span>
+                <span style={{ fontSize: 11, color: T.gray400, fontFamily: 'monospace' }}>{r.px === 999 ? '9999px' : `${r.px}px`}</span>
+              </div>
+            ))}
+          </Card>
+        </Row>
+      </Section>
+
+      {/* BUTTONS */}
+      <Section id="buttons" title="Botones" subtitle="Variantes y tamaños">
+        <Card style={{ marginBottom: 16 }}>
+          <Label>Variantes</Label>
+          <Row>
+            <Btn variant="primary">Primary</Btn>
+            <Btn variant="secondary">Secondary</Btn>
+            <Btn variant="outline">Outline</Btn>
+            <Btn variant="ghost">Ghost</Btn>
+            <Btn variant="danger">Danger</Btn>
+            <Btn variant="primary" disabled>Disabled</Btn>
+          </Row>
+        </Card>
+        <Card>
+          <Label>Tamaños</Label>
+          <Row gap={12} style={{ alignItems: 'center' }}>
+            <Btn size="sm">Small</Btn>
+            <Btn size="md">Medium</Btn>
+            <Btn size="lg">Large</Btn>
+            <Btn size="sm" icon="✉">Con icono</Btn>
+            <Btn size="md" icon="→">Entrar a sesión</Btn>
+          </Row>
+        </Card>
+      </Section>
+
+      {/* BADGES */}
+      <Section id="badges" title="Badges y etiquetas" subtitle="Estados, categorías, contadores">
+        <Card>
+          <Row gap={10}>
+            <Badge label="✓ Confirmada" color="green"/>
+            <Badge label="Realizada" color="green"/>
+            <Badge label="Pendiente" color="amber"/>
+            <Badge label="Cancelada" color="red"/>
+            <Badge label="Videollamada" color="gray"/>
+            <Badge label="2 nuevos" color="blue"/>
+            <Badge label="Bono activo" color="green"/>
+            <Badge label="Bono caducado" color="red"/>
+            <Badge label="Empresa" color="blue"/>
+          </Row>
+        </Card>
+      </Section>
+
+      {/* INPUTS */}
+      <Section id="inputs" title="Inputs y formularios" subtitle="Estados: default, focus, error">
+        <Card>
+          <Row gap={20} wrap={false}>
+            <Input label="Email" placeholder="ana@ejemplo.com" type="email" icon="✉"/>
+            <Input label="Contraseña" placeholder="••••••••" type="password"/>
+            <Input label="Buscar paciente" placeholder="Nombre o email..." icon="⌕"/>
+            <Input label="Con error" placeholder="Fecha de nacimiento" error="Formato incorrecto (DD/MM/AAAA)"/>
+            <Input label="Con ayuda" placeholder="NIF / NIE" helperText="Requerido para facturación"/>
+          </Row>
+        </Card>
+      </Section>
+
+      {/* COMPONENTS */}
+      <Section id="components" title="Componentes de plataforma" subtitle="Cards, nav, mensajes, progreso, estadísticas">
+        <Row gap={16}>
+          {/* Nav */}
+          <Card style={{ width: 220 }}>
+            <Label>Sidebar nav</Label>
+            {[
+              { id:'inicio', icon:'⌂', label:'Inicio' },
+              { id:'sesiones', icon:'◷', label:'Sesiones' },
+              { id:'mensajes', icon:'✉', label:'Mensajes', badge:2 },
+              { id:'progreso', icon:'◎', label:'Mi progreso' },
+              { id:'docs', icon:'⬚', label:'Documentos' },
+            ].map(n => (
+              <NavItem key={n.id} {...n} active={activeNav === n.id} onClick={() => setActiveNav(n.id)}/>
+            ))}
+          </Card>
+
+          {/* Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SessionCard/>
+            <BonoCard/>
+          </div>
+
+          {/* Messages + Stats */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Card style={{ width: 300 }}>
+              <Label>Mensajes recientes</Label>
+              <MessageRow initials="EG" name="Dra. Elena García" text="¿Cómo te has sentido esta semana?" time="10:32" unread/>
+              <MessageRow initials="EG" name="Dra. Elena García" text="Aquí el ejercicio que comentamos." time="Ayer"/>
+            </Card>
+            <Card style={{ width: 300 }}>
+              <Label>Objetivos / Progreso</Label>
+              <ProgressBar label="Gestión de la ansiedad" pct={65}/>
+              <ProgressBar label="Técnicas de respiración" pct={80}/>
+              <ProgressBar label="Reestructuración cognitiva" pct={40}/>
+            </Card>
+          </div>
+
+          {/* Stats + Toasts */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Card>
+              <Label>Stat cards</Label>
+              <Row gap={10}>
+                <StatCard label="Sesiones completadas" value="4" sub="de 12 en tu bono"/>
+                <StatCard label="Días activo" value="23" sub="desde tu alta"/>
+              </Row>
+            </Card>
+            <Card>
+              <Label>Toasts / Notificaciones</Label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Toast type="success" message="Sesión confirmada para el miércoles"/>
+                <Toast type="info"    message="Tienes 2 mensajes sin leer"/>
+                <Toast type="warning" message="Tu bono caduca en 7 días"/>
+                <Toast type="error"   message="Error al conectar con la videollamada"/>
+              </div>
+            </Card>
+          </div>
+        </Row>
+      </Section>
+
+      {/* AVATAR */}
+      <Section id="avatars" title="Avatares" subtitle="Tamaños y estados">
+        <Card>
+          <Row gap={16}>
+            {[24,32,40,48,56,72].map(s => <Avatar key={s} initials="AM" size={s}/>)}
+            <Avatar initials="EG" size={40} color="#bfdbfe"/>
+            <Avatar initials="AD" size={40} color="#fde68a"/>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: T.green, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <span style={{ fontWeight: 700, fontSize: 13, color: T.greenDeep }}>AM</span>
+              <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: T.green, border: '2px solid white' }}/>
+            </div>
+            <span style={{ fontSize: 12, color: T.gray500, alignSelf: 'center' }}>← online indicator</span>
+          </Row>
+        </Card>
+      </Section>
+
+      {/* FOOTER */}
+      <div style={{ marginTop: 40, paddingTop: 24, borderTop: `1px solid ${T.gray200}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 12, color: T.gray400 }}>POP Empower Design System · v2.0 · Plus Jakarta Sans · Base 4px · #20dc95</span>
+        <span style={{ fontSize: 12, color: T.gray400 }}>Wanatop · Abril 2026</span>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<div id="root"></div>
+</body>
+</html>

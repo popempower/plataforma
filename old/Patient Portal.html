@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Portal Paciente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 3px; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes typingDot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-4px)} }
+</style>
+</head>
+<body>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const T = {
+  green:'#20dc95', greenDark:'#0bbf7a', greenDeep:'#065f46', greenLight:'#f0fdf8', greenMid:'#d1fae5',
+  white:'#fff', gray50:'#fafafa', gray100:'#f3f4f6', gray200:'#e5e7eb',
+  gray400:'#9ca3af', gray500:'#6b7280', gray700:'#374151', gray900:'#111827',
+  amber:'#f59e0b', amberLight:'#fffbeb', blue:'#3b82f6', blueLight:'#eff6ff', red:'#ef4444',
+};
+
+// ── DATA ──────────────────────────────────────────────────────────
+const USER = { name:'Ana Martínez', initials:'AM', plan:'Terapia Individual · Mensual', email:'ana.martinez@email.com', phone:'+34 612 345 678', joined:'1 Marzo 2026' };
+const PSYCH = { name:'Dra. Elena García', initials:'EG', specialty:'Psicología Clínica' };
+const BONO = { used:4, total:12, expiry:'15 Jul 2026', plan:'Mensual · 4 sesiones/mes' };
+const NEXT_SESSION = { date:'Miércoles, 23 Abr', time:'18:00 h', daysLeft:1 };
+
+const SESSIONS = [
+  { id:1, date:'Miérc 23 Abr', time:'18:00', status:'programada', duration:50, notes:'' },
+  { id:2, date:'Miérc 16 Abr', time:'18:00', status:'realizada',  duration:52, notes:'Progresó bien con técnica de respiración. Aplicó en reunión laboral con éxito.' },
+  { id:3, date:'Miérc 9 Abr',  time:'18:00', status:'realizada',  duration:48, notes:'Trabajamos ansiedad social. Tarea: registro emocional diario.' },
+  { id:4, date:'Miérc 2 Abr',  time:'18:00', status:'realizada',  duration:55, notes:'Primera sesión. Evaluación inicial. Definimos objetivos.' },
+  { id:5, date:'Miérc 26 Mar', time:'16:30', status:'cancelada',  duration:0,  notes:'' },
+];
+
+const MESSAGES = [
+  { id:1, from:'psych', text:'Hola Ana, ¿cómo te has sentido esta semana con los ejercicios?', time:'Mar 10:32', date:'Martes' },
+  { id:2, from:'patient', text:'Hola Elena, la verdad bastante mejor. Lo de la respiración me ha ayudado mucho.', time:'11:05' },
+  { id:3, from:'psych', text:'Me alegra mucho. ¿Hubo algún momento de tensión que hayas podido gestionar con la técnica?', time:'11:10' },
+  { id:4, from:'patient', text:'Sí, el lunes en el trabajo. Funcionó bien, aunque al principio me costó recordarlo.', time:'11:14' },
+  { id:5, from:'psych', text:'Es completamente normal al principio. La práctica lo hace automático. Te mando el ejercicio que comentamos para esta semana 👇', time:'11:18' },
+  { id:6, from:'psych', type:'file', text:'Ejercicio_reestructuracion_cognitiva.pdf', fileSize:'248 KB', time:'11:19' },
+  { id:7, from:'patient', text:'Muchas gracias, lo haré esta tarde. Hasta el miércoles 🙏', time:'11:22' },
+];
+
+const OBJECTIVES = [
+  { id:1, title:'Gestión de la ansiedad', pct:65, sessions:4, category:'Cognitivo-conductual' },
+  { id:2, title:'Técnicas de respiración', pct:80, sessions:3, category:'Regulación emocional' },
+  { id:3, title:'Reestructuración cognitiva', pct:40, sessions:2, category:'Cognitivo-conductual' },
+  { id:4, title:'Autoestima y autoimagen', pct:25, sessions:1, category:'Desarrollo personal' },
+];
+
+const DOCS = [
+  { id:1, name:'Consentimiento informado.pdf',              size:'124 KB', date:'1 Mar 2026',  type:'pdf', category:'Legal' },
+  { id:2, name:'Informe inicial — Ana Martínez.pdf',        size:'248 KB', date:'1 Mar 2026',  type:'pdf', category:'Clínico' },
+  { id:3, name:'Escala de ansiedad GAD-7.pdf',              size:'86 KB',  date:'9 Abr 2026',  type:'pdf', category:'Evaluación' },
+  { id:4, name:'Ejercicio_reestructuracion_cognitiva.pdf',  size:'248 KB', date:'16 Abr 2026', type:'pdf', category:'Ejercicio' },
+  { id:5, name:'Registro_emocional_semanal.pdf',            size:'124 KB', date:'9 Abr 2026',  type:'pdf', category:'Ejercicio' },
+];
+
+const NAV_ITEMS = [
+  { id:'inicio',   icon:'⌂', label:'Inicio' },
+  { id:'sesiones', icon:'◷', label:'Sesiones' },
+  { id:'mensajes', icon:'✉', label:'Mensajes', badge:2 },
+  { id:'progreso', icon:'◎', label:'Mi progreso' },
+  { id:'docs',     icon:'⬚', label:'Documentos' },
+  { id:'ajustes',  icon:'⚙', label:'Ajustes' },
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────
+const Av = ({ initials, size=32, green=false }) => (
+  <div style={{ width:size, height:size, borderRadius:'50%', background: green?T.green:T.gray200, display:'flex', alignItems:'center', justifyContent:'center', fontSize:size*.33, fontWeight:700, color: green?T.greenDeep:T.gray600, flexShrink:0 }}>{initials}</div>
+);
+
+const Badge = ({ label, color='green' }) => {
+  const c = { green:{bg:T.greenLight,text:T.greenDeep,b:T.greenMid}, gray:{bg:T.gray100,text:T.gray500,b:T.gray200}, amber:{bg:T.amberLight,text:'#92400e',b:'#fde68a'}, red:{bg:'#fef2f2',text:'#b91c1c',b:'#fecaca'}, blue:{bg:T.blueLight,text:'#1d4ed8',b:'#bfdbfe'} }[color];
+  return <span style={{ background:c.bg, color:c.text, border:`1px solid ${c.b}`, borderRadius:999, padding:'2px 9px', fontSize:11, fontWeight:600 }}>{label}</span>;
+};
+
+const Card = ({ children, style, onClick }) => (
+  <div onClick={onClick} style={{ background:T.white, border:`1px solid ${T.gray200}`, borderRadius:10, padding:'16px 20px', cursor:onClick?'pointer':'default', ...style }}>{children}</div>
+);
+
+const SectionTitle = ({ children }) => (
+  <div style={{ fontSize:11, fontWeight:600, color:T.gray400, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>{children}</div>
+);
+
+const Progress = ({ pct, height=4, color=T.green }) => (
+  <div style={{ height, background:T.gray100, borderRadius:height }}>
+    <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:height, transition:'width .4s ease' }}/>
+  </div>
+);
+
+const statusColor = s => ({ programada:{bg:T.blueLight,text:'#1d4ed8',label:'Programada'}, realizada:{bg:T.greenLight,text:T.greenDeep,label:'Realizada'}, cancelada:{bg:'#fef2f2',text:'#b91c1c',label:'Cancelada'} }[s]);
+
+// ── MODAL WRAPPER ─────────────────────────────────────────────────
+const Modal = ({ onClose, children, width=440 }) => (
+  <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.3)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200, backdropFilter:'blur(4px)' }}>
+    <div style={{ background:T.white, borderRadius:16, width, maxHeight:'85vh', overflow:'auto', boxShadow:'0 20px 60px rgba(0,0,0,.15)', animation:'fadeUp .2s ease' }}>
+      {children}
+    </div>
+  </div>
+);
+
+// ── TAB: INICIO ───────────────────────────────────────────────────
+function TabInicio({ onNav, onSessionModal }) {
+  return (
+    <div style={{ flex:1, overflow:'auto', padding:'24px 28px', display:'flex', flexDirection:'column', gap:18, animation:'fadeUp .25s ease' }}>
+      {/* Greeting */}
+      <div>
+        <h1 style={{ fontSize:22, fontWeight:800, color:T.gray900, marginBottom:3 }}>Buenos días, Ana ☀️</h1>
+        <p style={{ fontSize:13, color:T.gray500 }}>Martes, 22 de abril de 2026</p>
+      </div>
+
+      {/* Next session hero */}
+      <Card style={{ padding:'20px 24px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16 }}>
+          <div>
+            <SectionTitle>Próxima sesión</SectionTitle>
+            <div style={{ fontSize:20, fontWeight:800, color:T.gray900, marginBottom:4 }}>{NEXT_SESSION.date} · {NEXT_SESSION.time}</div>
+            <div style={{ fontSize:13, color:T.gray500, marginBottom:12 }}>con {PSYCH.name} · {PSYCH.specialty}</div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              <Badge label="✓ Confirmada" color="green"/>
+              <Badge label="Videollamada · 50 min" color="gray"/>
+              <Badge label="Mañana" color="blue"/>
+            </div>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, alignItems:'flex-end', flexShrink:0 }}>
+            <button onClick={onSessionModal} style={{ background:T.green, color:T.greenDeep, border:'none', borderRadius:9, padding:'11px 22px', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap', boxShadow:`0 4px 12px ${T.green}44` }}>Entrar a la sesión →</button>
+            <button style={{ background:T.gray50, color:T.gray600, border:`1px solid ${T.gray200}`, borderRadius:9, padding:'8px 16px', fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Reagendar</button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Stats row */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14 }}>
+        {[
+          { label:'Sesiones restantes', val:`${BONO.total-BONO.used}`, sub:'de tu bono actual', action:() => onNav('sesiones') },
+          { label:'Sesiones realizadas', val:`${BONO.used}`, sub:'desde el inicio', action:() => onNav('sesiones') },
+          { label:'Días de acompañamiento', val:'51', sub:'desde tu alta', action:null },
+        ].map((s,i) => (
+          <Card key={i} onClick={s.action} style={{ cursor: s.action?'pointer':'default' }}
+            onMouseEnter={e => s.action && (e.currentTarget.style.borderColor=T.green)}
+            onMouseLeave={e => e.currentTarget.style.borderColor=T.gray200}>
+            <div style={{ fontSize:11, color:T.gray500, fontWeight:500, marginBottom:6 }}>{s.label}</div>
+            <div style={{ fontSize:28, fontWeight:800, color:T.gray900, marginBottom:2 }}>{s.val}</div>
+            <div style={{ fontSize:11, color:T.gray400 }}>{s.sub}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Bono progress */}
+      <Card>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+          <div>
+            <div style={{ fontWeight:700, fontSize:14, color:T.gray900 }}>Estado de tu bono</div>
+            <div style={{ fontSize:12, color:T.gray500 }}>Caduca el {BONO.expiry}</div>
+          </div>
+          <span style={{ fontSize:20, fontWeight:800, color:T.gray900 }}>{BONO.used}<span style={{ fontSize:14, fontWeight:400, color:T.gray400 }}>/{BONO.total}</span></span>
+        </div>
+        <div style={{ display:'flex', gap:3, marginBottom:8 }}>
+          {Array.from({length:BONO.total}).map((_,i) => (
+            <div key={i} style={{ flex:1, height:6, borderRadius:3, background: i<BONO.used ? T.green : T.gray100, transition:'background .2s' }}/>
+          ))}
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <span style={{ fontSize:11, color:T.gray500 }}>{BONO.used} sesiones usadas</span>
+          <span style={{ fontSize:11, color:T.greenDeep, fontWeight:600 }}>{BONO.total-BONO.used} restantes</span>
+        </div>
+      </Card>
+
+      {/* Bottom 2 cols */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18 }}>
+        {/* Messages preview */}
+        <Card style={{ padding:'16px 18px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+            <SectionTitle style={{ marginBottom:0 }}>Mensajes recientes</SectionTitle>
+            <button onClick={() => onNav('mensajes')} style={{ fontSize:11, color:T.green, background:'none', border:'none', cursor:'pointer', fontWeight:600, fontFamily:'inherit' }}>Ver todos →</button>
+          </div>
+          {MESSAGES.filter(m => m.from==='psych').slice(-2).map((m,i) => (
+            <div key={i} style={{ display:'flex', gap:10, paddingBottom:10, marginBottom:10, borderBottom:i===0?`1px solid ${T.gray100}`:'none' }}>
+              <Av initials={PSYCH.initials} size={28} green/>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:600, fontSize:12, color:T.gray900, marginBottom:2 }}>{PSYCH.name}</div>
+                <div style={{ fontSize:11, color:T.gray500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.type==='file' ? `📄 ${m.text}` : m.text}</div>
+              </div>
+              <span style={{ fontSize:10, color:T.gray400, whiteSpace:'nowrap' }}>{m.time}</span>
+            </div>
+          ))}
+          <button onClick={() => onNav('mensajes')} style={{ width:'100%', marginTop:4, padding:'8px', borderRadius:8, border:`1px solid ${T.gray200}`, background:T.gray50, color:T.gray600, fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Abrir chat</button>
+        </Card>
+
+        {/* Progress preview */}
+        <Card style={{ padding:'16px 18px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+            <SectionTitle style={{ marginBottom:0 }}>Mi progreso</SectionTitle>
+            <button onClick={() => onNav('progreso')} style={{ fontSize:11, color:T.green, background:'none', border:'none', cursor:'pointer', fontWeight:600, fontFamily:'inherit' }}>Ver todo →</button>
+          </div>
+          {OBJECTIVES.slice(0,3).map((o,i) => (
+            <div key={i} style={{ marginBottom:12 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+                <span style={{ fontSize:12, color:T.gray900, fontWeight:500 }}>{o.title}</span>
+                <span style={{ fontSize:11, color:T.green, fontWeight:700 }}>{o.pct}%</span>
+              </div>
+              <Progress pct={o.pct}/>
+            </div>
+          ))}
+        </Card>
+      </div>
+
+      {/* Last session recap */}
+      {SESSIONS.find(s=>s.status==='realizada') && (
+        <Card style={{ borderLeft:`3px solid ${T.green}` }}>
+          <SectionTitle>Última sesión — {SESSIONS.find(s=>s.status==='realizada').date}</SectionTitle>
+          <p style={{ fontSize:13, color:T.gray700, lineHeight:1.6 }}>{SESSIONS.find(s=>s.status==='realizada').notes}</p>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ── TAB: SESIONES ─────────────────────────────────────────────────
+function TabSesiones() {
+  const [filter, setFilter] = useState('todas');
+  const [detail, setDetail] = useState(null);
+  const filtered = filter==='todas' ? SESSIONS : SESSIONS.filter(s => s.status===filter);
+
+  return (
+    <div style={{ flex:1, overflow:'auto', padding:'24px 28px', animation:'fadeUp .25s ease' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+        <h2 style={{ fontSize:20, fontWeight:800, color:T.gray900 }}>Mis sesiones</h2>
+        <div style={{ display:'flex', gap:4, background:T.gray100, borderRadius:8, padding:4 }}>
+          {[['todas','Todas'],['programada','Próximas'],['realizada','Realizadas'],['cancelada','Canceladas']].map(([v,l]) => (
+            <button key={v} onClick={() => setFilter(v)} style={{ padding:'5px 12px', borderRadius:6, border:'none', fontSize:12, cursor:'pointer', fontFamily:'inherit', fontWeight:600, background: filter===v ? T.white : 'transparent', color: filter===v ? T.gray900 : T.gray500, boxShadow: filter===v ? '0 1px 3px rgba(0,0,0,.08)' : 'none' }}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bono widget */}
+      <Card style={{ marginBottom:20, display:'flex', gap:20, alignItems:'center' }}>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:T.gray900, marginBottom:6 }}>Tu bono · {BONO.plan}</div>
+          <div style={{ display:'flex', gap:3 }}>
+            {Array.from({length:BONO.total}).map((_,i) => (
+              <div key={i} style={{ flex:1, height:6, borderRadius:3, background: i<BONO.used ? T.green : T.gray100 }}/>
+            ))}
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:5 }}>
+            <span style={{ fontSize:11, color:T.gray500 }}>{BONO.used} usadas</span>
+            <span style={{ fontSize:11, color:T.gray500 }}>Caduca {BONO.expiry}</span>
+          </div>
+        </div>
+        <div style={{ textAlign:'center', borderLeft:`1px solid ${T.gray200}`, paddingLeft:20 }}>
+          <div style={{ fontSize:28, fontWeight:800, color:T.gray900 }}>{BONO.total-BONO.used}</div>
+          <div style={{ fontSize:11, color:T.gray500 }}>restantes</div>
+        </div>
+      </Card>
+
+      {/* Session list */}
+      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        {filtered.map(s => {
+          const st = statusColor(s.status);
+          return (
+            <Card key={s.id} onClick={() => s.notes && setDetail(s)} style={{ cursor: s.notes ? 'pointer' : 'default', transition:'border-color .15s' }}
+              onMouseEnter={e => s.notes && (e.currentTarget.style.borderColor=T.green)}
+              onMouseLeave={e => e.currentTarget.style.borderColor=T.gray200}>
+              <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                <div style={{ width:44, height:44, borderRadius:10, background:st.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>
+                  {s.status==='realizada' ? '✓' : s.status==='programada' ? '◷' : '✕'}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:14, color:T.gray900, marginBottom:2 }}>{s.date} · {s.time}</div>
+                  <div style={{ fontSize:12, color:T.gray500 }}>{PSYCH.name} {s.duration ? `· ${s.duration} min` : ''}</div>
+                </div>
+                <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                  <span style={{ background:st.bg, color:st.text, borderRadius:6, padding:'3px 10px', fontSize:11, fontWeight:600 }}>{st.label}</span>
+                  {s.notes && <span style={{ fontSize:11, color:T.green, fontWeight:600 }}>Ver notas →</span>}
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {detail && (
+        <Modal onClose={() => setDetail(null)}>
+          <div style={{ padding:'20px 24px', borderBottom:`1px solid ${T.gray200}`, display:'flex', justifyContent:'space-between' }}>
+            <div>
+              <div style={{ fontWeight:700, fontSize:15, color:T.gray900 }}>Notas de sesión</div>
+              <div style={{ fontSize:12, color:T.gray500 }}>{detail.date} · {PSYCH.name}</div>
+            </div>
+            <button onClick={() => setDetail(null)} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:T.gray400 }}>✕</button>
+          </div>
+          <div style={{ padding:'20px 24px' }}>
+            <div style={{ fontSize:11, color:T.gray400, fontWeight:600, textTransform:'uppercase', letterSpacing:.5, marginBottom:8 }}>Resumen de la sesión</div>
+            <p style={{ fontSize:13, color:T.gray700, lineHeight:1.7 }}>{detail.notes}</p>
+            <div style={{ marginTop:16, padding:'12px 14px', background:T.greenLight, borderRadius:8, fontSize:12, color:T.greenDeep }}>
+              Duración: {detail.duration} minutos
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ── TAB: MENSAJES ─────────────────────────────────────────────────
+function TabMensajes() {
+  const [msgs, setMsgs] = useState(MESSAGES);
+  const [input, setInput] = useState('');
+  const [typing, setTyping] = useState(false);
+  const chatRef = useRef(null);
+
+  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [msgs, typing]);
+
+  const sendMsg = () => {
+    if (!input.trim()) return;
+    const text = input.trim();
+    setInput('');
+    setMsgs(m => [...m, { id: Date.now(), from:'patient', text, time: new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) }]);
+    setTyping(true);
+    const replies = ['Entendido, Ana. Lo tendremos en cuenta para la sesión.','Gracias por compartirlo. ¿Puedes contarme más?','Me parece muy bien que lo notes. Sigue practicando.','¡Muy bien! Eso es exactamente lo que buscamos.'];
+    setTimeout(() => {
+      setTyping(false);
+      setMsgs(m => [...m, { id: Date.now()+1, from:'psych', text: replies[Math.floor(Math.random()*replies.length)], time: new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) }]);
+    }, 1500);
+  };
+
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', animation:'fadeUp .25s ease' }}>
+      {/* Chat header */}
+      <div style={{ padding:'14px 24px', borderBottom:`1px solid ${T.gray200}`, display:'flex', gap:12, alignItems:'center', flexShrink:0 }}>
+        <Av initials={PSYCH.initials} size={40} green/>
+        <div>
+          <div style={{ fontWeight:700, fontSize:14, color:T.gray900 }}>{PSYCH.name}</div>
+          <div style={{ fontSize:11, color:T.green, fontWeight:600 }}>● En línea</div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div ref={chatRef} style={{ flex:1, overflow:'auto', padding:'20px 28px', display:'flex', flexDirection:'column', gap:4 }}>
+        {msgs.map((m,i) => {
+          const mine = m.from==='patient';
+          const showDate = m.date;
+          const showAv = !mine && (i===0 || msgs[i-1]?.from!=='psych');
+          return (
+            <React.Fragment key={m.id}>
+              {showDate && <div style={{ textAlign:'center', margin:'10px 0' }}><span style={{ fontSize:11, color:T.gray400, background:T.gray100, borderRadius:10, padding:'3px 10px' }}>{m.date}</span></div>}
+              <div style={{ display:'flex', flexDirection:'column', alignItems: mine?'flex-end':'flex-start', marginTop: showAv ? 10 : 2 }}>
+                {showAv && <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}><Av initials={PSYCH.initials} size={18} green/><span style={{ fontSize:11, color:T.gray500, fontWeight:600 }}>{PSYCH.name}</span></div>}
+                {m.type==='file' ? (
+                  <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:10, background:T.greenLight, border:`1px solid ${T.greenMid}`, maxWidth:260, cursor:'pointer' }}>
+                    <div style={{ width:34, height:34, borderRadius:7, background:T.greenMid, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, flexShrink:0 }}>📄</div>
+                    <div><div style={{ fontSize:12, fontWeight:600, color:T.gray900 }}>{m.text}</div><div style={{ fontSize:10, color:T.gray500 }}>{m.fileSize}</div></div>
+                  </div>
+                ) : (
+                  <div style={{ maxWidth:480, padding:'9px 14px', borderRadius: mine?'14px 14px 2px 14px':'14px 14px 14px 2px', background: mine?T.greenLight:T.gray100, color:T.gray900, fontSize:13, lineHeight:1.55, border: mine?`1px solid ${T.greenMid}`:'none' }}>{m.text}</div>
+                )}
+                <span style={{ fontSize:10, color:T.gray400, marginTop:3 }}>{m.time}</span>
+              </div>
+            </React.Fragment>
+          );
+        })}
+        {typing && (
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <Av initials={PSYCH.initials} size={20} green/>
+            <div style={{ display:'flex', gap:3, background:T.gray100, borderRadius:10, padding:'10px 12px' }}>
+              {[0,.15,.3].map((d,i) => <div key={i} style={{ width:5, height:5, borderRadius:'50%', background:T.gray400, animation:`typingDot 1s ${d}s infinite` }}/>)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div style={{ padding:'12px 24px', borderTop:`1px solid ${T.gray200}`, display:'flex', gap:10, alignItems:'center', flexShrink:0 }}>
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==='Enter' && sendMsg()} placeholder={`Escribe a ${PSYCH.name}...`} style={{ flex:1, padding:'10px 14px', borderRadius:10, border:`1.5px solid ${T.gray200}`, fontFamily:'inherit', fontSize:13, outline:'none', color:T.gray900 }}/>
+        <button onClick={sendMsg} disabled={!input.trim()} style={{ width:38, height:38, borderRadius:9, border:'none', background: input.trim()?T.green:T.gray200, color: input.trim()?T.greenDeep:T.gray400, cursor: input.trim()?'pointer':'default', fontSize:16, fontWeight:700, transition:'all .15s' }}>→</button>
+      </div>
+    </div>
+  );
+}
+
+// ── TAB: PROGRESO ─────────────────────────────────────────────────
+function TabProgreso() {
+  return (
+    <div style={{ flex:1, overflow:'auto', padding:'24px 28px', animation:'fadeUp .25s ease' }}>
+      <h2 style={{ fontSize:20, fontWeight:800, color:T.gray900, marginBottom:20 }}>Mi progreso</h2>
+
+      {/* Stats row */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:20 }}>
+        {[{l:'Sesiones',v:BONO.used,s:'completadas'},{l:'Semanas',v:'7',s:'de proceso'},{l:'Objetivos',v:OBJECTIVES.length,s:'en seguimiento'},{l:'Promedio',v:'57%',s:'de progreso'}].map((s,i) => (
+          <Card key={i}>
+            <div style={{ fontSize:11, color:T.gray500, marginBottom:6 }}>{s.l}</div>
+            <div style={{ fontSize:26, fontWeight:800, color:T.gray900 }}>{s.v}</div>
+            <div style={{ fontSize:11, color:T.gray400 }}>{s.s}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Objectives */}
+      <Card style={{ marginBottom:16 }}>
+        <div style={{ fontWeight:700, fontSize:14, color:T.gray900, marginBottom:16 }}>Objetivos terapéuticos</div>
+        {OBJECTIVES.map((o,i) => (
+          <div key={i} style={{ marginBottom:18 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
+              <div>
+                <div style={{ fontWeight:600, fontSize:13, color:T.gray900 }}>{o.title}</div>
+                <div style={{ fontSize:11, color:T.gray400 }}>{o.category} · {o.sessions} sesiones trabajadas</div>
+              </div>
+              <span style={{ fontSize:16, fontWeight:800, color:T.green }}>{o.pct}%</span>
+            </div>
+            <Progress pct={o.pct} height={6}/>
+          </div>
+        ))}
+      </Card>
+
+      {/* Session timeline */}
+      <Card>
+        <div style={{ fontWeight:700, fontSize:14, color:T.gray900, marginBottom:16 }}>Historial de sesiones</div>
+        <div style={{ display:'flex', gap:0, alignItems:'flex-end', height:80, marginBottom:10 }}>
+          {['S1','S2','S3','S4'].map((s,i) => {
+            const heights = [30, 45, 52, 65];
+            return (
+              <div key={s} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                <div style={{ width:'60%', height:heights[i], background:T.green, borderRadius:'4px 4px 0 0', opacity:.7+i*.07 }}/>
+                <span style={{ fontSize:10, color:T.gray400 }}>{s}</span>
+              </div>
+            );
+          })}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', gap:6 }}>
+            <div style={{ width:'60%', height:16, background:T.gray200, borderRadius:'4px 4px 0 0', border:`2px dashed ${T.green}` }}/>
+            <span style={{ fontSize:10, color:T.gray400 }}>S5</span>
+          </div>
+        </div>
+        <div style={{ fontSize:11, color:T.gray400, textAlign:'center' }}>Progreso acumulado por sesión · S5 próxima el 23 Abr</div>
+      </Card>
+    </div>
+  );
+}
+
+// ── TAB: DOCUMENTOS ───────────────────────────────────────────────
+function TabDocumentos() {
+  const [preview, setPreview] = useState(null);
+  const cats = [...new Set(DOCS.map(d => d.category))];
+  const catColors = { Legal:'gray', Clínico:'blue', Evaluación:'amber', Ejercicio:'green' };
+
+  return (
+    <div style={{ flex:1, overflow:'auto', padding:'24px 28px', animation:'fadeUp .25s ease' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+        <h2 style={{ fontSize:20, fontWeight:800, color:T.gray900 }}>Documentos</h2>
+        <Badge label={`${DOCS.length} archivos`} color="gray"/>
+      </div>
+
+      {cats.map(cat => (
+        <div key={cat} style={{ marginBottom:20 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:T.gray400, textTransform:'uppercase', letterSpacing:.5, marginBottom:10 }}>{cat}</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {DOCS.filter(d => d.category===cat).map(doc => (
+              <div key={doc.id} onClick={() => setPreview(doc)} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:T.white, border:`1px solid ${T.gray200}`, borderRadius:9, cursor:'pointer', transition:'border-color .15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor=T.green}
+                onMouseLeave={e => e.currentTarget.style.borderColor=T.gray200}>
+                <div style={{ width:36, height:36, borderRadius:8, background:T.greenLight, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>📄</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:600, fontSize:13, color:T.gray900, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{doc.name}</div>
+                  <div style={{ fontSize:11, color:T.gray400 }}>{doc.size} · {doc.date}</div>
+                </div>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <Badge label={cat} color={catColors[cat]}/>
+                  <span style={{ fontSize:12, color:T.gray400 }}>↓</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {preview && (
+        <Modal onClose={() => setPreview(null)}>
+          <div style={{ padding:'20px 24px', borderBottom:`1px solid ${T.gray200}`, display:'flex', justifyContent:'space-between' }}>
+            <div style={{ fontWeight:700, fontSize:14, color:T.gray900 }}>{preview.name}</div>
+            <button onClick={() => setPreview(null)} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:T.gray400 }}>✕</button>
+          </div>
+          <div style={{ padding:'24px', textAlign:'center' }}>
+            <div style={{ width:80, height:80, borderRadius:16, background:T.greenLight, display:'flex', alignItems:'center', justifyContent:'center', fontSize:36, margin:'0 auto 16px' }}>📄</div>
+            <div style={{ fontSize:14, fontWeight:600, color:T.gray900, marginBottom:4 }}>{preview.name}</div>
+            <div style={{ fontSize:12, color:T.gray500, marginBottom:20 }}>{preview.size} · {preview.date}</div>
+            <div style={{ background:T.gray50, borderRadius:10, height:160, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.gray200}`, marginBottom:16 }}>
+              <span style={{ fontSize:12, color:T.gray400, fontFamily:'monospace' }}>[ Vista previa del PDF ]</span>
+            </div>
+            <button style={{ background:T.green, color:T.greenDeep, border:'none', borderRadius:9, padding:'10px 24px', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>⬇ Descargar</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ── TAB: AJUSTES ──────────────────────────────────────────────────
+function TabAjustes() {
+  const [name, setName] = useState(USER.name);
+  const [email, setEmail] = useState(USER.email);
+  const [phone, setPhone] = useState(USER.phone);
+  const [notifs, setNotifs] = useState({ session24h:true, session1h:true, newMsg:true, bonoExpiry:true, marketing:false });
+  const [saved, setSaved] = useState(false);
+
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+
+  const Toggle = ({ val, onChange }) => (
+    <div onClick={() => onChange(!val)} style={{ width:40, height:22, borderRadius:11, background: val?T.green:T.gray200, cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+      <div style={{ width:18, height:18, borderRadius:'50%', background:'white', position:'absolute', top:2, left: val?20:2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }}/>
+    </div>
+  );
+
+  const Field = ({ label, value, onChange, type='text' }) => (
+    <div style={{ marginBottom:14 }}>
+      <label style={{ display:'block', fontSize:12, fontWeight:600, color:T.gray700, marginBottom:5 }}>{label}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} style={{ width:'100%', padding:'10px 13px', borderRadius:8, border:`1.5px solid ${T.gray200}`, fontFamily:'inherit', fontSize:13, outline:'none', color:T.gray900 }}/>
+    </div>
+  );
+
+  return (
+    <div style={{ flex:1, overflow:'auto', padding:'24px 28px', animation:'fadeUp .25s ease' }}>
+      <h2 style={{ fontSize:20, fontWeight:800, color:T.gray900, marginBottom:20 }}>Ajustes</h2>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+        {/* Profile */}
+        <Card style={{ gridColumn:'span 2' }}>
+          <div style={{ fontWeight:700, fontSize:14, color:T.gray900, marginBottom:16 }}>Información personal</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+            <Field label="Nombre completo" value={name} onChange={setName}/>
+            <Field label="Email" value={email} onChange={setEmail} type="email"/>
+            <Field label="Teléfono" value={phone} onChange={setPhone}/>
+            <div>
+              <label style={{ display:'block', fontSize:12, fontWeight:600, color:T.gray700, marginBottom:5 }}>Fecha de alta</label>
+              <input value={USER.joined} disabled style={{ width:'100%', padding:'10px 13px', borderRadius:8, border:`1.5px solid ${T.gray200}`, fontFamily:'inherit', fontSize:13, color:T.gray400, background:T.gray50 }}/>
+            </div>
+          </div>
+          <button onClick={save} style={{ marginTop:8, background: saved?T.greenLight:T.green, color:T.greenDeep, border:'none', borderRadius:8, padding:'10px 22px', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit', transition:'background .2s' }}>
+            {saved ? '✓ Guardado' : 'Guardar cambios'}
+          </button>
+        </Card>
+
+        {/* Notifications */}
+        <Card>
+          <div style={{ fontWeight:700, fontSize:14, color:T.gray900, marginBottom:16 }}>Notificaciones</div>
+          {[
+            { key:'session24h', label:'Recordatorio 24h antes de sesión' },
+            { key:'session1h',  label:'Recordatorio 1h antes de sesión' },
+            { key:'newMsg',     label:'Nuevos mensajes de mi psicólogo' },
+            { key:'bonoExpiry', label:'Aviso de caducidad de bono' },
+            { key:'marketing',  label:'Novedades y comunicaciones' },
+          ].map(n => (
+            <div key={n.key} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:12, marginBottom:12, borderBottom:`1px solid ${T.gray100}` }}>
+              <span style={{ fontSize:13, color:T.gray700 }}>{n.label}</span>
+              <Toggle val={notifs[n.key]} onChange={v => setNotifs(s => ({...s, [n.key]:v}))}/>
+            </div>
+          ))}
+        </Card>
+
+        {/* Plan info */}
+        <Card>
+          <div style={{ fontWeight:700, fontSize:14, color:T.gray900, marginBottom:14 }}>Mi plan</div>
+          <div style={{ background:T.greenLight, borderRadius:9, padding:'14px 16px', marginBottom:14 }}>
+            <div style={{ fontWeight:700, fontSize:15, color:T.greenDeep, marginBottom:4 }}>Terapia Individual · Mensual</div>
+            <div style={{ fontSize:12, color:T.greenDeep, opacity:.7 }}>4 sesiones/mes · 149€/mes</div>
+          </div>
+          {[['Psicólogo asignado',PSYCH.name],['Sesiones restantes',`${BONO.total-BONO.used} de ${BONO.total}`],['Bono caduca',BONO.expiry]].map(([k,v]) => (
+            <div key={k} style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+              <span style={{ fontSize:12, color:T.gray500 }}>{k}</span>
+              <span style={{ fontSize:12, color:T.gray900, fontWeight:600 }}>{v}</span>
+            </div>
+          ))}
+          <button style={{ width:'100%', marginTop:10, padding:'9px', borderRadius:8, border:`1px solid ${T.gray200}`, background:T.white, color:T.gray600, fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Cambiar plan</button>
+        </Card>
+
+        {/* Password */}
+        <Card style={{ gridColumn:'span 2' }}>
+          <div style={{ fontWeight:700, fontSize:14, color:T.gray900, marginBottom:14 }}>Seguridad</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
+            {['Contraseña actual','Nueva contraseña','Confirmar contraseña'].map(l => (
+              <div key={l}>
+                <label style={{ display:'block', fontSize:12, fontWeight:600, color:T.gray700, marginBottom:5 }}>{l}</label>
+                <input type="password" placeholder="••••••••" style={{ width:'100%', padding:'10px 13px', borderRadius:8, border:`1.5px solid ${T.gray200}`, fontFamily:'inherit', fontSize:13, outline:'none' }}/>
+              </div>
+            ))}
+          </div>
+          <button style={{ marginTop:10, background:T.gray100, color:T.gray700, border:'none', borderRadius:8, padding:'9px 18px', fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Cambiar contraseña</button>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ── SESSION ENTRY MODAL ───────────────────────────────────────────
+function SessionEntryModal({ onClose }) {
+  return (
+    <Modal onClose={onClose} width={380}>
+      <div style={{ padding:'24px', textAlign:'center' }}>
+        <div style={{ width:64, height:64, borderRadius:'50%', background:T.green, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, margin:'0 auto 18px', boxShadow:`0 6px 20px ${T.green}55` }}>🎥</div>
+        <div style={{ fontWeight:800, fontSize:18, color:T.gray900, marginBottom:6 }}>Sesión con {PSYCH.name}</div>
+        <div style={{ fontSize:13, color:T.gray500, marginBottom:20 }}>{NEXT_SESSION.date} · {NEXT_SESSION.time}</div>
+        <div style={{ background:T.greenLight, border:`1px solid ${T.greenMid}`, borderRadius:10, padding:'12px 16px', marginBottom:20, textAlign:'left' }}>
+          <div style={{ fontSize:12, color:T.greenDeep, fontWeight:700, marginBottom:6 }}>Antes de entrar</div>
+          {['Comprueba tu cámara y micrófono','Busca un lugar tranquilo y privado','La sesión dura 50 minutos'].map(t => (
+            <div key={t} style={{ fontSize:11, color:'#4b7a65', marginBottom:3 }}>✓ {t}</div>
+          ))}
+        </div>
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={onClose} style={{ flex:1, padding:'11px', borderRadius:9, border:`1px solid ${T.gray200}`, background:T.white, color:T.gray600, fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>Cancelar</button>
+          <button style={{ flex:2, padding:'11px', borderRadius:9, border:'none', background:T.green, color:T.greenDeep, fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>Entrar ahora →</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────
+function App() {
+  const [nav, setNav] = useState('inicio');
+  const [sessionModal, setSessionModal] = useState(false);
+
+  const TABS = { inicio:<TabInicio onNav={setNav} onSessionModal={() => setSessionModal(true)}/>, sesiones:<TabSesiones/>, mensajes:<TabMensajes/>, progreso:<TabProgreso/>, docs:<TabDocumentos/>, ajustes:<TabAjustes/> };
+
+  return (
+    <div style={{ display:'flex', height:'100vh', fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13, overflow:'hidden' }}>
+
+      {/* SIDEBAR */}
+      <div style={{ width:220, background:T.white, borderRight:`1px solid ${T.gray200}`, display:'flex', flexDirection:'column', padding:'18px 12px', flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 8px', marginBottom:28 }}>
+          <div style={{ width:28, height:28, background:T.green, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <span style={{ color:'white', fontWeight:800, fontSize:11 }}>P</span>
+          </div>
+          <span style={{ fontWeight:700, fontSize:14, color:T.gray900 }}>POP Empower</span>
+        </div>
+
+        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:2 }}>
+          {NAV_ITEMS.map(n => {
+            const active = nav===n.id;
+            return (
+              <button key={n.id} onClick={() => setNav(n.id)} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:7, border:'none', cursor:'pointer', textAlign:'left', background: active?T.greenLight:'transparent', color: active?T.greenDeep:T.gray500, fontWeight: active?600:400, fontSize:13, fontFamily:'inherit', position:'relative' }}>
+                <span style={{ fontSize:14, width:18, textAlign:'center' }}>{n.icon}</span>
+                {n.label}
+                {n.badge && <span style={{ marginLeft:'auto', background:T.green, color:T.greenDeep, borderRadius:10, padding:'1px 6px', fontSize:11, fontWeight:700 }}>{n.badge}</span>}
+                {active && <div style={{ position:'absolute', right:0, top:'50%', transform:'translateY(-50%)', width:3, height:20, background:T.green, borderRadius:2 }}/>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Próxima sesión pill */}
+        <div style={{ background:T.greenLight, border:`1px solid ${T.greenMid}`, borderRadius:9, padding:'10px 12px', marginBottom:12, cursor:'pointer' }} onClick={() => setSessionModal(true)}>
+          <div style={{ fontSize:10, color:T.greenDeep, fontWeight:600, textTransform:'uppercase', letterSpacing:.4, marginBottom:3 }}>Próxima sesión</div>
+          <div style={{ fontSize:12, fontWeight:700, color:T.greenDeep }}>{NEXT_SESSION.date}</div>
+          <div style={{ fontSize:11, color:T.greenDeep, opacity:.7 }}>{NEXT_SESSION.time} · {PSYCH.name.split(' ')[0]}</div>
+        </div>
+
+        <div style={{ borderTop:`1px solid ${T.gray200}`, paddingTop:12, display:'flex', alignItems:'center', gap:9 }}>
+          <Av initials={USER.initials} size={30} green/>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:600, fontSize:12, color:T.gray900 }}>{USER.name}</div>
+            <div style={{ fontSize:11, color:T.gray400 }}>Paciente</div>
+          </div>
+          <button onClick={() => setNav('ajustes')} style={{ background:'none', border:'none', cursor:'pointer', color:T.gray400, fontSize:14, padding:'2px 4px' }}>⚙</button>
+        </div>
+      </div>
+
+      {/* CONTENT */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', background:T.gray50 }}>
+        {/* Top bar */}
+        <div style={{ height:50, background:T.white, borderBottom:`1px solid ${T.gray200}`, display:'flex', alignItems:'center', padding:'0 24px', gap:14, flexShrink:0 }}>
+          <span style={{ flex:1, fontWeight:700, fontSize:14, color:T.gray900 }}>
+            {NAV_ITEMS.find(n=>n.id===nav)?.label}
+          </span>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <Av initials={PSYCH.initials} size={24} green/>
+            <span style={{ fontSize:12, color:T.gray500 }}>{PSYCH.name}</span>
+            <div style={{ width:7, height:7, borderRadius:'50%', background:T.green }}/>
+          </div>
+          <div style={{ width:30, height:30, borderRadius:7, border:`1px solid ${T.gray200}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', position:'relative' }}>
+            🔔
+            <div style={{ position:'absolute', top:5, right:5, width:6, height:6, borderRadius:'50%', background:T.green }}/>
+          </div>
+        </div>
+
+        {/* Tab content */}
+        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+          {TABS[nav]}
+        </div>
+      </div>
+
+      {sessionModal && <SessionEntryModal onClose={() => setSessionModal(false)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<div id="root" style="height:100vh"></div>
+</body>
+</html>
