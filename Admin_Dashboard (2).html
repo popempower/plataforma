@@ -61,6 +61,7 @@ textarea.field-input{resize:vertical;min-height:80px}
 .toast{background:#111827;color:#fff;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.18);animation:fadeUp .25s ease;pointer-events:auto;max-width:340px;line-height:1.4}
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app">
@@ -3586,8 +3587,11 @@ function confirmLogout(){
   document.body.appendChild(el);
 }
 
-function doLogout(){
+const sb = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co','sb_publishable_TOgfdFj9WzbSjswtV3miGQ_dSeY1EY_');
+
+async function doLogout(){
   localStorage.removeItem('pop_session');
+  await sb.auth.signOut();
   window.location.href = 'Login.html';
 }
 

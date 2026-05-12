@@ -60,6 +60,7 @@ button,input,textarea,select{font-family:inherit}
 .tour-step-dot{width:8px;height:8px;border-radius:50%;background:#e5e7eb;transition:background .2s}
 .tour-step-dot.active{background:#20dc95}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -621,7 +622,13 @@ function confirmLogout(){
     </div>
   </div>`;
 }
-function doLogout(){ localStorage.removeItem('pop_session'); window.location.href='Login.html'; }
+const sb = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co','sb_publishable_TOgfdFj9WzbSjswtV3miGQ_dSeY1EY_');
+
+async function doLogout(){
+  localStorage.removeItem('pop_session');
+  await sb.auth.signOut();
+  window.location.href = 'Login.html';
+}
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
 
 // ── BIENVENIDA (primera vez) ──────────────────────────────────

@@ -71,6 +71,7 @@ input{font-family:inherit}
 .sr-ctrl-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;min-width:64px;transition:all .15s}
 .sr-panel-btn{padding:6px 12px;border-radius:6px;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app">
@@ -1710,8 +1711,11 @@ function confirmLogout(){
   document.body.appendChild(el);
 }
 
-function doLogout(){
+const sb = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co','sb_publishable_TOgfdFj9WzbSjswtV3miGQ_dSeY1EY_');
+
+async function doLogout(){
   localStorage.removeItem('pop_session');
+  await sb.auth.signOut();
   window.location.href = 'Login.html';
 }
 
