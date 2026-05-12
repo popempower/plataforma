@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Portal Programa</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;overflow:hidden;background:#fafafa;font-size:13px;color:#111827}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#e5e7eb;border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glow-pulse{0%,100%{box-shadow:0 4px 14px rgba(32,220,149,.45)}50%{box-shadow:0 4px 28px rgba(32,220,149,.85),0 0 0 6px rgba(32,220,149,.15)}}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+@keyframes wa-bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.fadeUp{animation:fadeUp .22s ease}
+button,input,textarea,select{font-family:inherit}
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:220px;background:#fff;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;padding:18px 12px;flex-shrink:0}
+#content{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fafafa}
+#topbar{height:50px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 24px;gap:14px;flex-shrink:0}
+#tabcontent{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.logo{display:flex;align-items:center;gap:8px;padding:4px 8px;margin-bottom:20px}
+.logo-icon{width:28px;height:28px;background:#20dc95;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;border:none;cursor:pointer;text-align:left;font-size:13px;width:100%;position:relative;transition:background .12s}
+.nav-btn.active{background:#f0fdf8;color:#065f46;font-weight:600}
+.nav-btn:not(.active){background:transparent;color:#6b7280;font-weight:400}
+.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-indicator{position:absolute;right:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:#20dc95;border-radius:2px}
+.sidebar-user{border-top:1px solid #e5e7eb;padding-top:12px;display:flex;align-items:center;gap:9px}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px}
+.badge{border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600;border:1px solid;display:inline-block}
+.badge.green{background:#f0fdf8;color:#065f46;border-color:#d1fae5}
+.badge.gray{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+.badge.blue{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.badge.amber{background:#fffbeb;color:#92400e;border-color:#fde68a}
+.badge.purple{background:#faf5ff;color:#6b21a8;border-color:#e9d5ff}
+.btn-green{background:#20dc95;color:#065f46;border:none;border-radius:9px;padding:10px 22px;font-weight:700;font-size:13px;cursor:pointer;transition:opacity .15s}
+.btn-green:hover{opacity:.9}
+.btn-gray{background:#fafafa;color:#374151;border:1px solid #e5e7eb;border-radius:9px;padding:8px 16px;font-weight:600;font-size:12px;cursor:pointer}
+.field-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px}
+.field-input{width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:13px;outline:none;color:#111827;transition:border-color .15s}
+.field-input:focus{border-color:#20dc95}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)}
+.modal-box{background:#fff;border-radius:16px;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:fadeUp .2s ease}
+.chat-bubble{max-width:420px;padding:9px 14px;font-size:13px;line-height:1.55;word-break:break-word}
+.chat-bubble.mine{background:#f0fdf8;border:1px solid #d1fae5;border-radius:14px 14px 2px 14px;align-self:flex-end}
+.chat-bubble.theirs{background:#f3f4f6;border-radius:14px 14px 14px 2px}
+.cal-mini-cell{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-size:11px;font-weight:500;position:relative;cursor:default}
+.cal-mini-cell.today{background:#20dc95;color:#fff;font-weight:800}
+.cal-mini-cell.has-session{background:#eff6ff;color:#1d4ed8;font-weight:700;cursor:pointer}
+.cal-mini-cell.has-session.done{background:#f0fdf8;color:#065f46}
+.cal-mini-cell.other{color:#d1d5db}
+/* WhatsApp flotante */
+#wa-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(37,211,102,.5);z-index:100;animation:wa-bounce 3s ease-in-out infinite;text-decoration:none;border:none}
+/* Tour overlay */
+.tour-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.tour-card{background:#fff;border-radius:16px;padding:28px;width:400px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .25s ease;position:relative}
+.tour-step-dot{width:8px;height:8px;border-radius:50%;background:#e5e7eb;transition:background .2s}
+.tour-step-dot.active{background:#20dc95}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="sidebar">
+    <div class="logo">
+      <div class="logo-icon">P</div>
+      <span style="font-weight:700;font-size:14px;color:#111827">POP Empower</span>
+    </div>
+    <div id="nav" style="flex:1;display:flex;flex-direction:column;gap:2px;overflow:auto"></div>
+    <div class="sidebar-user">
+      <div class="av" style="width:30px;height:30px;background:#20dc95;font-size:10px;color:#065f46">AV</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:12px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Adam Vazquez</div>
+        <div style="font-size:10px;color:#9ca3af">AMAD001</div>
+      </div>
+      <button onclick="confirmLogout()" title="Cerrar sesión" style="background:none;border:none;cursor:pointer;color:#9ca3af;display:flex;align-items:center" onmouseenter="this.style.color='#ef4444'" onmouseleave="this.style.color='#9ca3af'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="content">
+    <div id="topbar">
+      <div id="topbar-title" style="font-weight:700;font-size:14px;color:#111827;flex:1"></div>
+      <div style="background:#f0fdf8;border:1px solid #d1fae5;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:#065f46">Healthy Leaders · Amadeus</div>
+      <div id="topbar-ses" style="background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:#374151">10 / 12 sesiones</div>
+      <button onclick="startTour()" title="Tour guiado" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;color:#6b7280;display:flex;align-items:center;gap:5px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Tour
+      </button>
+    </div>
+    <div id="tabcontent"></div>
+  </div>
+</div>
+
+<!-- WhatsApp flotante -->
+<a id="wa-btn" href="https://wa.me/34600000000?text=Hola%2C%20soy%20participante%20del%20programa%20y%20necesito%20ayuda." target="_blank" title="Contactar por WhatsApp">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+
+<div id="modal-root"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const WA_NUMBER = '34600000000'; // ← cambia por el número real
+const CONTACT_EMAIL = 'info@popempower.com';
+
+// ── DATA ──────────────────────────────────────────────────────
+const USER = {
+  nombre:'Adam', apellidos:'Vazquez Tito',
+  email:'adam.vazquez@amadeus.com', telefono:'629 117 152',
+  codigo:'AMAD001', programa:'Healthy Leaders Program', empresa:'Amadeus IT Group',
+  psicologa:'Corina Schvindlerman',
+  sesiones_realizadas:10, sesiones_total:12,
+  encuesta_pre:'completada', encuesta_post:'pendiente',
+  tf_pre_id:'01KRDRR42P8K7MD2HD8QNAPY3T',
+  tf_post_id:'01KRDRPT81BMDASW8TSMP4RCV6',
+  primera_sesion:'11/12/2025',
+};
+
+const SESIONES = [
+  {id:1, fecha:'2025-12-11',hora:'10:00',estado:'realizada', notas:'Primera sesión. Exploración inicial y objetivos.'},
+  {id:2, fecha:'2025-12-18',hora:'10:00',estado:'realizada', notas:'Gestión del estrés en entornos de alta presión.'},
+  {id:3, fecha:'2026-01-08',hora:'10:00',estado:'realizada', notas:'Herramientas de regulación emocional.'},
+  {id:4, fecha:'2026-01-15',hora:'10:00',estado:'realizada', notas:'Comunicación asertiva en el equipo.'},
+  {id:5, fecha:'2026-01-22',hora:'10:00',estado:'realizada', notas:'Liderazgo y gestión de conflictos.'},
+  {id:6, fecha:'2026-02-05',hora:'10:00',estado:'realizada', notas:'Trabajo con creencias limitantes.'},
+  {id:7, fecha:'2026-02-19',hora:'10:00',estado:'realizada', notas:'Mindfulness y presencia en el liderazgo.'},
+  {id:8, fecha:'2026-03-05',hora:'10:00',estado:'realizada', notas:'Gestión de equipos en remoto.'},
+  {id:9, fecha:'2026-03-19',hora:'10:00',estado:'realizada', notas:'Autoconocimiento y mapa de fortalezas.'},
+  {id:10,fecha:'2026-04-02',hora:'10:00',estado:'realizada', notas:'Inteligencia emocional aplicada.'},
+  {id:11,fecha:'2026-05-20',hora:'10:00',estado:'programada',notas:''},
+  {id:12,fecha:'2026-06-03',hora:'10:00',estado:'programada',notas:''},
+];
+
+const MENSAJES = [
+  {de:'psico',texto:'¡Hola Adam! Bienvenido al programa. ¿Cómo te encuentras hoy?',hora:'11/12 09:50'},
+  {de:'yo',   texto:'Hola Corina, con ganas de empezar. Ha sido una semana intensa.',hora:'11/12 09:52'},
+  {de:'psico',texto:'Normal. Vamos a trabajar juntos para que tengas herramientas útiles. ¡Nos vemos ahora!',hora:'11/12 09:54'},
+];
+
+const EXERCISES = {
+  intro:   {label:'Introducción',icon:'🌱',items:[
+    {id:'p0e1',title:'Píldora 0 · Ejercicio 1',       type:'typeform',src:'https://form.typeform.com/to/Olw2mMOL'},
+    {id:'p0e2',title:'El Parchís del Bienestar',      type:'genially',src:'https://view.genially.com/6708f4b67c9593a75d27719a'},
+  ]},
+  personal:{label:'Personal',icon:'🧘',items:[
+    {id:'p2e1',title:'Píldora 2 · Ejercicio 1',       type:'genially',src:'https://view.genial.ly/650837ff241da8001161a72d'},
+    {id:'p3e1',title:'Píldora 3 · Ejercicio 1',       type:'genially',src:'https://view.genial.ly/65083c9a2e388f00115b7c0c'},
+    {id:'p5e1',title:'Píldora 5 · Ejercicio 1',       type:'genially',src:'https://view.genial.ly/650d66cd07be920019c0d2ab'},
+    {id:'p5e2',title:'Píldora 5 · Ejercicio 2',       type:'typeform',src:'https://form.typeform.com/to/KyRxVSnk'},
+  ]},
+  laboral: {label:'Laboral',icon:'💼',items:[
+    {id:'burnout',title:'Burnout',                    type:'pdf',     src:'https://popempower.com/wp-content/uploads/2023/10/BURNOUT.pdf'},
+    {id:'lab-e1',title:'Ejercicio 1',                 type:'genially',src:'https://view.genial.ly/651d3dafcc4ead0011a5535d'},
+    {id:'lab-e2',title:'Ejercicio 2',                 type:'genially',src:'https://view.genial.ly/651d6180ab93670011ea3e4a'},
+    {id:'lab-e3',title:'Ejercicio 3',                 type:'genially',src:'https://view.genial.ly/651d680acc4ead0011c0391e'},
+    {id:'lab-e4',title:'Ejercicio 4',                 type:'genially',src:'https://view.genial.ly/651a96fe3f47ab001184a7a8'},
+    {id:'lab-e5',title:'Ejercicio 5',                 type:'genially',src:'https://view.genial.ly/651aaf26d3173a001191a3a2'},
+  ]},
+  social:  {label:'Social',icon:'🤝',items:[
+    {id:'soc-e1',title:'Píldora 14 · Ejercicio 1',    type:'genially',src:'https://view.genial.ly/6515260a9c144d00116f1111'},
+    {id:'soc-e2',title:'Píldora 14 · Ejercicio 2',    type:'pdf',     src:'https://popempower.com/wp-content/uploads/2023/10/PI%CC%81LDORA-14_EJERCICIO-2.pdf'},
+    {id:'soc-e3',title:'Píldora 14 · Ejercicio 3',    type:'genially',src:'https://view.genial.ly/65312ea7553a84001153f7d3'},
+  ]},
+  salud:   {label:'Salud',icon:'🌿',items:[
+    {id:'sal-e1',title:'Píldora 15 · Ejercicio 1',    type:'genially',src:'https://view.genial.ly/6516887d071da80011c8a843'},
+    {id:'sal-e2',title:'Píldora 15 · Ejercicio 2',    type:'pdf',     src:'https://popempower.com/wp-content/uploads/2023/10/PI%CC%81LDORA-15_EJERCICIO-2.pdf'},
+    {id:'sal-e3',title:'Píldora 15 · Ejercicio 3',    type:'genially',src:'https://view.genial.ly/653226d79415fa001104f4a5'},
+  ]},
+};
+
+// ── STATE ─────────────────────────────────────────────────────
+let activeTab = 'inicio';
+let ejercArea = 'intro';
+let ejercOpen = null;
+let calYear = 2026; let calMonth = 4;
+let encuestaActiva = 'pre';
+
+// ── NAV ───────────────────────────────────────────────────────
+const NAV = [
+  {id:'inicio',      label:'Inicio',       icon:'🏠'},
+  {id:'videollamada',label:'Videollamada', icon:'🎥'},
+  {id:'ejercicios',  label:'Ejercicios',   icon:'🧠'},
+  {id:'encuestas',   label:'Encuestas',    icon:'📋'},
+  {id:'chat',        label:'Chat',         icon:'💬'},
+  {id:'perfil',      label:'Mi perfil',    icon:'👤'},
+];
+
+function renderNav(){
+  const alertEnc = (USER.encuesta_pre==='pendiente') || (USER.sesiones_realizadas>=USER.sesiones_total && USER.encuesta_post==='pendiente');
+  document.getElementById('nav').innerHTML = NAV.map(n=>`
+    <button class="nav-btn ${activeTab===n.id?'active':''}" id="nav-${n.id}" onclick="navigate('${n.id}')">
+      <span class="nav-icon">${n.icon}</span>
+      <span style="flex:1">${n.label}</span>
+      ${n.id==='encuestas'&&alertEnc?'<span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0"></span>':''}
+      ${activeTab===n.id?'<div class="nav-indicator"></div>':''}
+    </button>
+  `).join('');
+}
+
+function navigate(tab){ activeTab=tab; ejercOpen=null; rerender(); }
+
+// ── MINI CALENDAR ─────────────────────────────────────────────
+function miniCalendar(){
+  const dias = ['L','M','X','J','V','S','D'];
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const firstDay = new Date(calYear,calMonth,1).getDay();
+  const offset = firstDay===0?6:firstDay-1;
+  const daysInMonth = new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev = new Date(calYear,calMonth,0).getDate();
+  const today = new Date();
+  const sesEnFecha = (d) => SESIONES.find(s=>{const p=s.fecha.split('-');return parseInt(p[0])===calYear&&parseInt(p[1])-1===calMonth&&parseInt(p[2])===d;});
+  const cells=[];
+  for(let i=0;i<offset;i++) cells.push({day:daysInPrev-offset+1+i,other:true});
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday=today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===d;
+    cells.push({day:d,today:isToday,ses:sesEnFecha(d)});
+  }
+  while(cells.length%7!==0) cells.push({day:cells.length-daysInMonth-offset+1,other:true});
+
+  return `<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-weight:700;font-size:12px">${meses[calMonth]} ${calYear}</div>
+      <div style="display:flex;gap:4px">
+        <button onclick="calMonth--;if(calMonth<0){calMonth=11;calYear--;}rerender()" style="background:none;border:1px solid #e5e7eb;border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:11px;color:#6b7280">‹</button>
+        <button onclick="calMonth++;if(calMonth>11){calMonth=0;calYear++;}rerender()" style="background:none;border:1px solid #e5e7eb;border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:11px;color:#6b7280">›</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+      ${dias.map(d=>`<div style="text-align:center;font-size:9px;font-weight:700;color:#9ca3af;padding:2px">${d}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">
+      ${cells.map(c=>{
+        if(c.other) return `<div class="cal-mini-cell other">${c.day}</div>`;
+        if(c.today) return `<div class="cal-mini-cell today">${c.day}</div>`;
+        if(c.ses){
+          const done=c.ses.estado==='realizada';
+          return `<div class="cal-mini-cell has-session ${done?'done':''}" title="${c.ses.hora} · ${done?'Realizada':'Programada'}">${c.day}<div style="position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:${done?'#20dc95':'#3b82f6'}"></div></div>`;
+        }
+        return `<div class="cal-mini-cell">${c.day}</div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6">
+      <div style="display:flex;align-items:center;gap:4px"><div style="width:6px;height:6px;border-radius:50%;background:#20dc95"></div><span style="font-size:10px;color:#9ca3af">Realizada</span></div>
+      <div style="display:flex;align-items:center;gap:4px"><div style="width:6px;height:6px;border-radius:50%;background:#3b82f6"></div><span style="font-size:10px;color:#9ca3af">Programada</span></div>
+    </div>
+  </div>`;
+}
+
+// ── TAB: INICIO ───────────────────────────────────────────────
+function tabInicio(){
+  document.getElementById('topbar-title').textContent = 'Inicio';
+  const pct = Math.round(USER.sesiones_realizadas/USER.sesiones_total*100);
+  const proxima = SESIONES.find(s=>s.estado==='programada');
+  const fmtDate = d=>{ const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; };
+  const necesitaPost = USER.sesiones_realizadas>=USER.sesiones_total && USER.encuesta_post==='pendiente';
+
+  return `<div style="flex:1;overflow:auto;padding:20px 26px" class="fadeUp">
+    ${necesitaPost?`<div style="background:linear-gradient(135deg,#f0fdf8,#dcfce7);border:1.5px solid #20dc95;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:24px">🎉</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:13px;color:#065f46">¡Has completado el programa!</div>
+      <div style="font-size:11px;color:#047857;margin-top:1px">Rellena la encuesta final para cerrar tu proceso.</div></div>
+      <button onclick="navigate('encuestas')" class="btn-green" style="animation:glow-pulse 2s ease-in-out infinite;padding:8px 16px;font-size:12px">Ir a encuesta →</button>
+    </div>`:''}
+
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:14px">
+      <!-- Columna izquierda -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <!-- Bienvenida -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <div class="av" style="width:44px;height:44px;background:#20dc95;font-size:15px;color:#065f46">AV</div>
+            <div>
+              <div style="font-weight:700;font-size:15px">Hola, ${USER.nombre} 👋</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:1px">${USER.programa} · ${USER.empresa}</div>
+            </div>
+            <div style="margin-left:auto;font-family:monospace;font-size:11px;font-weight:700;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;padding:4px 9px">${USER.codigo}</div>
+          </div>
+          <div style="margin-bottom:4px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+              <span style="font-weight:600">Progreso del programa</span>
+              <span style="font-weight:700;color:#065f46">${USER.sesiones_realizadas} de ${USER.sesiones_total} sesiones</span>
+            </div>
+            <div style="height:9px;background:#f3f4f6;border-radius:5px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:#20dc95;border-radius:5px"></div>
+            </div>
+            <div style="font-size:10px;color:#9ca3af;margin-top:3px">${pct}% completado · ${USER.sesiones_total-USER.sesiones_realizadas} sesiones restantes</div>
+          </div>
+        </div>
+
+        <!-- Últimas sesiones -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:12px 18px;border-bottom:1px solid #e5e7eb;font-weight:700;font-size:13px">Últimas sesiones</div>
+          ${SESIONES.filter(s=>s.estado==='realizada').slice(-4).reverse().map(s=>`
+            <div style="display:grid;grid-template-columns:70px 1fr;align-items:center;padding:10px 18px;border-bottom:1px solid #f3f4f6;gap:12px">
+              <div style="text-align:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;padding:6px">
+                <div style="font-weight:700;font-size:12px">${s.fecha.split('-')[2]}/${s.fecha.split('-')[1]}</div>
+                <div style="font-size:10px;color:#9ca3af">${s.hora}</div>
+              </div>
+              <div style="font-size:12px;color:#374151;line-height:1.4">${s.notas}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Acceso rápido -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <button onclick="navigate('videollamada')" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:border-color .15s" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">
+            <div style="font-size:22px;margin-bottom:6px">🎥</div>
+            <div style="font-weight:600;font-size:12px">Videollamada</div>
+          </button>
+          <button onclick="navigate('ejercicios')" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:border-color .15s" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">
+            <div style="font-size:22px;margin-bottom:6px">🧠</div>
+            <div style="font-weight:600;font-size:12px">Ejercicios</div>
+          </button>
+          <button onclick="navigate('chat')" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:border-color .15s" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">
+            <div style="font-size:22px;margin-bottom:6px">💬</div>
+            <div style="font-weight:600;font-size:12px">Chat</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Columna derecha -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <!-- Próxima sesión -->
+        ${proxima?`<div class="card" style="border-color:#d1fae5;background:linear-gradient(135deg,#f0fdf8,#fff)">
+          <div style="font-size:10px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Próxima sesión</div>
+          <div style="font-size:20px;font-weight:800">${proxima.hora}</div>
+          <div style="font-size:12px;font-weight:600;margin-top:2px">${fmtDate(proxima.fecha)}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:3px">${USER.psicologa.split(' ')[0]}</div>
+          <button onclick="navigate('videollamada')" class="btn-green" style="width:100%;margin-top:10px;padding:8px;font-size:12px;animation:none">🎥 Ir a videollamada</button>
+        </div>`:`<div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:22px;margin-bottom:6px">✅</div>
+          <div style="font-weight:600;font-size:12px">Programa completado</div>
+        </div>`}
+
+        <!-- Mini calendario -->
+        ${miniCalendar()}
+
+        <!-- Encuestas -->
+        <div class="card">
+          <div style="font-size:11px;font-weight:700;margin-bottom:10px">Encuestas</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f3f4f6">
+            <div style="font-size:12px;font-weight:600">Inicial (PRE)</div>
+            ${USER.encuesta_pre==='completada'?'<span class="badge green" style="font-size:10px">✓ Hecha</span>':`<button onclick="navigate('encuestas')" class="badge amber" style="border:none;cursor:pointer;font-size:10px">Completar →</button>`}
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0">
+            <div style="font-size:12px;font-weight:600">Final (POST)</div>
+            ${USER.encuesta_post==='completada'?'<span class="badge green" style="font-size:10px">✓ Hecha</span>':USER.sesiones_realizadas>=USER.sesiones_total?`<button onclick="navigate('encuestas')" class="badge green" style="border:none;cursor:pointer;font-size:10px">Completar →</button>`:'<span class="badge gray" style="font-size:10px">Al finalizar</span>'}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── TAB: VIDEOLLAMADA ─────────────────────────────────────────
+function tabVideollamada(){
+  document.getElementById('topbar-title').textContent = 'Videollamada';
+  const proxima = SESIONES.find(s=>s.estado==='programada');
+  const fmtDate = d=>{ const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; };
+
+  return `<div style="flex:1;overflow:auto;padding:22px 28px;display:flex;align-items:flex-start;justify-content:center" class="fadeUp">
+    <div style="max-width:560px;width:100%">
+      <div class="card" style="text-align:center;padding:40px 32px;margin-bottom:14px">
+        <div style="width:72px;height:72px;background:#f0fdf8;border:2px solid #d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px">🎥</div>
+        <div style="font-weight:800;font-size:18px;margin-bottom:6px">Sesión con ${USER.psicologa.split(' ')[0]}</div>
+        ${proxima?`<div style="font-size:13px;color:#6b7280;margin-bottom:24px">Próxima sesión: <strong>${fmtDate(proxima.fecha)}</strong> a las <strong>${proxima.hora}</strong></div>`:'<div style="font-size:13px;color:#6b7280;margin-bottom:24px">Has completado todas tus sesiones</div>'}
+        <button class="btn-green" style="padding:14px 48px;font-size:15px;border-radius:12px;animation:glow-pulse 2s ease-in-out infinite" onclick="entrarSala()">
+          🎥 Entrar a la sesión
+        </button>
+        <div style="font-size:11px;color:#9ca3af;margin-top:12px">Asegúrate de tener activada la cámara y el micrófono</div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px">Antes de conectarte</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:#374151">
+          <div style="display:flex;align-items:center;gap:10px"><span style="color:#20dc95;font-weight:700">✓</span>Busca un lugar tranquilo con buena iluminación</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="color:#20dc95;font-weight:700">✓</span>Comprueba que tu cámara y micrófono funcionan</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="color:#20dc95;font-weight:700">✓</span>Conéctate 2-3 minutos antes de la hora</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="color:#20dc95;font-weight:700">✓</span>Usa auriculares para mejor calidad de audio</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">¿Problemas técnicos?</div>
+        <div style="font-size:12px;color:#6b7280;line-height:1.6">
+          Escríbenos a <strong>${CONTACT_EMAIL}</strong> o contáctanos por
+          <a href="https://wa.me/${WA_NUMBER}" target="_blank" style="color:#25d366;font-weight:600;text-decoration:none">WhatsApp</a>
+          y te ayudamos enseguida.
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function entrarSala(){
+  document.getElementById('modal-root').innerHTML=`
+  <div style="position:fixed;inset:0;background:#0d1117;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff">
+    <div style="font-size:40px;margin-bottom:16px">🎥</div>
+    <div style="font-weight:700;font-size:20px;margin-bottom:8px">Conectando con ${USER.psicologa.split(' ')[0]}...</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.5);margin-bottom:32px">Sala privada · Sesión segura</div>
+    <div style="display:flex;gap:8px;margin-bottom:32px">
+      <div style="width:10px;height:10px;border-radius:50%;background:#20dc95;animation:dot .9s ease-in-out infinite"></div>
+      <div style="width:10px;height:10px;border-radius:50%;background:#20dc95;animation:dot .9s ease-in-out .2s infinite"></div>
+      <div style="width:10px;height:10px;border-radius:50%;background:#20dc95;animation:dot .9s ease-in-out .4s infinite"></div>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.25);margin-bottom:24px">En producción conecta con Daily.co u otro proveedor de videollamada</div>
+    <button onclick="closeModal()" style="padding:10px 24px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit">← Volver</button>
+  </div>`;
+}
+
+// ── TAB: EJERCICIOS ───────────────────────────────────────────
+function tabEjercicios(){
+  document.getElementById('topbar-title').textContent = 'Ejercicios';
+  const TL={genially:'Genially',typeform:'Typeform',pdf:'PDF',youtube:'Vídeo'};
+  const TI={genially:'🎮',typeform:'📝',pdf:'📄',youtube:'▶️'};
+  const TB={genially:'blue',typeform:'green',pdf:'gray',youtube:'red'};
+  const area=EXERCISES[ejercArea];
+  const items=area.items.map(ex=>{
+    const open=ejercOpen===ex.id;
+    let embed='';
+    if(open){
+      if(ex.type==='genially') embed=`<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden"><iframe src="${ex.src}" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div>`;
+      else if(ex.type==='typeform') embed=`<div style="height:500px"><iframe src="${ex.src}" frameborder="0" style="width:100%;height:100%;border:none"></iframe></div>`;
+      else if(ex.type==='youtube') embed=`<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden"><iframe src="${ex.src}" frameborder="0" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div>`;
+      else if(ex.type==='pdf') embed=`<div style="padding:16px 20px;background:#fafafa;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:12px"><div style="font-size:28px">📄</div><div style="flex:1"><div style="font-weight:600;font-size:13px;margin-bottom:2px">${ex.title}</div><div style="font-size:11px;color:#9ca3af">PDF descargable</div></div><a href="${ex.src}" target="_blank" style="padding:8px 16px;border-radius:8px;background:#20dc95;color:#065f46;font-weight:700;font-size:12px;text-decoration:none">⬇ Descargar</a></div>`;
+    }
+    return `<div style="border:1.5px solid ${open?'#20dc95':'#e5e7eb'};border-radius:10px;overflow:hidden;margin-bottom:8px">
+      <div onclick="ejercOpen=ejercOpen==='${ex.id}'?null:'${ex.id}';rerender()" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;background:${open?'#f0fdf8':'#fff'};user-select:none">
+        <span style="font-size:17px;flex-shrink:0">${TI[ex.type]}</span>
+        <span style="flex:1;font-size:13px;font-weight:600">${ex.title}</span>
+        <span class="badge ${TB[ex.type]}" style="font-size:10px">${TL[ex.type]}</span>
+        <span style="font-size:11px;color:${open?'#20dc95':'#9ca3af'};margin-left:4px">${open?'▲':'▼'}</span>
+      </div>${embed}</div>`;
+  }).join('');
+  const tabBtns=Object.entries(EXERCISES).map(([k,v])=>
+    `<button onclick="ejercArea='${k}';ejercOpen=null;rerender()" style="padding:6px 12px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:${ejercArea===k?'#20dc95':'#f3f4f6'};color:${ejercArea===k?'#065f46':'#6b7280'}">${v.icon} ${v.label}</button>`
+  ).join('');
+  return `<div style="flex:1;overflow:auto;padding:22px 28px" class="fadeUp">
+    <div style="font-weight:800;font-size:18px;margin-bottom:4px">Ejercicios interactivos</div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:16px">Practica a tu ritmo con los ejercicios del programa.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #f3f4f6">${tabBtns}</div>
+    ${items}
+  </div>`;
+}
+
+// ── TAB: ENCUESTAS ────────────────────────────────────────────
+function tabEncuestas(){
+  document.getElementById('topbar-title').textContent = 'Encuestas';
+  const puedePost = USER.sesiones_realizadas >= USER.sesiones_total;
+  const mostrarForm = encuestaActiva==='pre' || (encuestaActiva==='post' && puedePost);
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden" class="fadeUp">
+    <div style="padding:12px 22px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">
+      <button onclick="encuestaActiva='pre';rerender()" style="padding:7px 16px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;background:${encuestaActiva==='pre'?'#20dc95':'#f3f4f6'};color:${encuestaActiva==='pre'?'#065f46':'#6b7280'}">
+        📋 Encuesta inicial ${USER.encuesta_pre==='completada'?'✓':''}
+      </button>
+      <button onclick="${puedePost?'encuestaActiva=\'post\';rerender()':''}" style="padding:7px 16px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:inherit;background:${encuestaActiva==='post'?'#20dc95':'#f3f4f6'};color:${encuestaActiva==='post'&&puedePost?'#065f46':'#9ca3af'};cursor:${puedePost?'pointer':'not-allowed'};opacity:${puedePost?1:.5}">
+        📋 Encuesta final ${USER.encuesta_post==='completada'?'✓':!puedePost?'(disponible al finalizar)':''}
+      </button>
+      <div style="margin-left:auto;font-size:11px;color:#9ca3af">Código anónimo: <strong>${USER.codigo}</strong></div>
+    </div>
+    <div style="flex:1;overflow:hidden">
+      ${mostrarForm
+        ? `<iframe src="https://form.typeform.com/to/${encuestaActiva==='pre'?USER.tf_pre_id:USER.tf_post_id}" style="width:100%;height:100%;border:none;" allow="camera;microphone"></iframe>`
+        : `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#9ca3af">
+            <div style="font-size:40px">🔒</div>
+            <div style="font-weight:600;font-size:14px">Disponible al completar el programa</div>
+            <div style="font-size:12px">Te quedan ${USER.sesiones_total-USER.sesiones_realizadas} sesiones</div>
+           </div>`}
+    </div>
+  </div>`;
+}
+
+// ── TAB: CHAT ─────────────────────────────────────────────────
+function tabChat(){
+  document.getElementById('topbar-title').textContent = 'Chat';
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden" class="fadeUp">
+    <div style="padding:12px 22px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">
+      <div class="av" style="width:32px;height:32px;background:#20dc95;font-size:11px;color:#065f46">CS</div>
+      <div>
+        <div style="font-weight:700;font-size:13px">${USER.psicologa}</div>
+        <div style="font-size:11px;color:#9ca3af">Tu psicóloga</div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+        <div style="width:7px;height:7px;border-radius:50%;background:#20dc95"></div>
+        <span style="font-size:11px;color:#6b7280">Activa</span>
+      </div>
+    </div>
+    <div id="chat-msgs" style="flex:1;overflow:auto;padding:18px 22px;display:flex;flex-direction:column;gap:12px">
+      ${MENSAJES.map(m=>`
+        <div style="display:flex;flex-direction:column;align-items:${m.de==='yo'?'flex-end':'flex-start'};gap:3px">
+          <div class="chat-bubble ${m.de==='yo'?'mine':'theirs'}">${m.texto}</div>
+          <div style="font-size:10px;color:#9ca3af;padding:0 4px">${m.hora}</div>
+        </div>`).join('')}
+    </div>
+    <div style="padding:12px 22px;background:#fff;border-top:1px solid #e5e7eb;display:flex;gap:10px">
+      <input class="field-input" id="chatInput" placeholder="Escribe un mensaje..." style="flex:1" onkeydown="if(event.key==='Enter')sendMsg()"/>
+      <button onclick="sendMsg()" class="btn-green" style="padding:10px 18px;animation:none">Enviar</button>
+    </div>
+  </div>`;
+}
+
+function sendMsg(){
+  const inp=document.getElementById('chatInput');
+  const txt=inp.value.trim(); if(!txt) return;
+  MENSAJES.push({de:'yo',texto:txt,hora:'Ahora'});
+  inp.value=''; rerender();
+  setTimeout(()=>{ const el=document.getElementById('chat-msgs'); if(el) el.scrollTop=el.scrollHeight; },50);
+}
+
+// ── TAB: PERFIL ───────────────────────────────────────────────
+function tabPerfil(){
+  document.getElementById('topbar-title').textContent = 'Mi perfil';
+  return `<div style="flex:1;overflow:auto;padding:22px 28px" class="fadeUp">
+    <div style="max-width:500px">
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+          <div class="av" style="width:48px;height:48px;background:#20dc95;font-size:16px;color:#065f46">AV</div>
+          <div>
+            <div style="font-weight:700;font-size:15px">${USER.nombre} ${USER.apellidos}</div>
+            <div style="font-size:12px;color:#6b7280">${USER.email}</div>
+            <span class="badge purple" style="margin-top:4px;display:inline-block">${USER.codigo}</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><label class="field-label">Nombre</label><input class="field-input" value="${USER.nombre}" readonly style="background:#fafafa;font-size:12px"/></div>
+          <div><label class="field-label">Apellidos</label><input class="field-input" value="${USER.apellidos}" readonly style="background:#fafafa;font-size:12px"/></div>
+          <div><label class="field-label">Email</label><input class="field-input" value="${USER.email}" readonly style="background:#fafafa;font-size:12px"/></div>
+          <div><label class="field-label">Teléfono</label><input class="field-input" value="${USER.telefono}" style="font-size:12px"/></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px">Mi programa</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${[['Empresa',USER.empresa],['Programa',USER.programa],['Psicóloga',USER.psicologa],['Código',USER.codigo]].map(([l,v])=>`
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px">
+              <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;margin-bottom:2px">${l}</div>
+              <div style="font-size:12px;font-weight:600;font-family:${l==='Código'?'monospace':'inherit'}">${v}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px">Cambiar contraseña</div>
+        <label class="field-label">Contraseña actual</label>
+        <input class="field-input" type="password" placeholder="••••••••" style="margin-bottom:10px;font-size:12px"/>
+        <label class="field-label">Nueva contraseña</label>
+        <input class="field-input" type="password" placeholder="••••••••" style="margin-bottom:10px;font-size:12px"/>
+        <label class="field-label">Repetir nueva contraseña</label>
+        <input class="field-input" type="password" placeholder="••••••••" style="margin-bottom:14px;font-size:12px"/>
+        <button class="btn-green" style="padding:9px 20px;font-size:12px;animation:none">Guardar contraseña</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px">¿Necesitas ayuda?</div>
+        <div style="font-size:12px;color:#6b7280;line-height:1.6">
+          Escríbenos a <a href="mailto:${CONTACT_EMAIL}" style="color:#20dc95;font-weight:600">${CONTACT_EMAIL}</a>
+          o contáctanos por
+          <a href="https://wa.me/${WA_NUMBER}" target="_blank" style="color:#25d366;font-weight:600;text-decoration:none">WhatsApp</a>.
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── GUIDED TOUR ───────────────────────────────────────────────
+const TOUR_STEPS = [
+  {icon:'👋',title:'Bienvenido al portal del programa',text:'Te hacemos un recorrido rápido para que conozcas todo lo que tienes disponible. ¡Solo son 5 pasos!',nav:null},
+  {icon:'🏠',title:'Inicio',text:'Aquí ves tu progreso, la próxima sesión, el calendario y el estado de tus encuestas. Tu punto de partida cada vez que entres.',nav:'inicio'},
+  {icon:'🎥',title:'Videollamada',text:'Desde aquí te conectas a tus sesiones con tu psicóloga. El botón siempre está disponible para que puedas acceder cuando llegue tu hora.',nav:'videollamada'},
+  {icon:'🧠',title:'Ejercicios',text:'Ejercicios interactivos de distintas áreas: personal, laboral, social... Puedes hacerlos a tu ritmo entre sesiones.',nav:'ejercicios'},
+  {icon:'📋',title:'Encuestas',text:'Aquí encontrarás la encuesta inicial y la final del programa, integradas directamente. La encuesta PRE está disponible ya, la POST al terminar el programa.',nav:'encuestas'},
+  {icon:'✅',title:'¡Listo!',text:'Ya conoces el portal. Cualquier duda escríbenos a info@popempower.com o por WhatsApp. ¡Mucho ánimo con el programa!',nav:null},
+];
+let tourStep = 0;
+
+function startTour(){ tourStep=0; showTourStep(); }
+
+function showTourStep(){
+  const step=TOUR_STEPS[tourStep];
+  if(step.nav) navigate(step.nav);
+  const total=TOUR_STEPS.length;
+  document.getElementById('modal-root').innerHTML=`
+  <div class="tour-overlay" onclick="if(event.target.classList.contains('tour-overlay'))closeTour()">
+    <div class="tour-card">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:40px;margin-bottom:10px">${step.icon}</div>
+        <div style="font-weight:800;font-size:17px;margin-bottom:8px">${step.title}</div>
+        <p style="font-size:13px;color:#6b7280;line-height:1.6">${step.text}</p>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:20px">
+        ${TOUR_STEPS.map((_,i)=>`<div class="tour-step-dot ${i===tourStep?'active':''}"></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeTour()" class="btn-gray" style="flex:1">Saltar tour</button>
+        ${tourStep>0?`<button onclick="tourStep--;showTourStep()" class="btn-gray" style="flex:0 0 auto">← Atrás</button>`:''}
+        <button onclick="${tourStep<total-1?'tourStep++;showTourStep()':'closeTour()'}" class="btn-green" style="flex:1;animation:none">
+          ${tourStep<total-1?'Siguiente →':'¡Entendido!'}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function closeTour(){ closeModal(); }
+
+// ── LOGOUT ────────────────────────────────────────────────────
+function confirmLogout(){
+  document.getElementById('modal-root').innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal-box" style="width:360px;padding:28px;text-align:center">
+      <div style="width:48px;height:48px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 14px">⎋</div>
+      <div style="font-weight:700;font-size:16px;margin-bottom:6px">¿Cerrar sesión?</div>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:22px">Volverás a la pantalla de inicio.</p>
+      <div style="display:flex;gap:10px">
+        <button onclick="closeModal()" class="btn-gray" style="flex:1;padding:11px">Cancelar</button>
+        <button onclick="doLogout()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#111827;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Salir</button>
+      </div>
+    </div>
+  </div>`;
+}
+function doLogout(){ localStorage.removeItem('pop_session'); window.location.href='Login.html'; }
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+// ── BIENVENIDA (primera vez) ──────────────────────────────────
+function showWelcomeModal(){
+  document.getElementById('modal-root').innerHTML=`
+  <div class="modal-overlay">
+    <div class="modal-box" style="width:460px;padding:0;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#20dc95,#059669);padding:28px;text-align:center">
+        <div style="font-size:36px;margin-bottom:10px">👋</div>
+        <div style="font-weight:800;font-size:18px;color:#fff;margin-bottom:4px">Bienvenido/a, ${USER.nombre}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.8)">${USER.programa} · ${USER.empresa}</div>
+      </div>
+      <div style="padding:24px 28px">
+        <p style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:18px">Para hacer un seguimiento de tu proceso necesitamos que completes la <strong>encuesta inicial</strong>. Es anónima y solo lleva unos minutos.</p>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px">
+          <div style="font-size:22px">📋</div>
+          <div>
+            <div style="font-weight:600;font-size:13px">Cuestionario inicial</div>
+            <div style="font-size:11px;color:#6b7280">Aprox. 5 min · Anónimo · Código: ${USER.codigo}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="closeModal()" class="btn-gray" style="flex:1;padding:10px">Lo haré más tarde</button>
+          <button onclick="closeModal();navigate('encuestas')" class="btn-green" style="flex:1;padding:10px;animation:glow-pulse 2s infinite">Completar encuesta →</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── CORE ──────────────────────────────────────────────────────
+const TABS={inicio:tabInicio,videollamada:tabVideollamada,ejercicios:tabEjercicios,encuestas:tabEncuestas,chat:tabChat,perfil:tabPerfil};
+
+function rerender(){
+  renderNav();
+  document.getElementById('tabcontent').innerHTML=TABS[activeTab]?TABS[activeTab]():'';
+  if(activeTab==='chat') setTimeout(()=>{ const el=document.getElementById('chat-msgs'); if(el) el.scrollTop=el.scrollHeight; },50);
+}
+
+rerender();
+document.getElementById('topbar-ses').textContent = USER.sesiones_realizadas + ' / ' + USER.sesiones_total + ' sesiones';
+document.getElementById('wa-btn').href = 'https://wa.me/' + WA_NUMBER + '?text=Hola%2C%20soy%20participante%20del%20programa%20y%20necesito%20ayuda.';
+if(USER.encuesta_pre==='pendiente') setTimeout(showWelcomeModal,700);
+</script>
+</body>
+</html>

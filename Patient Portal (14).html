@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Portal Paciente</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;overflow:hidden;background:#fafafa;font-size:13px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#e5e7eb;border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+@keyframes glow-pulse{0%,100%{box-shadow:0 4px 14px rgba(32,220,149,.45)}50%{box-shadow:0 4px 28px rgba(32,220,149,.85),0 0 0 6px rgba(32,220,149,.15)}}
+.fadeUp{animation:fadeUp .22s ease}
+.btn-entrar{animation:glow-pulse 2s ease-in-out infinite}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:220px;background:#fff;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;padding:18px 12px;flex-shrink:0}
+#content{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fafafa}
+#topbar{height:50px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 24px;gap:14px;flex-shrink:0}
+#tabcontent{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.logo{display:flex;align-items:center;gap:8px;padding:4px 8px;margin-bottom:28px}
+.logo-icon{width:28px;height:28px;background:#20dc95;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;border:none;cursor:pointer;text-align:left;font-size:13px;width:100%;position:relative;transition:background .12s}
+.nav-btn.active{background:#f0fdf8;color:#065f46;font-weight:600}
+.nav-btn:not(.active){background:transparent;color:#6b7280;font-weight:400}
+.nav-icon{font-size:14px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:#20dc95;color:#065f46;border-radius:10px;padding:1px 6px;font-size:11px;font-weight:700}
+.nav-indicator{position:absolute;right:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:#20dc95;border-radius:2px}
+.sidebar-next{background:#f0fdf8;border:1px solid #d1fae5;border-radius:9px;padding:10px 12px;margin-bottom:12px;cursor:pointer}
+.sidebar-user{border-top:1px solid #e5e7eb;padding-top:12px;display:flex;align-items:center;gap:9px}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px;transition:border-color .15s}
+.badge{border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600;border:1px solid;display:inline-block}
+.badge.green{background:#f0fdf8;color:#065f46;border-color:#d1fae5}
+.badge.gray{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+.badge.blue{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.badge.red{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+.progress-bar{background:#f3f4f6;border-radius:4px;overflow:hidden}
+.progress-fill{background:#20dc95;border-radius:4px;transition:width .4s}
+.btn-green{background:#20dc95;color:#065f46;border:none;border-radius:9px;padding:10px 22px;font-weight:700;font-size:13px}
+.btn-gray{background:#fafafa;color:#374151;border:1px solid #e5e7eb;border-radius:9px;padding:8px 16px;font-weight:600;font-size:12px}
+.tab-filter{display:flex;gap:4px;background:#f3f4f6;border-radius:8px;padding:4px}
+.tab-btn{padding:5px 12px;border-radius:6px;border:none;font-size:12px;font-weight:600;transition:all .12s}
+.tab-btn.active{background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tab-btn:not(.active){background:transparent;color:#6b7280}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)}
+.modal-box{background:#fff;border-radius:16px;max-height:85vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:fadeUp .2s ease}
+.field-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px}
+.field-input{width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:13px;outline:none;color:#111827}
+.field-input:focus{border-color:#20dc95}
+.toggle{width:40px;height:22px;border-radius:11px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:none;display:inline-block}
+.toggle-knob{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;font-size:11px;position:relative;border:1px solid transparent}
+.cal-cell.today{background:#20dc95;color:#fff;font-weight:700}
+.cal-cell.programada{background:#eff6ff;color:#111827;font-weight:700;border-color:#bfdbfe}
+.cal-cell.realizada{background:#f0fdf8;color:#111827;font-weight:700;border-color:#d1fae5}
+.cal-cell.cancelada{background:#fef2f2;color:#111827;font-weight:700;border-color:#fecaca}
+.cal-dot{position:absolute;bottom:2px;width:4px;height:4px;border-radius:50%}
+.chat-bubble{max-width:480px;padding:9px 14px;font-size:13px;line-height:1.55;word-break:break-word}
+.chat-bubble.mine{background:#f0fdf8;border:1px solid #d1fae5;border-radius:14px 14px 2px 14px;align-self:flex-end}
+.chat-bubble.theirs{background:#f3f4f6;border-radius:14px 14px 14px 2px}
+/* ── SESSION ROOM ── */
+#session-room{display:none;position:fixed;inset:0;z-index:500;background:#0d1117;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#fff;flex-direction:column}
+#session-room.active{display:flex}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes srFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.sr-ctrl-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;min-width:64px;transition:all .15s}
+.sr-panel-btn{padding:6px 12px;border-radius:6px;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div class="logo">
+      <div class="logo-icon">P</div>
+      <span style="font-weight:700;font-size:14px;color:#111827">POP Empower</span>
+    </div>
+    <div id="nav" style="flex:1;display:flex;flex-direction:column;gap:2px"></div>
+    <div class="sidebar-next" onclick="navigate('sesiones')">
+      <div style="font-size:10px;color:#065f46;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Próxima sesión</div>
+      <div style="font-size:12px;font-weight:700;color:#065f46">Miérc 23 Abr</div>
+      <div style="font-size:11px;color:#065f46;opacity:.7">18:00 · Elena</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="av" style="width:30px;height:30px;background:#20dc95;font-size:10px;color:#065f46">AM</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:12px;color:#111827">Ana Martínez</div>
+        <div style="font-size:11px;color:#9ca3af">Paciente</div>
+      </div>
+      <button onclick="navigate('ajustes')" title="Ajustes" style="background:none;border:none;color:#9ca3af;font-size:14px;padding:2px 4px;cursor:pointer">⚙</button>
+      <button onclick="confirmLogout()" title="Cerrar sesión" style="background:none;border:none;color:#9ca3af;font-size:13px;padding:2px 4px;cursor:pointer;line-height:1">⎋</button>
+    </div>
+  </div>
+  <div id="content">
+    <div id="topbar">
+      <span id="topbar-title" style="flex:1;font-weight:700;font-size:14px;color:#111827"></span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="av" style="width:24px;height:24px;background:#20dc95;font-size:8px;color:#065f46">EG</div>
+        <span style="font-size:12px;color:#6b7280">Dra. Elena García</span>
+        <div style="width:7px;height:7px;border-radius:50%;background:#20dc95"></div>
+      </div>
+      <!-- Selector de idioma -->
+      <div style="position:relative">
+        <div id="lang-btn" onclick="toggleLangPanel()" title="Cambiar idioma" style="height:30px;padding:0 10px;border-radius:7px;border:1px solid #e5e7eb;display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;font-weight:600;color:#6b7280;user-select:none" onmouseenter="this.style.borderColor='#20dc95';this.style.color='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb';this.style.color='#6b7280'">
+          <span id="lang-flag">🌐</span>
+          <span id="lang-label">ES</span>
+        </div>
+        <div id="lang-panel" style="display:none;position:absolute;top:36px;right:0;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:5000;min-width:140px;overflow:hidden">
+          <div onclick="selectLang('es','🌐','ES')" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;color:#374151" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'"><span>🇪🇸</span><span>Español</span></div>
+          <div onclick="selectLang('en','🇬🇧','EN')" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;color:#374151" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'"><span>🇬🇧</span><span>English</span></div>
+          <div onclick="selectLang('fr','🇫🇷','FR')" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;color:#374151" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'"><span>🇫🇷</span><span>Français</span></div>
+          <div onclick="selectLang('de','🇩🇪','DE')" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;color:#374151" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'"><span>🇩🇪</span><span>Deutsch</span></div>
+          <div onclick="selectLang('pt','🇵🇹','PT')" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;color:#374151" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'"><span>🇵🇹</span><span>Português</span></div>
+          <div onclick="selectLang('ca','🏴','CA')" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;color:#374151" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'"><span>🏴</span><span>Català</span></div>
+        </div>
+      </div>
+      <div onclick="startTour()" title="Guía de la plataforma" style="width:30px;height:30px;border-radius:7px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:700;color:#6b7280;user-select:none" onmouseenter="this.style.borderColor='#20dc95';this.style.color='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb';this.style.color='#6b7280'">?</div>
+      <div id="notif-btn" onclick="toggleNotifPanel()" style="width:30px;height:30px;border-radius:7px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;user-select:none">
+        🔔<div id="notif-dot" style="position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:#20dc95"></div>
+      </div>
+    </div>
+    <div id="tabcontent"></div>
+  </div>
+</div>
+
+<!-- ══ CONSENTIMIENTO INFORMADO ══════════════════════════════════ -->
+<div id="consent-overlay" style="position:fixed;inset:0;z-index:10000;background:#fff;display:flex;flex-direction:column;overflow:hidden">
+
+  <!-- Cabecera fija -->
+  <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;background:#20dc95;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff">P</div>
+      <div>
+        <div style="font-weight:800;font-size:14px;color:#111827">Consentimiento informado</div>
+        <div style="font-size:11px;color:#9ca3af">POP Empower — PO Psychology, S.L.</div>
+      </div>
+    </div>
+    <!-- Pasos -->
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="ci-step1-ind" style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:#f0fdf8;border:1.5px solid #20dc95">
+        <div style="width:18px;height:18px;border-radius:50%;background:#20dc95;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff">1</div>
+        <span style="font-size:11px;font-weight:700;color:#065f46">Leer documento</span>
+      </div>
+      <div style="width:20px;height:1px;background:#e5e7eb"></div>
+      <div id="ci-step2-ind" style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:#f9fafb;border:1.5px solid #e5e7eb">
+        <div style="width:18px;height:18px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#9ca3af">2</div>
+        <span style="font-size:11px;font-weight:700;color:#9ca3af">Firmar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 1: Leer -->
+  <div id="ci-step1" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:12px 28px;background:#fffbeb;border-bottom:1px solid #fde68a;display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <span style="font-size:14px">⚠️</span>
+      <span id="ci-scroll-hint" style="font-size:12px;color:#92400e;font-weight:600">Desplázate hasta el final del documento para continuar.</span>
+    </div>
+
+    <!-- Documento scrollable -->
+    <div id="ci-doc-scroll" onscroll="ciCheckScroll()" style="flex:1;overflow-y:auto;padding:28px;max-width:800px;width:100%;margin:0 auto;line-height:1.7;color:#374151;font-size:13px">
+
+      <h2 style="text-align:center;font-size:18px;font-weight:800;color:#111827;margin-bottom:24px;letter-spacing:.02em">CONSENTIMIENTO INFORMADO</h2>
+
+      <h3 style="font-size:13px;font-weight:800;color:#111827;text-decoration:underline;margin-bottom:12px">CONDICIONES DEL ENTRENAMIENTO:</h3>
+
+      <p style="margin-bottom:8px"><strong>Tiempo de duración de las sesiones</strong></p>
+      <ul style="margin:0 0 14px 20px">
+        <li>La sesión individual: <strong>50 minutos.</strong></li>
+        <li>La sesión familiar o de pareja: <strong>60 minutos.</strong></li>
+      </ul>
+
+      <p style="margin-bottom:8px"><strong>Precio de una sesión de entrenamiento</strong></p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;font-size:12px">
+        <div style="background:#f0fdf8;padding:10px 14px;font-weight:700;color:#065f46;border-right:1px solid #e5e7eb">→ Individuales</div>
+        <div style="background:#f0fdf8;padding:10px 14px;font-weight:700;color:#065f46">→ Pareja / Familia</div>
+        <div style="padding:8px 14px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">Sesión online: <strong>63€</strong></div>
+        <div style="padding:8px 14px;border-top:1px solid #e5e7eb">Sesión online: <strong>90€</strong></div>
+        <div style="padding:8px 14px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">Bono X4 online: <strong>232€</strong> (58€/sesión)</div>
+        <div style="padding:8px 14px;border-top:1px solid #e5e7eb">Bono X4 online: <strong>340€</strong> (85€/sesión)</div>
+        <div style="padding:8px 14px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">Sesión a domicilio: <strong>90€</strong></div>
+        <div style="padding:8px 14px;border-top:1px solid #e5e7eb">Sesión a domicilio: <strong>120€</strong></div>
+        <div style="padding:8px 14px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">Bono X4 a domicilio: <strong>340€</strong> (85€/sesión)</div>
+        <div style="padding:8px 14px;border-top:1px solid #e5e7eb">Bono X4 a domicilio: <strong>460€</strong> (115€/sesión)</div>
+      </div>
+
+      <p style="margin-bottom:14px"><strong>Códigos promocionales:</strong> POP Empower lanzará ofertas promocionales a través de las cuales los Usuarios podrán disfrutar de descuentos en la compra de sesiones individuales o bonos mensuales. El precio y la duración de la promoción será el indicado para cada promoción en www.popempower.com.</p>
+
+      <p style="margin-bottom:14px"><strong>Forma de pago:</strong> El pago deberá realizarse siempre por adelantado a través del sitio web mediante la pasarela de pago 100% segura indicada en www.popempower.com. Para el abono de informes, el pago se realizará mediante transferencia bancaria a: <strong>ES68 3187 0852 7151 0554 0826</strong> (beneficiaria: POP PSYCHOLOGY, SL; concepto: "Informe - nombre y apellidos del usuario").</p>
+
+      <p style="margin-bottom:14px"><strong>Cancelación de la sesión:</strong> La cita será acordada entre el entrenador y el usuario. En caso de no poder cumplir con la misma, el usuario se compromete a avisar con una <strong>antelación mínima de 24 horas.</strong> De no avisar en ese plazo, la sesión se considerará realizada a efectos económicos.</p>
+
+      <p style="margin-bottom:14px"><strong>Periodicidad de las sesiones:</strong> El encuadre del trabajo será con una <strong>periodicidad semanal</strong> para que pueda haber cierta continuidad y evolución.</p>
+
+      <p style="margin-bottom:8px"><strong>Caducidad de las sesiones:</strong></p>
+      <ul style="margin:0 0 14px 20px">
+        <li>La sesión individual deberá consumirse en un plazo de <strong>2 semanas</strong> desde su compra.</li>
+        <li>Los bonos mensuales (4 sesiones) deberán consumirse en un plazo de <strong>5 semanas</strong> desde su compra.</li>
+      </ul>
+
+      <p style="margin-bottom:14px"><strong>Renovación de suscripción bono mensual:</strong> Al realizar la compra de un bono mensual se activará la suscripción a este plan, renovándose de manera automática al finalizar la última sesión del bono vigente.</p>
+
+      <p style="margin-bottom:14px"><strong>Cancelación de la suscripción del bono mensual:</strong> Deberás realizar la cancelación siempre <strong>antes de consumir la última sesión</strong> del bono vigente, a través de la plataforma en el botón "Cancelar suscripción".</p>
+
+      <p style="margin-bottom:24px"><strong>Informes psicológicos:</strong> El precio por la emisión de informes extensos será comunicado al usuario cuando lo solicite. Los informes estándar se entregarán previa petición de forma gratuita. Para la solicitud de cualquier informe, el usuario deberá remitir un email a info@popempower.com.</p>
+
+      <h3 style="font-size:13px;font-weight:800;color:#111827;text-decoration:underline;margin-bottom:12px">CÓDIGO DEONTOLÓGICO REGULADOR DEL EJERCICIO PROFESIONAL:</h3>
+      <p style="margin-bottom:10px">La actuación profesional queda regida en todo momento por el Código Deontológico publicado en el Colegio Oficial de Psicólogos, que recoge, entre otros:</p>
+      <ul style="margin:0 0 24px 20px">
+        <li style="margin-bottom:8px">El entrenador deberá informar al usuario sobre las características esenciales de la relación establecida, los objetivos y los métodos utilizados, al logro del desarrollo y autonomía de la persona <em>(artículo 25)</em>.</li>
+        <li style="margin-bottom:8px">Cuando haya certeza de que sus servicios puedan ser mal utilizados, el entrenador deberá rechazar prestar sus servicios <em>(artículo 24)</em>.</li>
+        <li style="margin-bottom:8px">El usuario puede solicitar una segunda opinión de otro profesional y abandonar el entrenamiento en cualquier momento <em>(artículo 27)</em>.</li>
+        <li style="margin-bottom:8px">La confidencialidad no primará en caso de conocimiento de violaciones de derechos humanos, malos tratos o condiciones degradantes <em>(artículo 8)</em>.</li>
+        <li>Se observará en todo momento la Ley Orgánica 3/2018 de Protección de Datos Personales (RGPD 2016/679) y la Ley 41/2002 de autonomía del paciente.</li>
+      </ul>
+
+      <h3 style="font-size:13px;font-weight:800;color:#111827;text-decoration:underline;margin-bottom:12px">INFORMACIÓN SOBRE PROTECCIÓN DE DATOS:</h3>
+      <p style="margin-bottom:10px">De conformidad con el Reglamento UE 2016/679 y L.O. 3/2018:</p>
+      <ul style="margin:0 0 24px 20px">
+        <li style="margin-bottom:8px"><strong>Responsable del tratamiento:</strong> PO PSYCHOLOGY, S.L. — DPO: info@popempower.es</li>
+        <li style="margin-bottom:8px"><strong>Fin del tratamiento:</strong> Prestación de asistencia psicológica, apertura de historia clínica y comunicaciones inherentes a la relación con el usuario.</li>
+        <li style="margin-bottom:8px"><strong>Legitimación:</strong> Art. 6.1.b) — ejecución de un contrato en el que el interesado es parte.</li>
+        <li style="margin-bottom:8px"><strong>Conservación:</strong> Sus datos se conservarán mientras perdure la relación y los plazos legalmente establecidos.</li>
+        <li style="margin-bottom:8px"><strong>Comunicación:</strong> No está prevista ninguna cesión a terceros salvo obligación legal o requerimiento judicial.</li>
+        <li style="margin-bottom:8px"><strong>Derechos:</strong> Acceso, rectificación, portabilidad, supresión, limitación u oposición mediante escrito a info@popempower.com, adjuntando documento acreditativo de identidad. Derecho a reclamar ante la AEPD (www.aepd.es).</li>
+        <li><strong>Contacto DPO:</strong> info@popempower.com</li>
+      </ul>
+
+      <!-- Texto firma -->
+      <div style="background:#f0fdf8;border:1.5px solid #d1fae5;border-radius:10px;padding:16px 20px;margin-bottom:8px">
+        <p style="font-size:13px;color:#065f46;line-height:1.7">Yo he leído y comprendido la información anteriormente presentada y he sido informado del tratamiento de mis datos para iniciar el servicio de asistencia psicológica mediante el sistema de entrenamiento POP EMPOWER según los términos descritos.</p>
+        <p style="font-size:12px;color:#6b7280;margin-top:10px">Este documento está integrado por el consentimiento informado y, además, por el "Aviso Legal y Términos y Condiciones de Uso", la "Política de Privacidad" y las "Condiciones Generales de Contratación" disponibles en www.popempower.com.</p>
+      </div>
+      <!-- Ancla de fin de documento -->
+      <div id="ci-doc-end" style="height:1px"></div>
+    </div>
+
+    <!-- Botón continuar -->
+    <div style="padding:16px 28px;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0;display:flex;justify-content:flex-end">
+      <button id="ci-next-btn" onclick="ciGoStep2()" disabled style="padding:11px 28px;border-radius:10px;border:none;background:#e5e7eb;color:#9ca3af;font-size:14px;font-weight:700;cursor:not-allowed;transition:all .2s">He leído el documento → </button>
+    </div>
+  </div>
+
+  <!-- PASO 2: Firmar -->
+  <div id="ci-step2" style="flex:1;display:none;overflow-y:auto;padding:28px;align-items:flex-start;justify-content:center">
+    <div style="max-width:640px;width:100%;margin:0 auto">
+      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:6px">Firma el documento</h3>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:24px">Dibuja tu firma en el recuadro y completa los datos para finalizar.</p>
+
+      <!-- Canvas firma -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">Firma manuscrita</div>
+        <div style="position:relative;border:2px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fafafa">
+          <canvas id="sig-canvas" width="600" height="160" style="display:block;width:100%;height:160px;touch-action:none;cursor:crosshair"></canvas>
+          <div id="sig-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+            <span style="font-size:12px;color:#d1d5db">Dibuja tu firma aquí</span>
+          </div>
+        </div>
+        <button onclick="ciClearSig()" style="margin-top:6px;background:none;border:none;font-size:11px;color:#9ca3af;cursor:pointer;padding:0">✕ Borrar firma</button>
+      </div>
+
+      <!-- Nombre completo -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px">Nombre completo</label>
+        <input id="ci-name" type="text" placeholder="Escribe tu nombre y apellidos" oninput="ciValidate()" style="width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:13px;font-family:inherit;outline:none" onfocus="this.style.borderColor='#20dc95'" onblur="this.style.borderColor='#e5e7eb'"/>
+      </div>
+
+      <!-- Fecha -->
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px">Fecha</label>
+        <input id="ci-date" type="text" readonly style="width:200px;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:13px;background:#f9fafb;color:#6b7280;font-family:inherit"/>
+      </div>
+
+      <!-- Checkbox -->
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:24px;cursor:pointer">
+        <input id="ci-check" type="checkbox" onchange="ciValidate()" style="width:16px;height:16px;margin-top:2px;accent-color:#20dc95;flex-shrink:0"/>
+        <span style="font-size:12px;color:#374151;line-height:1.6">He leído y comprendido el consentimiento informado y acepto expresamente los términos y condiciones del servicio de POP Empower — PO Psychology, S.L.</span>
+      </label>
+
+      <!-- Nota VIDsigner -->
+      <div style="background:#f0fdf8;border:1px solid #d1fae5;border-radius:8px;padding:10px 14px;margin-bottom:20px;display:flex;gap:8px;align-items:flex-start">
+        <span style="font-size:14px;flex-shrink:0">ℹ️</span>
+        <span style="font-size:11px;color:#065f46;line-height:1.6">
+          <strong>Firma electrónica simple</strong> válida bajo la Ley 59/2003 y el Reglamento eIDAS (UE).
+          <!-- VIDsigner API: en producción sustituir por llamada a POST /api/vidsigner/send-document -->
+          En producción se certificará mediante VIDsigner con firma biométrica.
+        </span>
+      </div>
+
+      <!-- Botón firmar -->
+      <button id="ci-sign-btn" onclick="ciSubmit()" disabled style="width:100%;padding:14px;border-radius:12px;border:none;background:#e5e7eb;color:#9ca3af;font-size:15px;font-weight:800;cursor:not-allowed;transition:all .3s">
+        ✍️ Firmar y acceder a la plataforma
+      </button>
+
+      <button onclick="ciGoStep1()" style="width:100%;margin-top:10px;padding:10px;border-radius:10px;border:none;background:none;color:#9ca3af;font-size:12px;font-weight:600;cursor:pointer">← Volver a leer el documento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Session Entry Modal -->
+<div id="session-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="width:420px">
+    <!-- Cabecera -->
+    <div style="background:linear-gradient(135deg,#20dc95 0%,#0bbf7a 100%);padding:22px 24px;border-radius:16px 16px 0 0;text-align:center">
+      <div style="font-size:32px;margin-bottom:8px">🎥</div>
+      <div style="font-weight:800;font-size:17px;color:#022c22;margin-bottom:3px">Sesión con Dra. Elena García</div>
+      <div style="font-size:12px;color:#065f46;opacity:.85">Miércoles, 23 Abr · 18:00 h · 50 min</div>
+    </div>
+    <!-- Pasos -->
+    <div style="padding:22px 24px">
+      <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">Antes de conectarte</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:#f9fafb;border-radius:10px">
+          <div style="width:28px;height:28px;border-radius:50%;background:#20dc95;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#065f46;flex-shrink:0">1</div>
+          <div><div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:2px">🎙️ Cámara y micrófono</div><div style="font-size:11px;color:#6b7280">Comprueba que funcionan correctamente en tu dispositivo.</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:#f9fafb;border-radius:10px">
+          <div style="width:28px;height:28px;border-radius:50%;background:#20dc95;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#065f46;flex-shrink:0">2</div>
+          <div><div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:2px">🏠 Lugar tranquilo</div><div style="font-size:11px;color:#6b7280">Busca un espacio privado sin interrupciones.</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:#f9fafb;border-radius:10px">
+          <div style="width:28px;height:28px;border-radius:50%;background:#20dc95;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#065f46;flex-shrink:0">3</div>
+          <div><div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:2px">📶 Conexión estable</div><div style="font-size:11px;color:#6b7280">Asegúrate de tener buena señal de internet.</div></div>
+        </div>
+      </div>
+      <!-- Acciones secundarias -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button id="cal-btn-modal" onclick="toggleCalDropdown('cal-btn-modal')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:11px;cursor:pointer">📅 Añadir al calendario</button>
+        <button onclick="closeSessionModal();goReschedule()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:11px;cursor:pointer">💬 Reagendar</button>
+      </div>
+      <!-- CTA principal -->
+      <button onclick="enterSession()" class="btn-entrar" style="width:100%;padding:14px;border-radius:12px;border:none;background:#20dc95;color:#065f46;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.01em">
+        🚀 Conectarme ahora
+      </button>
+      <button onclick="closeSessionModal()" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:none;background:none;color:#9ca3af;font-size:12px;font-weight:600;cursor:pointer">Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- SESSION ROOM -->
+<div id="session-room"></div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────
+const BONO = { used:2, total:4, expiry:'15 Jul 2026' };
+const SESSIONS = [
+  { id:1, date:'Miérc 23 Abr', time:'18:00', status:'programada', duration:50, notes:'' },
+  { id:2, date:'Miérc 16 Abr', time:'18:00', status:'realizada',  duration:52, notes:'Progresó bien con técnica de respiración. Aplicó en reunión laboral con éxito.' },
+  { id:3, date:'Miérc 9 Abr',  time:'18:00', status:'cancelada',  duration:0,  notes:'' },
+  { id:4, date:'Miérc 2 Abr',  time:'18:00', status:'realizada',  duration:55, notes:'Primera sesión. Evaluación inicial. Definimos objetivos.' },
+];
+let messages = [
+  { id:1, from:'psych', text:'Hola Ana, ¿cómo te has sentido esta semana con los ejercicios?', time:'Mar 10:32', date:'Martes' },
+  { id:2, from:'patient', text:'Hola Elena, la verdad bastante mejor. Lo de la respiración me ha ayudado mucho.', time:'11:05' },
+  { id:3, from:'psych', text:'Me alegra mucho. ¿Hubo algún momento de tensión que hayas podido gestionar con la técnica?', time:'11:10' },
+  { id:4, from:'patient', text:'Sí, el lunes en el trabajo. Funcionó bien, aunque al principio me costó recordarlo.', time:'11:14' },
+  { id:5, from:'psych', text:'Es completamente normal al principio. La práctica lo hace automático. Te mando el ejercicio que comentamos para esta semana 👇', time:'11:18' },
+  { id:6, from:'psych', type:'file', text:'Ejercicio_reestructuracion_cognitiva.pdf', fileSize:'248 KB', time:'11:19' },
+  { id:7, from:'patient', text:'Muchas gracias, lo haré esta tarde. Hasta el miércoles 🙏', time:'11:22' },
+];
+const DOCS = [
+  { id:1, name:'Consentimiento informado.pdf', size:'124 KB', date:'1 Mar 2026', category:'Legal' },
+  { id:2, name:'Informe inicial — Ana Martínez.pdf', size:'248 KB', date:'1 Mar 2026', category:'Clínico' },
+];
+const NAV_ITEMS = [
+  { id:'inicio',     icon:'🏠', label:'Inicio' },
+  { id:'sesiones',   icon:'📅', label:'Sesiones' },
+  { id:'mensajes',   icon:'💬', label:'Mensajes', badge:2 },
+  { id:'ejercicios', icon:'🧠', label:'Ejercicios' },
+  { id:'plan',       icon:'📋', label:'Tu plan' },
+  { id:'facturas',   icon:'🧾', label:'Facturas' },
+  { id:'docs',       icon:'📁', label:'Documentos' },
+  { id:'ajustes',    icon:'⚙️', label:'Ajustes' },
+  { id:'ayuda',      icon:'💡', label:'Ayuda' },
+];
+const SESSION_DAYS_MAP = { 3:{ 2:'realizada', 9:'cancelada', 16:'realizada', 23:'programada' } };
+
+// ── DATE UTILITIES ────────────────────────────────────────────────
+const _NOW = new Date();
+const TODAY_D = _NOW.getDate();
+const TODAY_M = _NOW.getMonth();
+const TODAY_Y = _NOW.getFullYear();
+const _WD = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const _MN = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function todayStr(){ return `${_WD[_NOW.getDay()]}, ${TODAY_D} de ${_MN[TODAY_M]} de ${TODAY_Y}`; }
+function greet(){ const h=_NOW.getHours(); return h<14?'¡Buenos días':h<21?'¡Buenas tardes':'¡Buenas noches'; }
+function greetIcon(){ const h=_NOW.getHours(); return h<14?'☀️':h<21?'🌤️':'🌙'; }
+
+// ── STATE ─────────────────────────────────────────────────────────
+let currentNav = 'inicio';
+let calMonth = TODAY_M;
+let sesFilter = 'todas';
+let faqOpen = null;
+let notifs = {session24h:true,newMsg:true,bonoExpiry:true,marketing:false};
+let editCard = false;
+let promoCode = '';
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function av(initials, size, green) {
+  return `<div class="av" style="width:${size}px;height:${size}px;background:${green?'#20dc95':'#e5e7eb'};font-size:${Math.round(size*.33)}px;color:${green?'#065f46':'#6b7280'}">${initials}</div>`;
+}
+function badge(label, color) {
+  return `<span class="badge ${color||'green'}">${label}</span>`;
+}
+function bonoDots() {
+  return Array.from({length:BONO.total}).map((_,i)=>
+    `<div style="flex:1;height:6px;border-radius:3px;background:${i<BONO.used?'#20dc95':'#f3f4f6'}"></div>`
+  ).join('');
+}
+function pbar(pct, h) {
+  h = h||4;
+  return `<div class="progress-bar" style="height:${h}px"><div class="progress-fill" style="width:${pct}%;height:100%"></div></div>`;
+}
+function toggleHtml(key, val) {
+  return `<button class="toggle" style="background:${val?'#20dc95':'#e5e7eb'}" onclick="toggleNotif('${key}')"><div class="toggle-knob" style="left:${val?20:2}px"></div></button>`;
+}
+
+// ── CALENDAR ─────────────────────────────────────────────────────
+let calView = 'mes';
+function renderCalendar() {
+  const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const DAYS=['Lun.','Mar.','Mié.','Jue.','Vie.','Sáb.','Dom.'];
+  const calYear = TODAY_Y + (calMonth < TODAY_M && calMonth < 6 ? 1 : 0);
+  const sdays = SESSION_DAYS_MAP[calMonth]||{};
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const offset = firstDay===0?6:firstDay-1;
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const cells = Array.from({length:offset+daysInMonth},(_,i)=>i<offset?null:i-offset+1);
+  while(cells.length%7!==0) cells.push(null);
+  const dotColor={programada:'#3b82f6',realizada:'#20dc95',cancelada:'#ef4444'};
+
+  const cellsHtml = cells.map(day=>{
+    if(!day) return `<div style="aspect-ratio:1"></div>`;
+    const s = sdays[day];
+    const isToday = day===TODAY_D && calMonth===TODAY_M;
+    const dot = s ? `<div style="width:5px;height:5px;border-radius:50%;background:${isToday?'#fff':dotColor[s]};margin-top:1px;flex-shrink:0"></div>` : '';
+    return `<div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;font-size:11px;font-weight:${isToday||s?600:400};color:${isToday?'#fff':day?'#374151':'transparent'};background:${isToday?'#20dc95':'transparent'};cursor:${s?'pointer':'default'}">${day}${dot}</div>`;
+  }).join('');
+
+  const dayHdrs = DAYS.map(d=>`<div style="text-align:center;font-size:10px;font-weight:500;color:#9ca3af">${d}</div>`).join('');
+
+  const todayIdx = cells.findIndex(d=>d===TODAY_D);
+  const weekStart = Math.floor(Math.max(todayIdx,0)/7)*7;
+  const weekCells = calView==='semana' ? cells.slice(weekStart, weekStart+7) : null;
+  const weekHtml = weekCells ? weekCells.map(day=>{
+    if(!day) return `<div style="aspect-ratio:1"></div>`;
+    const s=sdays[day];
+    const isToday=day===TODAY_D&&calMonth===TODAY_M;
+    const dot=s?`<div style="width:5px;height:5px;border-radius:50%;background:${isToday?'#fff':dotColor[s]};margin-top:1px"></div>`:'';
+    return `<div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;font-size:11px;font-weight:${isToday||s?600:400};color:${isToday?'#fff':'#374151'};background:${isToday?'#20dc95':'transparent'}">${day}${dot}</div>`;
+  }).join('') : '';
+
+  const gridContent = calView==='dia'
+    ? `<div style="text-align:center;padding:10px 0;font-size:12px;color:#6b7280">
+        <div style="font-size:28px;font-weight:800;color:#111827;margin-bottom:2px">${TODAY_D}</div>
+        <div style="color:#9ca3af;font-size:11px">${todayStr()}</div>
+        ${sdays[TODAY_D]?`<div style="margin-top:10px;padding:8px 12px;background:#eff6ff;border-radius:8px;font-size:11px;font-weight:600;color:#1d4ed8;display:inline-block">◷ Sesión ${sdays[TODAY_D]}</div>`:'<div style="margin-top:8px;font-size:11px;color:#d1d5db">No hay eventos hoy</div>'}
+      </div>`
+    : calView==='semana'
+    ? `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">${dayHdrs}${weekHtml}</div>`
+    : `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px">${dayHdrs}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">${cellsHtml}</div>`;
+
+  const noEvents = calView!=='dia' && !Object.keys(sdays).length;
+
+  return `<div class="card" style="padding:14px 16px">
+    <div style="display:flex;justify-content:center;gap:0;margin-bottom:12px;border-bottom:1px solid #f3f4f6;padding-bottom:10px">
+      ${['mes','semana','día'].map(v=>`<button onclick="calView='${v}';rerender()" style="flex:1;padding:5px 0;border:none;background:none;font-size:11px;font-weight:600;color:${calView===v?'#20dc95':'#9ca3af'};border-bottom:${calView===v?'2px solid #20dc95':'2px solid transparent'};margin-bottom:-11px;text-transform:uppercase;letter-spacing:.04em">${v.charAt(0).toUpperCase()+v.slice(1)}</button>`).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <button onclick="calNav(-1)" style="width:22px;height:22px;border-radius:50%;border:none;background:none;color:#20dc95;font-size:16px;display:flex;align-items:center;justify-content:center">←</button>
+      <span style="font-size:12px;font-weight:600;color:#111827">${MONTHS[calMonth]} ${calYear}</span>
+      <button onclick="calNav(1)"  style="width:22px;height:22px;border-radius:50%;border:none;background:none;color:#20dc95;font-size:16px;display:flex;align-items:center;justify-content:center">→</button>
+    </div>
+    ${gridContent}
+    ${noEvents?`<div style="font-size:11px;color:#9ca3af;margin-top:8px">No hay eventos</div>`:''}
+    <div style="display:flex;gap:14px;margin-top:10px;padding-top:8px;border-top:1px solid #f3f4f6;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;border:2px solid #3b82f6"></div><span style="font-size:10px;color:#6b7280">Programada</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#20dc95"></div><span style="font-size:10px;color:#6b7280">Realizada</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#ef4444"></div><span style="font-size:10px;color:#6b7280">Cancelada</span></div>
+    </div>
+  </div>`;
+}
+
+// ── EXERCISES DATA ────────────────────────────────────────────────
+const EXERCISES = {
+  intro: { label:'Introducción', icon:'🌱', items:[
+    { id:'p0e1',  title:'Píldora 0 · Ejercicio 1',         type:'typeform', src:'https://form.typeform.com/to/Olw2mMOL' },
+    { id:'p0e2',  title:'El Parchís del Bienestar',        type:'genially', src:'https://view.genially.com/6708f4b67c9593a75d27719a' },
+  ]},
+  personal: { label:'Personal', icon:'🧘', items:[
+    { id:'p2e1',  title:'Píldora 2 · Ejercicio 1',         type:'genially', src:'https://view.genial.ly/650837ff241da8001161a72d' },
+    { id:'p3e1',  title:'Píldora 3 · Ejercicio 1',         type:'genially', src:'https://view.genial.ly/65083c9a2e388f00115b7c0c' },
+    { id:'p5e1',  title:'Píldora 5 · Ejercicio 1',         type:'genially', src:'https://view.genial.ly/650d66cd07be920019c0d2ab' },
+    { id:'p5e2',  title:'Píldora 5 · Ejercicio 2',         type:'typeform', src:'https://form.typeform.com/to/KyRxVSnk' },
+  ]},
+  familia: { label:'Familia', icon:'👨‍👩‍👧', items:[
+    { id:'genograma',  title:'Tu Genograma',                type:'pdf',      src:'https://popempower.com/wp-content/uploads/2023/10/TU-GENOGRAMA.pdf' },
+    { id:'fam-e2',     title:'Ejercicio 2',                 type:'genially', src:'https://view.genial.ly/6512c223eb9eb20011044aba' },
+    { id:'relaciones', title:'Mis Relaciones Familiares',   type:'pdf',      src:'https://popempower.com/wp-content/uploads/2023/09/MIS-RELACIONES-FAMILIARES.pdf' },
+    { id:'patrones',   title:'Patrones Repetidos',          type:'typeform', src:'https://form.typeform.com/to/VsLHNIMR' },
+    { id:'fam-e3',     title:'Ejercicio 3',                 type:'genially', src:'https://view.genial.ly/651412770607270011067c2a' },
+    { id:'zapatos',    title:'¿Qué pasaría si te pones en los zapatos de tu hijo?', type:'typeform', src:'https://form.typeform.com/to/OCea33Rj' },
+  ]},
+  pareja: { label:'Pareja', icon:'💑', items:[
+    { id:'p8e3',   title:'Píldora 8 · Ejercicio 3',         type:'genially', src:'https://view.genial.ly/651171f9f7ab490011d07d59' },
+    { id:'p9e1',   title:'Píldora 9 · Ejercicio 1',         type:'genially', src:'https://view.genial.ly/650bebae1fe5e9001167fc14' },
+    { id:'p9e3',   title:'Píldora 9 · Ejercicio 3',         type:'genially', src:'https://view.genial.ly/650d6d6cd1f8640010c68826' },
+    { id:'p9e5',   title:'La forma en la que miramos al otro', type:'typeform', src:'https://form.typeform.com/to/Td0ukHMj' },
+    { id:'par-e1', title:'Ejercicio 1',                     type:'genially', src:'https://view.genial.ly/65142278f7c74000117af51e' },
+  ]},
+  laboral: { label:'Laboral', icon:'💼', items:[
+    { id:'burnout', title:'Burnout',       type:'pdf',      src:'https://popempower.com/wp-content/uploads/2023/10/BURNOUT.pdf' },
+    { id:'lab-e1',  title:'Ejercicio 1',   type:'genially', src:'https://view.genial.ly/651d3dafcc4ead0011a5535d' },
+    { id:'lab-e2',  title:'Ejercicio 2',   type:'genially', src:'https://view.genial.ly/651d6180ab93670011ea3e4a' },
+    { id:'lab-e3',  title:'Ejercicio 3',   type:'genially', src:'https://view.genial.ly/651d680acc4ead0011c0391e' },
+    { id:'lab-e4',  title:'Ejercicio 4',   type:'genially', src:'https://view.genial.ly/651a96fe3f47ab001184a7a8' },
+    { id:'lab-e5',  title:'Ejercicio 5',   type:'genially', src:'https://view.genial.ly/651aaf26d3173a001191a3a2' },
+    { id:'lab-e6',  title:'Ejercicio 6',   type:'genially', src:'https://view.genial.ly/651ec3de25f5b70011a4e31e' },
+    { id:'lab-e7',  title:'Ejercicio 7',   type:'genially', src:'https://view.genial.ly/651acbcf4feff90012465c78' },
+  ]},
+  social: { label:'Social', icon:'🤝', items:[
+    { id:'soc-yt',  title:'Vídeo',                 type:'youtube',  src:'https://www.youtube.com/embed/8KkKuTCFvzI' },
+    { id:'soc-e1',  title:'Píldora 14 · Ejercicio 1', type:'genially', src:'https://view.genial.ly/6515260a9c144d00116f1111' },
+    { id:'soc-e2',  title:'Píldora 14 · Ejercicio 2', type:'pdf',      src:'https://popempower.com/wp-content/uploads/2023/10/PI%CC%81LDORA-14_EJERCICIO-2.pdf' },
+    { id:'soc-e3',  title:'Píldora 14 · Ejercicio 3', type:'genially', src:'https://view.genial.ly/65312ea7553a84001153f7d3' },
+  ]},
+  salud: { label:'Salud', icon:'🌿', items:[
+    { id:'sal-e1',  title:'Píldora 15 · Ejercicio 1', type:'genially', src:'https://view.genial.ly/6516887d071da80011c8a843' },
+    { id:'sal-e2',  title:'Píldora 15 · Ejercicio 2', type:'pdf',      src:'https://popempower.com/wp-content/uploads/2023/10/PI%CC%81LDORA-15_EJERCICIO-2.pdf' },
+    { id:'sal-e3',  title:'Píldora 15 · Ejercicio 3', type:'genially', src:'https://view.genial.ly/653226d79415fa001104f4a5' },
+  ]},
+};
+
+let ejercArea = 'intro';
+let ejercOpen = null;
+
+function tabEjercicios() {
+  const area = EXERCISES[ejercArea];
+  const TYPE_LABEL = { genially:'Genially', typeform:'Typeform', pdf:'PDF', youtube:'Vídeo' };
+  const TYPE_ICON  = { genially:'🎮', typeform:'📝', pdf:'📄', youtube:'▶️' };
+  const TYPE_BADGE = { genially:'blue', typeform:'green', pdf:'gray', youtube:'red' };
+
+  const items = area.items.map(ex => {
+    const open = ejercOpen === ex.id;
+    let embed = '';
+    if (open) {
+      if (ex.type === 'genially') {
+        embed = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden">
+          <iframe src="${ex.src}" frameborder="0" allowfullscreen scrolling="yes" title="${ex.title}"
+            style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+        </div>`;
+      } else if (ex.type === 'typeform') {
+        embed = `<div style="height:520px">
+          <iframe src="${ex.src}" frameborder="0" allowfullscreen title="${ex.title}"
+            style="width:100%;height:100%;border:none"></iframe>
+        </div>`;
+      } else if (ex.type === 'youtube') {
+        embed = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden">
+          <iframe src="${ex.src}" frameborder="0" allowfullscreen title="${ex.title}"
+            allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+            style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+        </div>`;
+      } else if (ex.type === 'pdf') {
+        embed = `<div style="padding:18px 20px;background:#fafafa;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:14px">
+          <div style="font-size:30px">📄</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:2px">${ex.title}</div>
+            <div style="font-size:11px;color:#9ca3af">Documento PDF descargable</div>
+          </div>
+          <a href="${ex.src}" target="_blank" style="padding:9px 18px;border-radius:8px;background:#20dc95;color:#065f46;font-weight:700;font-size:12px;text-decoration:none;white-space:nowrap;flex-shrink:0">⬇ Descargar</a>
+        </div>`;
+      }
+    }
+    return `<div id="ex-${ex.id}" style="border:1.5px solid ${open?'#20dc95':'#e5e7eb'};border-radius:10px;overflow:hidden;margin-bottom:8px;transition:border-color .15s">
+      <div onclick="toggleEjerc('${ex.id}')" style="display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;background:${open?'#f0fdf8':'#fff'};user-select:none"
+        onmouseenter="if(!${open})this.style.background='#fafafa'" onmouseleave="if(!${open})this.style.background='${open?'#f0fdf8':'#fff'}'">
+        <span style="font-size:18px;flex-shrink:0">${TYPE_ICON[ex.type]}</span>
+        <span style="flex:1;font-size:13px;font-weight:600;color:#111827">${ex.title}</span>
+        <span class="badge ${TYPE_BADGE[ex.type]}" style="font-size:10px;flex-shrink:0">${TYPE_LABEL[ex.type]}</span>
+        <span style="font-size:11px;color:${open?'#20dc95':'#9ca3af'};margin-left:6px;flex-shrink:0">${open?'▲':'▼'}</span>
+      </div>
+      ${embed}
+    </div>`;
+  }).join('');
+
+  const tabs = Object.entries(EXERCISES).map(([k,v])=>
+    `<button onclick="ejercArea='${k}';ejercOpen=null;rerender()" style="display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .12s;background:${ejercArea===k?'#20dc95':'#f3f4f6'};color:${ejercArea===k?'#065f46':'#6b7280'}">${v.icon} ${v.label}</button>`
+  ).join('');
+
+  return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
+    <div style="margin-bottom:18px">
+      <h2 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:4px">Ejercicios interactivos</h2>
+      <p style="font-size:13px;color:#6b7280">Selecciona un área y haz los ejercicios a tu ritmo.</p>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #f3f4f6">${tabs}</div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">${area.icon} ${area.label} · ${area.items.length} ejercicio${area.items.length!==1?'s':''}</div>
+      ${items}
+    </div>
+  </div>`;
+}
+
+function toggleEjerc(id) {
+  ejercOpen = ejercOpen === id ? null : id;
+  rerender();
+  if (ejercOpen) setTimeout(()=>{
+    document.getElementById('ex-'+ejercOpen)?.scrollIntoView({behavior:'smooth',block:'start'});
+  }, 60);
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function tabInicio() {
+  const lastSes = SESSIONS.find(s=>s.status==='realizada');
+  const psychMsgs = messages.filter(m=>m.from==='psych').slice(-2);
+  return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
+
+    <!-- Header -->
+    <div style="margin-bottom:18px">
+      <h1 style="font-size:22px;font-weight:800;color:#111827;margin-bottom:3px">${greet()}, Ana ${greetIcon()}</h1>
+      <p style="color:#6b7280">${todayStr()}</p>
+    </div>
+
+    ${renderChecklist()}
+
+    <!-- Próxima sesión: full width -->
+    <div class="card" style="padding:18px 22px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:44px;height:44px;border-radius:10px;background:#f0fdf8;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📅</div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Próxima sesión</div>
+            <div style="font-size:16px;font-weight:800;color:#111827;margin-bottom:4px">Miércoles, 23 Abr · 18:00 h</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${badge('✓ Confirmada','green')} ${badge('50 min','gray')} ${badge('Mañana','blue')}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button id="cal-btn-inicio" onclick="toggleCalDropdown('cal-btn-inicio')" class="btn-gray" style="padding:9px 12px;font-size:12px;display:flex;align-items:center;gap:5px">📅 Añadir</button>
+          <button onclick="goReschedule()" class="btn-gray" style="padding:9px 12px;font-size:12px;display:flex;align-items:center;gap:5px">💬 Reagendar</button>
+          <button onclick="openSessionModal()" class="btn-green btn-entrar" style="white-space:nowrap;padding:9px 18px">🚀 Conectar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 columnas: izq contenido, der calendario -->
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start">
+
+      <!-- Columna izquierda -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Stats 3 cols -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          ${[
+            {l:'Sesiones restantes',v:BONO.total-BONO.used,s:'de tu bono'},
+            {l:'Sesiones realizadas',v:BONO.used,s:'desde el inicio'},
+            {l:'Días activa',v:'51',s:'desde tu alta'},
+          ].map(s=>`<div class="card" style="cursor:pointer;padding:14px 16px" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'" onclick="navigate('sesiones')">
+            <div style="font-size:10px;color:#6b7280;font-weight:500;margin-bottom:5px">${s.l}</div>
+            <div style="font-size:24px;font-weight:800;color:#111827;margin-bottom:1px">${s.v}</div>
+            <div style="font-size:10px;color:#9ca3af">${s.s}</div>
+          </div>`).join('')}
+        </div>
+
+        <!-- Bono + mensajes en 2 cols -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <!-- Bono -->
+          <div class="card" style="padding:14px 16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div>
+                <div style="font-weight:700;font-size:13px;color:#111827">Estado del bono</div>
+                <div style="font-size:11px;color:#9ca3af">Caduca ${BONO.expiry}</div>
+              </div>
+              <span style="font-size:18px;font-weight:800;color:#111827">${BONO.used}<span style="font-size:12px;font-weight:400;color:#9ca3af">/${BONO.total}</span></span>
+            </div>
+            <div style="display:flex;gap:3px;margin-bottom:6px">${bonoDots()}</div>
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-size:10px;color:#6b7280">${BONO.used} usadas</span>
+              <span style="font-size:10px;color:#065f46;font-weight:600">${BONO.total-BONO.used} restantes</span>
+            </div>
+          </div>
+          <!-- Mensajes -->
+          <div class="card" style="padding:14px 16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div style="font-weight:700;font-size:13px;color:#111827">Mensajes</div>
+              <button onclick="navigate('mensajes')" style="font-size:11px;color:#20dc95;background:none;border:none;font-weight:600">Ver →</button>
+            </div>
+            ${psychMsgs.slice(0,1).map(m=>`<div style="display:flex;gap:8px;align-items:flex-start">
+              ${av('EG',24,true)}
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:11px;color:#111827;margin-bottom:2px">Dra. Elena García</div>
+                <div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.type==='file'?'📄 '+m.text:m.text}</div>
+                <div style="font-size:10px;color:#9ca3af;margin-top:3px">${m.time}</div>
+              </div>
+            </div>`).join('')}
+            <button onclick="navigate('mensajes')" style="width:100%;margin-top:10px;padding:7px;border-radius:8px;border:1px solid #e5e7eb;background:#fafafa;color:#6b7280;font-weight:600;font-size:11px">Abrir chat</button>
+          </div>
+        </div>
+
+        <!-- Última sesión + psicólogo en 2 cols -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <!-- Psicólogo -->
+          <div class="card" style="padding:14px 16px">
+            <div style="font-weight:700;font-size:13px;color:#111827;margin-bottom:12px">Psicólogo asociado</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              ${av('EG',38,true)}
+              <div>
+                <div style="font-weight:600;font-size:12px;color:#111827">Dra. Elena García</div>
+                <div style="font-size:11px;color:#9ca3af">Desde 01-03-2026</div>
+              </div>
+            </div>
+            <button onclick="showPsychChangeModal()" style="display:block;width:100%;padding:8px;border-radius:8px;border:1.5px solid #20dc95;background:#fff;color:#065f46;font-weight:700;font-size:11px;text-align:center;text-transform:uppercase;letter-spacing:.04em" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">Solicitar cambio</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Columna derecha: calendario -->
+      <div>${renderCalendar()}</div>
+
+    </div>
+  </div>`;
+}
+
+function tabSesiones() {
+  const stColors={programada:{bg:'#eff6ff',text:'#1d4ed8',icon:'◷',label:'Programada'},realizada:{bg:'#f0fdf8',text:'#065f46',icon:'✓',label:'Realizada'},cancelada:{bg:'#fef2f2',text:'#b91c1c',icon:'✕',label:'Cancelada'}};
+  const filtered = sesFilter==='todas'?SESSIONS:SESSIONS.filter(s=>s.status===sesFilter);
+  const nextSes = SESSIONS.find(s=>s.status==='programada');
+  const sesDone = SESSIONS.filter(s=>s.status==='realizada').length;
+
+  const historial = [...SESSIONS].reverse().map((s,i,arr)=>{
+    const done=s.status==='realizada', prog=s.status==='programada';
+    const circle = done
+      ? `<div style="width:32px;height:32px;border-radius:50%;background:#20dc95;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:#fff">✓</div>`
+      : prog
+      ? `<div style="width:32px;height:32px;border-radius:50%;border:2px dashed #20dc95;background:#f0fdf8;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">📅</div>`
+      : `<div style="width:32px;height:32px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;color:#9ca3af">✕</div>`;
+    const line = i<arr.length-1 ? `<div style="flex:1;height:2px;background:${done?'#20dc95':'#e5e7eb'}"></div>` : '';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">${circle}<span style="font-size:9px;color:#9ca3af">S${i+1}</span></div>${line}`;
+  }).join('');
+
+  return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
+    <h2 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:18px">Sesiones</h2>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      ${[
+        {l:'Realizadas',   v:sesDone,                       s:'desde el inicio'},
+        {l:'Semanas',      v:Math.ceil(sesDone*1.5)||0,     s:'en proceso'},
+        {l:'Bono',         v:`${BONO.used}/${BONO.total}`,  s:'sesiones usadas'},
+        {l:'Caduca',       v:'15 Jul',                       s:'bono actual'},
+      ].map(s=>`<div class="card" style="padding:12px 14px"><div style="font-size:10px;color:#6b7280;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">${s.l}</div><div style="font-size:22px;font-weight:800;color:#111827;line-height:1">${s.v}</div><div style="font-size:10px;color:#9ca3af;margin-top:3px">${s.s}</div></div>`).join('')}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
+
+      <!-- Columna izquierda: próxima sesión + lista -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        ${nextSes?`<div style="background:linear-gradient(135deg,#20dc95 0%,#0bbf7a 100%);border-radius:14px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Próxima sesión</div>
+            <div style="font-size:20px;font-weight:800;color:#022c22;margin-bottom:3px">${nextSes.date} · ${nextSes.time}</div>
+            <div style="font-size:13px;color:#065f46;opacity:.85">Dra. Elena García · ${nextSes.duration||50} min</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex-shrink:0">
+            <button onclick="openSessionModal()" class="btn-entrar" style="background:#fff;color:#065f46;border:none;border-radius:9px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">🚀 Conectar</button>
+            <button onclick="goReschedule()" style="background:rgba(255,255,255,.25);color:#022c22;border:none;border-radius:9px;padding:7px 18px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Reagendar</button>
+          </div>
+        </div>`:''}
+
+        <!-- Filtros -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${[['todas','Todas'],['programada','Próximas'],['realizada','Realizadas'],['cancelada','Canceladas']].map(([v,l])=>
+            `<button onclick="setSesFilter('${v}')" style="padding:6px 14px;border-radius:20px;border:1.5px solid ${sesFilter===v?'#20dc95':'#e5e7eb'};background:${sesFilter===v?'#f0fdf8':'#fff'};color:${sesFilter===v?'#065f46':'#6b7280'};font-size:12px;font-weight:600;cursor:pointer">${l}</button>`
+          ).join('')}
+        </div>
+
+        <!-- Lista -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${filtered.length===0?`<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px">No hay sesiones en este filtro</div>`:''}
+          ${filtered.map(s=>{
+            const st=stColors[s.status];
+            return `<div class="card" style="padding:14px 18px;${s.notes?'cursor:pointer':''}" onmouseenter="this.style.borderColor='${s.notes?'#20dc95':'#e5e7eb'}'" onmouseleave="this.style.borderColor='#e5e7eb'" ${s.notes?`onclick="showDetail(${s.id})"`:''}>
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="width:42px;height:42px;border-radius:10px;background:${st.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${st.icon}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:2px">${s.date} · ${s.time}</div>
+                  <div style="font-size:12px;color:#6b7280">Dra. Elena García${s.duration?' · '+s.duration+' min':''}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                  <span style="background:${st.bg};color:${st.text};border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600">${st.label}</span>
+                  ${s.notes?`<span style="font-size:11px;color:#20dc95;font-weight:600">Notas →</span>`:''}
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Columna derecha: calendario + historial + bono -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${renderCalendar()}
+
+        <!-- Historial visual -->
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Historial</div>
+          <div style="display:flex;align-items:center">${historial}</div>
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+            <span style="font-size:10px;color:#6b7280;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#20dc95;display:inline-block"></span>Realizada</span>
+            <span style="font-size:10px;color:#6b7280;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;border:2px dashed #20dc95;display:inline-block"></span>Próxima</span>
+            <span style="font-size:10px;color:#6b7280;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#f3f4f6;border:1px solid #e5e7eb;display:inline-block"></span>Cancelada</span>
+          </div>
+        </div>
+
+        <!-- Bono -->
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Tu bono</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:22px;font-weight:800;color:#111827">${BONO.used}<span style="font-size:13px;font-weight:400;color:#9ca3af"> / ${BONO.total}</span></span>
+            <span style="font-size:11px;color:#6b7280">sesiones usadas</span>
+          </div>
+          <div style="display:flex;gap:3px;margin-bottom:8px">${bonoDots()}</div>
+          <div style="font-size:11px;color:#9ca3af">Caduca ${BONO.expiry}</div>
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+}
+
+function tabMensajes() {
+  const msgsHtml = messages.map((m,i)=>{
+    const mine=m.from==='patient';
+    const showDate=m.date;
+    const showAv=!mine&&(i===0||messages[i-1]?.from!=='psych');
+    return `${showDate?`<div style="text-align:center;margin:10px 0"><span style="font-size:11px;color:#9ca3af;background:#f3f4f6;border-radius:10px;padding:3px 10px">${m.date}</span></div>`:''}
+    <div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'};margin-top:${showAv?10:2}px">
+      ${showAv?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${av('EG',18,true)}<span style="font-size:11px;color:#6b7280;font-weight:600">Dra. Elena García</span></div>`:''}
+      ${m.type==='file'?`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:#f0fdf8;border:1px solid #d1fae5;max-width:260px">
+        <div style="width:34px;height:34px;border-radius:7px;background:#d1fae5;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">📄</div>
+        <div><div style="font-size:12px;font-weight:600;color:#111827">${m.text}</div><div style="font-size:10px;color:#6b7280">${m.fileSize}</div></div>
+      </div>`:`<div class="chat-bubble ${mine?'mine':'theirs'}">${m.text}</div>`}
+      <span style="font-size:10px;color:#9ca3af;margin-top:3px">${m.time}</span>
+    </div>`;
+  }).join('');
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden" class="fadeUp">
+    <div style="padding:14px 24px;border-bottom:1px solid #e5e7eb;display:flex;gap:12px;align-items:center;flex-shrink:0">
+      ${av('EG',40,true)}
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#111827">Dra. Elena García</div>
+        <div style="font-size:11px;color:#20dc95;font-weight:600">● En línea</div>
+      </div>
+    </div>
+    <div id="chat-msgs" style="flex:1;overflow:auto;padding:20px 28px;display:flex;flex-direction:column;gap:4px">${msgsHtml}</div>
+    <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;gap:10px;align-items:center;flex-shrink:0">
+      <input id="chat-input" class="field-input" placeholder="Escribe a Dra. Elena García..." style="flex:1;border-radius:10px" oninput="updateSendBtn()" onkeydown="if(event.key==='Enter')sendMsg()"/>
+      <button id="chat-send" onclick="sendMsg()" style="width:38px;height:38px;border-radius:9px;border:none;background:#e5e7eb;color:#9ca3af;font-size:16px;font-weight:700;transition:all .15s">→</button>
+    </div>
+  </div>`;
+}
+
+function tabDocumentos() {
+  const catColors={Legal:'gray',Clínico:'blue'};
+  const cats=[...new Set(DOCS.map(d=>d.category))];
+  return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="font-size:20px;font-weight:800;color:#111827">Documentos</h2>
+      ${badge(DOCS.length+' archivos','gray')}
+    </div>
+    ${cats.map(cat=>`<div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">${cat}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${DOCS.filter(d=>d.category===cat).map(doc=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">
+          <div style="width:36px;height:36px;border-radius:8px;background:#f0fdf8;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:13px;color:#111827;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${doc.name}</div>
+            <div style="font-size:11px;color:#9ca3af">${doc.size} · ${doc.date}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">${badge(cat,catColors[cat]||'gray')}<span style="font-size:12px;color:#9ca3af">↓</span></div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('')}
+
+    <div style="margin-bottom:20px">
+      <h3 style="font-size:14px;font-weight:700;color:#111827;margin-bottom:12px">Documentos</h3>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${[
+          'Aviso legal y términos y condiciones de uso',
+          'Política de privacidad',
+          'Condiciones generales de contratación',
+          'Guía de uso de la plataforma',
+        ].map(label=>`<a href="#" style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-radius:25px;border:1.5px solid #20dc95;background:#fff;color:#111827;font-size:12px;font-weight:600;text-decoration:none;text-transform:uppercase;letter-spacing:.04em;transition:background .15s" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">${label}</a>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function tabAjustes() {
+  return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
+    <h2 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:20px">Ajustes</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+      <div class="card" style="grid-column:span 2">
+        <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:16px">Información personal</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div><label class="field-label">Nombre completo</label><input class="field-input" value="Ana Martínez"/></div>
+          <div><label class="field-label">Email</label><input class="field-input" type="email" value="ana.martinez@email.com"/></div>
+          <div><label class="field-label">Teléfono</label><input class="field-input" value="+34 612 345 678"/></div>
+          <div><label class="field-label">Fecha de alta</label><input class="field-input" value="1 Marzo 2026" disabled style="color:#9ca3af;background:#fafafa"/></div>
+        </div>
+        <button id="save-btn" onclick="saveProfile()" class="btn-green" style="margin-top:8px">Guardar cambios</button>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:16px">Notificaciones</div>
+        ${[['session24h','Recordatorio 24h antes de sesión'],['newMsg','Nuevos mensajes de mi psicólogo'],['bonoExpiry','Aviso de caducidad de bono'],['marketing','Novedades y comunicaciones']].map(([k,l])=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #f3f4f6">
+            <span style="font-size:13px;color:#374151">${l}</span>
+            ${toggleHtml(k,notifs[k])}
+          </div>`).join('')}
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:14px">Mi plan</div>
+        <div style="background:#f0fdf8;border-radius:9px;padding:14px 16px;margin-bottom:14px">
+          <div style="font-weight:700;font-size:15px;color:#065f46;margin-bottom:4px">Terapia Individual · Mensual</div>
+          <div style="font-size:12px;color:#065f46;opacity:.7">4 sesiones · 232€/bono</div>
+        </div>
+        ${[['Psicólogo asignado','Dra. Elena García'],['Sesiones restantes',`${BONO.total-BONO.used} de ${BONO.total}`],['Bono caduca',BONO.expiry]].map(([k,v])=>`
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:12px;color:#6b7280">${k}</span>
+            <span style="font-size:12px;color:#111827;font-weight:600">${v}</span>
+          </div>`).join('')}
+        <button onclick="showCancelModal()" style="width:100%;margin-top:12px;padding:9px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;font-weight:600;font-size:12px">Cancelar suscripción</button>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:14px">Método de pago</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fafafa;border-radius:9px;border:1px solid #e5e7eb;margin-bottom:14px">
+          <div style="width:38px;height:26px;border-radius:5px;background:#1a1f71;display:flex;align-items:center;justify-content:center">
+            <span style="font-size:9px;font-weight:800;color:#fff;letter-spacing:.5px">VISA</span>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:#111827">•••• •••• •••• 4242</div>
+            <div style="font-size:11px;color:#9ca3af">Caduca 08/27</div>
+          </div>
+          ${badge('Principal','green')}
+        </div>
+        ${editCard?`<div style="display:flex;flex-direction:column;gap:10px">
+          <div><label class="field-label">Número de tarjeta</label><input class="field-input" placeholder="1234 5678 9012 3456"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label class="field-label">Caducidad</label><input class="field-input" placeholder="MM/AA"/></div>
+            <div><label class="field-label">CVV</label><input class="field-input" placeholder="•••"/></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button onclick="editCard=false;rerender()" class="btn-gray" style="flex:1;padding:9px">Cancelar</button>
+            <button onclick="editCard=false;rerender()" class="btn-green" style="flex:1;padding:9px">Guardar tarjeta</button>
+          </div>
+        </div>`:`<button onclick="editCard=true;rerender()" style="width:100%;padding:9px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;font-weight:600;font-size:12px">Cambiar tarjeta</button>`}
+      </div>
+
+      <div class="card" style="grid-column:span 2">
+        <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:14px">Seguridad</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          ${['Contraseña actual','Nueva contraseña','Confirmar contraseña'].map(l=>`<div><label class="field-label">${l}</label><input class="field-input" type="password" placeholder="••••••••"/></div>`).join('')}
+        </div>
+        <button style="margin-top:10px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;padding:9px 18px;font-weight:600;font-size:12px">Cambiar contraseña</button>
+      </div>
+
+      <!-- Zona de peligro -->
+      <div style="grid-column:span 2;border:1.5px solid #fecaca;border-radius:12px;padding:18px 20px;background:#fff">
+        <div style="font-weight:700;font-size:14px;color:#b91c1c;margin-bottom:6px">Zona de eliminación de cuenta</div>
+        <p style="font-size:12px;color:#6b7280;margin:0 0 14px;line-height:1.6">Al eliminar tu cuenta se borrarán permanentemente todos tus datos personales, historial de sesiones y documentos conforme al <strong>Reglamento (UE) 2016/679 (RGPD)</strong>. Esta acción no se puede deshacer.</p>
+        <button onclick="showDeleteAccountModal()" style="padding:9px 20px;border-radius:8px;border:1.5px solid #fecaca;background:#fef2f2;color:#b91c1c;font-weight:700;font-size:12px;cursor:pointer" onmouseenter="this.style.background='#fee2e2'" onmouseleave="this.style.background='#fef2f2'">Eliminar mi cuenta</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="cancel-modal" class="modal-overlay" style="display:none">
+    <div class="modal-box" style="width:400px">
+      <div style="padding:24px">
+        <div style="width:52px;height:52px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 16px">⚠️</div>
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-weight:800;font-size:16px;color:#111827;margin-bottom:8px">¿Cancelar tu suscripción?</div>
+          <p style="font-size:13px;color:#6b7280;line-height:1.6">Si cancelas, tu bono seguirá activo hasta el <strong>${BONO.expiry}</strong>. No se renovará automáticamente.</p>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:12px 14px;margin-bottom:20px">
+          <div style="font-size:12px;color:#b91c1c;font-weight:600;margin-bottom:6px">Perderás el acceso a:</div>
+          <div style="font-size:12px;color:#b91c1c;margin-bottom:2px">· Sesiones con tu psicólogo</div>
+          <div style="font-size:12px;color:#b91c1c;margin-bottom:2px">· Mensajería con tu terapeuta</div>
+          <div style="font-size:12px;color:#b91c1c">· Plataforma de ejercicios interactivos</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onclick="hideCancelModal()" style="flex:1;padding:11px;border-radius:9px;border:1px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:13px">Mantener plan</button>
+          <button onclick="hideCancelModal()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#b91c1c;color:#fff;font-weight:700;font-size:13px">Sí, cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tabPlan() {
+  const sesRealizadas  = SESSIONS.filter(s=>s.status==='realizada').length;
+  const sesProgramadas = SESSIONS.filter(s=>s.status==='programada').length;
+  const sesCanceladas  = SESSIONS.filter(s=>s.status==='cancelada').length;
+  return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
+    <h2 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:20px">Tu plan</h2>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+      <!-- Columna izquierda -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Info plan -->
+        <div class="card">
+          <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:6px">Eres miembro del plan mensual online</div>
+          ${[
+            'POP Empower: Acceso a la plataforma',
+            'Psicólogo: 4 videollamadas de 50 minutos con tu psicólogo personal',
+          ].map(t=>`<div style="display:flex;align-items:flex-start;gap:8px;margin-top:8px">
+            <span style="color:#20dc95;font-weight:700;flex-shrink:0;margin-top:1px">✓</span>
+            <span style="font-size:12px;color:#374151;line-height:1.5">${t}</span>
+          </div>`).join('')}
+        </div>
+
+        <!-- Tus sesiones: bono -->
+        <div class="card" style="border:1.5px solid #20dc95">
+          <div style="font-size:11px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Sesión individual — Bono mensual</div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:4px">Fecha de adquisición del bono: 01/03/2026</div>
+          <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:12px">Quedan <span style="color:#20dc95">${BONO.total-BONO.used}</span> sesiones en tu bono mensual</div>
+          <div style="display:flex;gap:3px;margin-bottom:12px">${bonoDots()}</div>
+          ${[
+            [sesRealizadas,  'sesiones realizadas'],
+            [sesProgramadas, 'sesión programada'],
+            [sesCanceladas,  'sesiones canceladas'],
+          ].map(([n,l])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f3f4f6">
+            <span style="font-size:12px;color:#374151">${n} ${l}</span>
+          </div>`).join('')}
+          <div style="margin-top:10px;font-size:11px;color:#9ca3af">Caducidad ${BONO.expiry}</div>
+        </div>
+
+        <!-- Resumen condiciones -->
+        <div class="card" style="background:#fafafa;border-style:dashed">
+          <div style="font-size:12px;font-weight:700;color:#111827;margin-bottom:10px;text-decoration:underline">Resumen de las condiciones</div>
+          ${[
+            ['Periodicidad','recomendada para una buena evolución del servicio: Semanal'],
+            ['Cancelación de la cita','Antelación mínima de 24h. De lo contrario, se abonará el importe íntegro de la sesión.'],
+            ['Sesiones individuales','Recuerda que una vez has consumido la sesión, debes comprar la siguiente.'],
+            ['Bono mensual','Funciona a modo de suscripción. Para darte de baja, debes cancelar la suscripción antes de consumir la última sesión.'],
+          ].map(([k,v])=>`<div style="margin-bottom:8px;font-size:12px;color:#374151;line-height:1.5"><strong>- ${k}:</strong> ${v}</div>`).join('')}
+        </div>
+
+      </div>
+
+      <!-- Columna derecha: opciones de compra -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="font-weight:700;font-size:14px;color:#111827">Opciones de compra</div>
+
+        <!-- Sesión individual -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:13px;font-weight:600;color:#374151">Sesión individual</span>
+            <span style="font-size:20px;font-weight:800;color:#111827">63 €</span>
+          </div>
+          ${[
+            'POP Empower: Acceso a la plataforma',
+            '1 sesión videollamada de 50 minutos con tu psicólogo personal',
+          ].map(t=>`<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:6px">
+            <span style="color:#20dc95;font-weight:700;font-size:12px;flex-shrink:0">✓</span>
+            <span style="font-size:11px;color:#6b7280;line-height:1.4">${t}</span>
+          </div>`).join('')}
+          <div style="margin-top:12px">
+            <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:6px">¿Tienes un código promocional?</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <input class="field-input" placeholder="Introduce tu código" style="flex:1;font-size:12px;padding:8px 12px"/>
+              <button onclick="applyPromo('ind')" style="padding:8px 16px;border-radius:8px;border:none;background:#20dc95;color:#065f46;font-weight:700;font-size:12px" onmouseenter="this.style.background='#0bbf7a'" onmouseleave="this.style.background='#20dc95'">Aplicar</button>
+            </div>
+            <div id="promo-msg-ind" style="font-size:11px;color:#065f46;margin-bottom:8px;display:none"></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:4px">
+            <button style="padding:9px 24px;border-radius:20px;border:2px solid #20dc95;background:#fff;color:#065f46;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">Comprar</button>
+          </div>
+        </div>
+
+        <!-- Bono mensual -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:13px;font-weight:600;color:#374151">Bono mensual</span>
+            <span style="font-size:20px;font-weight:800;color:#111827">232 €</span>
+          </div>
+          ${[
+            'POP Empower: Acceso a la plataforma',
+            '4 sesiones videollamada de 50 minutos con tu psicólogo personal',
+          ].map(t=>`<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:6px">
+            <span style="color:#20dc95;font-weight:700;font-size:12px;flex-shrink:0">✓</span>
+            <span style="font-size:11px;color:#6b7280;line-height:1.4">${t}</span>
+          </div>`).join('')}
+          <div style="margin-top:12px">
+            <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:6px">¿Tienes un código promocional?</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <input id="promo-input" class="field-input" placeholder="Introduce tu código" style="flex:1;font-size:12px;padding:8px 12px" oninput="promoCode=this.value"/>
+              <button onclick="applyPromo()" style="padding:8px 16px;border-radius:8px;border:none;background:#20dc95;color:#065f46;font-weight:700;font-size:12px" onmouseenter="this.style.background='#0bbf7a'" onmouseleave="this.style.background='#20dc95'">Aplicar</button>
+            </div>
+            <div id="promo-msg" style="font-size:11px;color:#065f46;margin-bottom:8px;display:none"></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button style="padding:9px 24px;border-radius:20px;border:2px solid #20dc95;background:#fff;color:#065f46;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">Comprar</button>
+          </div>
+        </div>
+
+        <!-- Cancelar suscripción -->
+        <button onclick="showCancelModal()" style="width:100%;padding:13px;border-radius:25px;border:none;background:#ef4444;color:#fff;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em" onmouseenter="this.style.background='#dc2626'" onmouseleave="this.style.background='#ef4444'">Cancelar suscripción</button>
+
+      </div>
+    </div>
+
+    <!-- Cancel modal reutilizado -->
+    <div id="cancel-modal" class="modal-overlay" style="display:none">
+      <div class="modal-box" style="width:400px">
+        <div style="padding:24px">
+          <div style="width:52px;height:52px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 16px">⚠️</div>
+          <div style="text-align:center;margin-bottom:16px">
+            <div style="font-weight:800;font-size:16px;color:#111827;margin-bottom:8px">¿Cancelar tu suscripción?</div>
+            <p style="font-size:13px;color:#6b7280;line-height:1.6">Si cancelas, tu bono seguirá activo hasta el <strong>${BONO.expiry}</strong>. No se renovará automáticamente.</p>
+          </div>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:12px 14px;margin-bottom:20px">
+            <div style="font-size:12px;color:#b91c1c;font-weight:600;margin-bottom:6px">Perderás el acceso a:</div>
+            <div style="font-size:12px;color:#b91c1c;margin-bottom:2px">· Sesiones con tu psicólogo</div>
+            <div style="font-size:12px;color:#b91c1c;margin-bottom:2px">· Mensajería con tu terapeuta</div>
+            <div style="font-size:12px;color:#b91c1c">· Plataforma de ejercicios interactivos</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onclick="hideCancelModal()" style="flex:1;padding:11px;border-radius:9px;border:1px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:13px">Mantener plan</button>
+            <button onclick="hideCancelModal()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#b91c1c;color:#fff;font-weight:700;font-size:13px">Sí, cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tabFacturas() {
+  const FACTURAS = [
+    {
+      id:'F-2026-003', fecha:'1 abr 2026', fechaISO:'2026-04-01',
+      concepto:'Bono mensual — 4 sesiones (renovación)',
+      psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847',
+      base:'232,00 €', iva:'Exento (art. 20.Uno.3 LIVA)', total:'232,00 €',
+      metodoPago:'Tarjeta Visa •••• 4242', estado:'Pagado'
+    },
+    {
+      id:'F-2026-002', fecha:'1 mar 2026', fechaISO:'2026-03-01',
+      concepto:'Bono mensual — 4 sesiones (primera compra)',
+      psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847',
+      base:'232,00 €', iva:'Exento (art. 20.Uno.3 LIVA)', total:'232,00 €',
+      metodoPago:'Tarjeta Visa •••• 4242', estado:'Pagado'
+    },
+  ];
+  const JUSTIFICANTES = [
+    { id:'J-2026-004', fecha:'Miérc 30 abr 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'50 min', estado:'Realizada' },
+    { id:'J-2026-003', fecha:'Miérc 16 abr 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'52 min', estado:'Realizada' },
+    { id:'J-2026-002', fecha:'Miérc 2 abr 2026',  hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'55 min', estado:'Realizada' },
+    { id:'J-2026-001', fecha:'Miérc 19 mar 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'50 min', estado:'Realizada' },
+  ];
+
+  return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
+
+    <!-- Header -->
+    <div style="margin-bottom:20px">
+      <h2 style="font-size:20px;font-weight:800;color:#111827;margin:0 0 4px">Facturas y justificantes</h2>
+      <p style="font-size:12px;color:#9ca3af;margin:0">PO Psychology S.L. · NIF B-XXXXXXXX</p>
+    </div>
+
+    <!-- Info IVA -->
+    <div style="display:flex;align-items:center;gap:10px;background:#f0fdf8;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;margin-bottom:24px">
+      <span style="font-size:16px">✅</span>
+      <p style="font-size:12px;color:#065f46;margin:0;line-height:1.5">Los servicios de psicología están <strong>exentos de IVA</strong> en España (art. 20.Uno.3 de la Ley 37/1992). El importe que ves es el total a pagar, sin recargo adicional.</p>
+    </div>
+
+    <!-- Facturas -->
+    <div style="margin-bottom:32px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-weight:700;font-size:15px;color:#111827">Facturas de compra</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:2px">Renovaciones del bono mensual</div>
+        </div>
+        <span class="badge gray">${FACTURAS.length} facturas</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${FACTURAS.map(f=>`
+          <div class="card" style="padding:0;overflow:hidden" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">
+            <!-- Fila principal -->
+            <div style="padding:14px 18px;display:flex;align-items:center;gap:14px">
+              <div style="width:40px;height:40px;border-radius:9px;background:#f0fdf8;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🧾</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:13px;color:#111827;margin-bottom:3px">${f.concepto}</div>
+                <div style="font-size:11px;color:#9ca3af">${f.id} · ${f.fecha} · ${f.psicologa} · Colegiada nº ${f.colegiada}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;margin-right:12px">
+                <div style="font-weight:700;font-size:15px;color:#111827">${f.total}</div>
+                <span class="badge green" style="font-size:10px">✓ ${f.estado}</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-shrink:0">
+                <button onclick="showFacturaModal('${f.id}')" style="padding:8px 12px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:12px;cursor:pointer" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">Ver</button>
+                <button style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1.5px solid #20dc95;background:#fff;color:#065f46;font-weight:600;font-size:12px;cursor:pointer" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">⬇ PDF</button>
+              </div>
+            </div>
+            <!-- Detalle colapsado (pill método de pago) -->
+            <div style="padding:8px 18px 10px 72px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;color:#9ca3af">Pago:</span>
+              <span style="font-size:11px;font-weight:500;color:#374151">💳 ${f.metodoPago}</span>
+              <span style="font-size:10px;color:#9ca3af;margin-left:8px">Base imponible: ${f.base}</span>
+              <span style="font-size:10px;color:#6b7280;margin-left:8px">· IVA: ${f.iva}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Justificantes -->
+    <div style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-weight:700;font-size:15px;color:#111827">Justificantes de sesión</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:2px">Documento acreditativo para reembolso de seguro médico</div>
+        </div>
+        <span class="badge gray">${JUSTIFICANTES.length} documentos</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${JUSTIFICANTES.map(j=>`
+          <div class="card" style="padding:12px 18px;display:flex;align-items:center;gap:14px" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;color:#111827;margin-bottom:3px">Sesión individual · ${j.fecha} ${j.hora}</div>
+              <div style="font-size:11px;color:#9ca3af">${j.id} · ${j.psicologa} · Colegiada nº ${j.colegiada} · ${j.duracion}</div>
+            </div>
+            <span class="badge green" style="font-size:10px;margin-right:8px">✓ ${j.estado}</span>
+            <button style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1.5px solid #20dc95;background:#fff;color:#065f46;font-weight:600;font-size:12px;cursor:pointer;flex-shrink:0" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">⬇ PDF</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Nota VeriFactu -->
+    <div class="card" style="background:#fafafa;border-style:dashed;padding:12px 16px;display:flex;align-items:flex-start;gap:10px">
+      <span style="font-size:16px;flex-shrink:0;margin-top:1px">🔒</span>
+      <p style="font-size:11px;color:#6b7280;line-height:1.5;margin:0">Todas las facturas están generadas con software certificado <strong>VeriFactu</strong> (registro AEAT). Cada factura incluye código QR de verificación conforme al Real Decreto 1007/2023.</p>
+    </div>
+
+  </div>`;
+}
+
+function showFacturaModal(id) {
+  const FACTURAS_DATA = {
+    'F-2026-003': {
+      id:'F-2026-003', fecha:'1 de abril de 2026', fechaVencimiento:'1 de abril de 2026',
+      concepto:'Bono mensual — 4 sesiones de psicología online (renovación)',
+      psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847',
+      paciente:'Ana Martínez López', metodoPago:'Tarjeta Visa •••• 4242',
+      base:'232,00 €', tipoIVA:'Exento art. 20.Uno.3 LIVA', cuotaIVA:'0,00 €', total:'232,00 €',
+      emisor:'PO Psychology S.L.', nifEmisor:'B-XXXXXXXX',
+      domicilioEmisor:'Calle Mayor 45, 2ºA · 28013 Madrid'
+    },
+    'F-2026-002': {
+      id:'F-2026-002', fecha:'1 de marzo de 2026', fechaVencimiento:'1 de marzo de 2026',
+      concepto:'Bono mensual — 4 sesiones de psicología online (primera compra)',
+      psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847',
+      paciente:'Ana Martínez López', metodoPago:'Tarjeta Visa •••• 4242',
+      base:'232,00 €', tipoIVA:'Exento art. 20.Uno.3 LIVA', cuotaIVA:'0,00 €', total:'232,00 €',
+      emisor:'PO Psychology S.L.', nifEmisor:'B-XXXXXXXX',
+      domicilioEmisor:'Calle Mayor 45, 2ºA · 28013 Madrid'
+    }
+  };
+  const f = FACTURAS_DATA[id];
+  if(!f) return;
+
+  const existing = document.getElementById('factura-modal-overlay');
+  if(existing) existing.remove();
+
+  const ov = document.createElement('div');
+  ov.id = 'factura-modal-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10500;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25)">
+      <!-- Cabecera -->
+      <div style="background:linear-gradient(135deg,#20dc95,#059669);padding:20px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:.5px;text-transform:uppercase">Factura</div>
+          <div style="font-size:22px;font-weight:800;color:#fff;margin-top:2px">${f.id}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px">${f.fecha}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:26px;font-weight:900;color:#fff">${f.total}</div>
+          <span style="background:rgba(255,255,255,0.25);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px">✓ PAGADA</span>
+        </div>
+      </div>
+
+      <!-- Cuerpo -->
+      <div style="padding:22px 24px">
+
+        <!-- Emisor / Receptor -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div style="background:#f9fafb;border-radius:10px;padding:12px 14px">
+            <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Emisor</div>
+            <div style="font-size:13px;font-weight:700;color:#111827">${f.emisor}</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:2px">NIF: ${f.nifEmisor}</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:1px">${f.domicilioEmisor}</div>
+          </div>
+          <div style="background:#f9fafb;border-radius:10px;padding:12px 14px">
+            <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Paciente</div>
+            <div style="font-size:13px;font-weight:700;color:#111827">${f.paciente}</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:2px">Psicóloga: ${f.psicologa}</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:1px">Colegiada nº ${f.colegiada}</div>
+          </div>
+        </div>
+
+        <!-- Concepto -->
+        <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:16px">
+          <div style="display:grid;grid-template-columns:1fr auto auto;background:#f9fafb;padding:8px 14px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;gap:16px">
+            <span>Concepto</span><span>Cant.</span><span style="text-align:right">Importe</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto auto;padding:12px 14px;gap:16px;align-items:center">
+            <span style="font-size:13px;color:#111827">${f.concepto}</span>
+            <span style="font-size:13px;color:#374151;text-align:center">1</span>
+            <span style="font-size:13px;font-weight:600;color:#111827;text-align:right">${f.base}</span>
+          </div>
+        </div>
+
+        <!-- Totales -->
+        <div style="background:#f9fafb;border-radius:10px;padding:12px 14px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:6px">
+            <span>Base imponible</span><span>${f.base}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb">
+            <span>IVA — <em>${f.tipoIVA}</em></span><span>${f.cuotaIVA}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#111827">
+            <span>TOTAL</span><span>${f.total}</span>
+          </div>
+        </div>
+
+        <!-- Método de pago + VeriFactu QR -->
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-bottom:20px">
+          <div style="background:#f9fafb;border-radius:10px;padding:12px 14px">
+            <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Método de pago</div>
+            <div style="font-size:13px;color:#111827;font-weight:500">💳 ${f.metodoPago}</div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:2px">Fecha de pago: ${f.fechaVencimiento}</div>
+          </div>
+          <!-- QR VeriFactu placeholder -->
+          <div style="background:#f9fafb;border-radius:10px;padding:10px;text-align:center;border:1px dashed #d1d5db">
+            <div style="width:64px;height:64px;background:#e5e7eb;border-radius:6px;display:flex;align-items:center;justify-content:center;margin:0 auto 5px;font-size:22px">▦</div>
+            <div style="font-size:9px;color:#9ca3af;font-weight:600;letter-spacing:.3px">VeriFactu QR</div>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div style="display:flex;gap:10px">
+          <button onclick="document.getElementById('factura-modal-overlay').remove()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>
+          <button style="flex:2;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#20dc95,#059669);color:#fff;font-weight:700;font-size:13px;cursor:pointer">⬇ Descargar PDF</button>
+        </div>
+      </div>
+    </div>`;
+
+  ov.addEventListener('click', e => { if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────
+function setSesFilter(f){ sesFilter=f; rerender(); }
+function calNav(d){ calMonth=Math.max(0,Math.min(11,calMonth+d)); rerender(); }
+function toggleNotif(k){ notifs[k]=!notifs[k]; rerender(); }
+function saveProfile(){
+  const btn=document.getElementById('save-btn');
+  if(btn){btn.textContent='✓ Guardado';btn.style.background='#f0fdf8';setTimeout(()=>{btn.textContent='Guardar cambios';btn.style.background='#20dc95';},2000);}
+}
+function showCancelModal(){ const m=document.getElementById('cancel-modal'); if(m) m.style.display='flex'; }
+function hideCancelModal(){ const m=document.getElementById('cancel-modal'); if(m) m.style.display='none'; }
+
+// ── CALENDAR EXPORT ───────────────────────────────────────────────
+const SESSION_EVENT = {
+  title: 'Sesión POP Empower — Dra. Elena García',
+  date:  '20260423',   // YYYYMMDD
+  start: '20260423T160000Z', // 18:00 Madrid = 16:00 UTC
+  end:   '20260423T165000Z', // +50 min
+  desc:  'Videollamada con Dra. Elena García · Psicología Clínica',
+};
+
+function addToCalendar(type) {
+  document.getElementById('cal-dropdown')?.remove();
+  const e = SESSION_EVENT;
+  if(type==='google'){
+    const url=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${e.start}/${e.end}&details=${encodeURIComponent(e.desc)}`;
+    window.open(url,'_blank');
+  } else if(type==='ical'||type==='outlook'){
+    const ics=`BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${e.title}\nDTSTART:${e.start}\nDTEND:${e.end}\nDESCRIPTION:${e.desc}\nEND:VEVENT\nEND:VCALENDAR`;
+    const blob=new Blob([ics],{type:'text/calendar'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='sesion-pop-empower.ics';
+    a.click();
+  }
+}
+
+function toggleCalDropdown(btnId) {
+  const existing = document.getElementById('cal-dropdown');
+  if(existing){ existing.remove(); return; }
+  const btn = document.getElementById(btnId);
+  if(!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.id = 'cal-dropdown';
+  el.style.cssText=`position:fixed;top:${rect.bottom+6}px;left:${rect.left}px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:400;min-width:200px;overflow:hidden;animation:fadeUp .15s ease`;
+  el.innerHTML=`
+    <div style="padding:8px 0">
+      <div style="padding:6px 14px 4px;font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Añadir al calendario</div>
+      ${[
+        ['google','🗓','Google Calendar'],
+        ['ical','🍎','Apple Calendar (.ics)'],
+        ['outlook','📅','Outlook (.ics)'],
+      ].map(([type,icon,label])=>`
+        <button onclick="addToCalendar('${type}')" style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 14px;border:none;background:none;font-family:inherit;font-size:13px;color:#111827;cursor:pointer;text-align:left" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='none'">
+          <span style="font-size:16px">${icon}</span>${label}
+        </button>`).join('')}
+    </div>`;
+  document.body.appendChild(el);
+  // close on outside click
+  setTimeout(()=>document.addEventListener('click', function h(ev){
+    if(!el.contains(ev.target)&&ev.target.id!==btnId){el.remove();document.removeEventListener('click',h);}
+  }),50);
+}
+function openSessionModal(){ document.getElementById('session-modal').style.display='flex'; }
+function closeSessionModal(){ document.getElementById('session-modal').style.display='none'; }
+function enterSession(){
+  closeSessionModal();
+  document.getElementById('app').style.display='none';
+  const room = document.getElementById('session-room');
+  room.classList.add('active');
+  room.innerHTML = renderSessionRoom();
+  srTimerStart();
+}
+function exitSession(){
+  clearInterval(window._srTimer);
+  document.getElementById('session-room').classList.remove('active');
+  document.getElementById('app').style.display='flex';
+}
+function showDetail(id){
+  const s=SESSIONS.find(x=>x.id===id); if(!s||!s.notes) return;
+  const el=document.createElement('div');
+  el.className='modal-overlay'; el.style.zIndex='300';
+  el.innerHTML=`<div class="modal-box" style="width:440px">
+    <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-weight:700;font-size:15px;color:#111827">Notas de sesión</div><div style="font-size:12px;color:#6b7280">${s.date} · Dra. Elena García</div></div>
+      <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:18px;color:#9ca3af">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="font-size:11px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Resumen de la sesión</div>
+      <p style="font-size:13px;color:#374151;line-height:1.7">${s.notes}</p>
+      <div style="margin-top:16px;padding:12px 14px;background:#f0fdf8;border-radius:8px;font-size:12px;color:#065f46">Duración: ${s.duration} minutos</div>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+}
+function updateSendBtn(){
+  const i=document.getElementById('chat-input');
+  const b=document.getElementById('chat-send');
+  if(!i||!b) return;
+  const has=i.value.trim();
+  b.style.background=has?'#20dc95':'#e5e7eb';
+  b.style.color=has?'#065f46':'#9ca3af';
+}
+function sendMsg(){
+  const i=document.getElementById('chat-input'); if(!i) return;
+  const text=i.value.trim(); if(!text) return;
+  i.value='';
+  const now=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+  messages.push({id:Date.now(),from:'patient',text,time:now});
+  rerender();
+  const replies=['Entendido, Ana. Lo tendremos en cuenta.','Gracias por compartirlo. ¿Puedes contarme más?','Me parece muy bien. Sigue practicando.','¡Muy bien! Eso es exactamente lo que buscamos.'];
+  setTimeout(()=>{
+    messages.push({id:Date.now()+1,from:'psych',text:replies[Math.floor(Math.random()*replies.length)],time:new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})});
+    rerender();
+  },1500);
+}
+
+// ── SESSION ROOM ──────────────────────────────────────────────────
+let srMic=true, srCam=true, srPanel='chat', srPanelOpen=true, srBg=null, srBgPanel=false;
+let srMsgs=[
+  {from:'psych',text:'Hola Ana, ¿cómo te encuentras hoy?',time:'18:00'},
+  {from:'patient',text:'Hola Elena, bien aunque un poco tensa esta semana.',time:'18:01'},
+  {from:'psych',text:'Cuéntame qué ha pasado. ¿Fue algo concreto o más general?',time:'18:01'},
+];
+let srTimerSecs=0;
+
+function srTimerStart(){
+  srTimerSecs=0;
+  window._srTimer=setInterval(()=>{
+    srTimerSecs++;
+    const m=String(Math.floor(srTimerSecs/60)).padStart(2,'0');
+    const s=String(srTimerSecs%60).padStart(2,'0');
+    const el=document.getElementById('sr-timer');
+    if(el) el.textContent=`${m}:${s}`;
+  },1000);
+}
+
+function srRerender(){ document.getElementById('session-room').innerHTML=renderSessionRoom(); }
+
+function srSendMsg(){
+  const i=document.getElementById('sr-input'); if(!i) return;
+  const text=i.value.trim(); if(!text) return;
+  i.value='';
+  const now=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+  srMsgs.push({from:'patient',text,time:now});
+  srRerender();
+  const replies=['Entendido. ¿Y cómo te hizo sentir eso?','Tiene mucho sentido lo que dices.','Gracias por contármelo. ¿Qué crees que lo desencadenó?','Muy bien observado. Sigamos con eso.'];
+  setTimeout(()=>{
+    srMsgs.push({from:'psych',text:replies[Math.floor(Math.random()*replies.length)],time:new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})});
+    srRerender();
+  },1400);
+}
+
+function srToggle(type){
+  if(type==='mic') srMic=!srMic;
+  else srCam=!srCam;
+  srRerender();
+}
+
+function srSetPanel(p){
+  srPanel=p; srPanelOpen=true; srBgPanel=false; srRerender();
+}
+function srToggleBgPanel(){ srBgPanel=!srBgPanel; srRerender(); }
+function srSetBg(key){ srBg=key; srBgPanel=false; srRerender(); }
+
+function srClosePanel(){ srPanelOpen=false; srRerender(); }
+
+function srCloseEndModal(){ document.getElementById('sr-end-overlay')?.remove(); }
+function srShowEndModal(){
+  const el=document.createElement('div');
+  el.id='sr-end-overlay';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:600;backdrop-filter:blur(8px)';
+  el.innerHTML=`<div style="background:#161b22;border:1px solid #30363d;border-radius:16px;width:400px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);animation:srFadeIn .2s ease">
+    <div style="padding:20px 24px;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:700;font-size:16px;color:#fff">Finalizar sesión</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">Ana Martínez · Dra. Elena García</div>
+      </div>
+      <button onclick="srCloseEndModal()" style="background:none;border:none;color:rgba(255,255,255,.35);font-size:18px;cursor:pointer;padding:4px;line-height:1" title="Volver a la sesión">✕</button>
+    </div>
+    <div style="padding:24px;text-align:center">
+      <div style="font-size:40px;margin-bottom:12px">🙏</div>
+      <div style="font-weight:700;font-size:16px;color:#fff;margin-bottom:8px">¡Sesión completada!</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:24px">Tu psicóloga Elena se pondrá en contacto contigo para programar la próxima sesión.</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="srCloseEndModal()" style="flex:1;padding:11px;border-radius:9px;border:1px solid #30363d;background:transparent;color:rgba(255,255,255,.5);font-weight:600;font-size:13px;font-family:inherit;cursor:pointer">Volver a la sesión</button>
+        <button onclick="srCloseEndModal();exitSession()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#ef4444;color:#fff;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer">Salir</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+}
+
+function renderSessionRoom(){
+  const m=String(Math.floor(srTimerSecs/60)).padStart(2,'0');
+  const s=String(srTimerSecs%60).padStart(2,'0');
+
+  // URL de la sala Whereby.
+  // En producción este valor llega del backend tras llamar a:
+  //   POST https://api.whereby.dev/v1/meetings
+  //   Authorization: Bearer TU_API_KEY
+  // El backend devuelve { roomUrl, hostRoomUrl } y el frontend usa roomUrl.
+  const wherebyRoom = window._wherebyRoomUrl ||
+    'https://whereby.com/popempower-sesion?embed&floatSelf&leaveButton=off&screenshare=off&logo=off&background=on&displayName=Ana%20Mart%C3%ADnez';
+
+  return `
+    <!-- TOPBAR POP -->
+    <div style="height:50px;background:#161b22;border-bottom:1px solid #21262d;display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;color:#fff">
+      <div style="width:24px;height:24px;background:#20dc95;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span style="color:#fff;font-weight:800;font-size:9px">P</span>
+      </div>
+      <span style="font-weight:700;font-size:13px">Sesión activa</span>
+      <span style="color:rgba(255,255,255,.35);font-size:12px">Ana Martínez · Dra. Elena García</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:7px;height:7px;border-radius:50%;background:#20dc95;animation:pulse 2s infinite"></div>
+        <span id="sr-timer" style="font-size:12px;color:#20dc95;font-weight:600;font-family:monospace">${m}:${s}</span>
+      </div>
+      <div style="flex:1"></div>
+      <button onclick="srShowEndModal()" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">Finalizar sesión</button>
+    </div>
+
+    <!-- WHEREBY IFRAME (ocupa todo el espacio restante) -->
+    <div style="flex:1;overflow:hidden;position:relative">
+      <iframe
+        src="${wherebyRoom}"
+        allow="camera; microphone; fullscreen; speaker; display-capture"
+        style="width:100%;height:100%;border:none;display:block"
+      ></iframe>
+    </div>`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function applyPromo(type){
+  const id = type==='ind' ? 'promo-msg-ind' : 'promo-msg';
+  const input = type==='ind'
+    ? document.querySelector('#promo-msg-ind')?.closest('.card')?.querySelector('input')
+    : document.getElementById('promo-input');
+  const msg = document.getElementById(id);
+  if(!msg) return;
+  const code = input?.value?.trim();
+  if(!code){ msg.style.display='none'; return; }
+  msg.style.display='block';
+  msg.style.color='#065f46';
+  msg.textContent='✓ Código aplicado correctamente';
+}
+
+// ── NOTIFICACIONES ────────────────────────────────────────────────
+const NOTIF_LIST = [
+  { id:1, icon:'📅', title:'Sesión mañana', body:'Miércoles 23 Abr · 18:00 h con Dra. Elena García', time:'Hace 1h', read:false, action:'sesiones' },
+  { id:2, icon:'✉️', title:'Nuevo mensaje', body:'Dra. Elena García: "Te dejo el recurso que comentamos..."', time:'Hace 2h', read:false, action:'mensajes' },
+  { id:3, icon:'✉️', title:'Nuevo mensaje', body:'Dra. Elena García: "¿Cómo te has sentido esta semana?"', time:'Ayer', read:false, action:'mensajes' },
+  { id:4, icon:'⏰', title:'Bono caduca pronto', body:`Tu bono de 4 sesiones caduca el ${BONO.expiry}`, time:'Hace 3 días', read:true, action:'plan' },
+];
+let notifRead = new Set(NOTIF_LIST.filter(n=>n.read).map(n=>n.id));
+
+function unreadCount(){ return NOTIF_LIST.filter(n=>!notifRead.has(n.id)).length; }
+
+function toggleNotifPanel(){
+  const existing = document.getElementById('notif-panel');
+  if(existing){ existing.remove(); return; }
+
+  const btn = document.getElementById('notif-btn');
+  const rect = btn.getBoundingClientRect();
+  const count = unreadCount();
+
+  const el = document.createElement('div');
+  el.id = 'notif-panel';
+  el.style.cssText = `position:fixed;top:${rect.bottom+8}px;right:${window.innerWidth-rect.right}px;width:320px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.14);z-index:400;overflow:hidden;animation:fadeUp .15s ease`;
+
+  const items = NOTIF_LIST.map(n => {
+    const isRead = notifRead.has(n.id);
+    return `<div onclick="notifClick(${n.id},'${n.action}')" style="display:flex;gap:11px;padding:12px 16px;cursor:pointer;background:${isRead?'transparent':'#fafffe'};border-bottom:1px solid #f3f4f6;transition:background .1s" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='${isRead?'transparent':'#fafffe'}'">
+      <div style="font-size:18px;flex-shrink:0;margin-top:1px">${n.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px">
+          <span style="font-size:12px;font-weight:${isRead?600:700};color:#111827">${n.title}</span>
+          ${!isRead?'<div style="width:7px;height:7px;border-radius:50%;background:#20dc95;flex-shrink:0"></div>':''}
+        </div>
+        <div style="font-size:11px;color:#6b7280;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${n.body}</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:3px">${n.time}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;font-size:13px;color:#111827">Notificaciones ${count>0?`<span style="background:#20dc95;color:#065f46;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>`:''}
+      </div>
+      <button onclick="markAllRead()" style="font-size:11px;color:#20dc95;font-weight:600;background:none;border:none;cursor:pointer;padding:0">Marcar todo leído</button>
+    </div>
+    <div style="max-height:340px;overflow-y:auto">${items}</div>
+    <div style="padding:10px 16px;border-top:1px solid #f3f4f6;text-align:center">
+      <button onclick="navigate('ajustes');document.getElementById('notif-panel')?.remove()" style="font-size:11px;color:#6b7280;background:none;border:none;cursor:pointer">Gestionar notificaciones →</button>
+    </div>`;
+
+  document.body.appendChild(el);
+  setTimeout(()=>document.addEventListener('click', function h(e){
+    if(!el.contains(e.target) && e.target.id!=='notif-btn' && !document.getElementById('notif-btn')?.contains(e.target)){
+      el.remove(); document.removeEventListener('click',h);
+    }
+  }), 50);
+}
+
+function notifClick(id, action){
+  notifRead.add(id);
+  document.getElementById('notif-panel')?.remove();
+  updateNotifDot();
+  navigate(action);
+}
+
+function markAllRead(){
+  NOTIF_LIST.forEach(n=>notifRead.add(n.id));
+  document.getElementById('notif-panel')?.remove();
+  updateNotifDot();
+}
+
+function updateNotifDot(){
+  const dot = document.getElementById('notif-dot');
+  if(dot) dot.style.display = unreadCount()>0 ? 'block' : 'none';
+}
+
+// ── CERRAR SESIÓN ─────────────────────────────────────────────────
+function confirmLogout(){
+  const el = document.createElement('div');
+  el.className = 'modal-overlay';
+  el.id = 'logout-overlay';
+  el.onclick = e => { if(e.target===el) el.remove(); };
+  el.innerHTML = `<div class="modal-box" style="width:360px">
+    <div style="padding:28px 24px;text-align:center">
+      <div style="width:48px;height:48px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 14px">⎋</div>
+      <div style="font-weight:700;font-size:16px;color:#111827;margin-bottom:6px">¿Cerrar sesión?</div>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:22px;line-height:1.5">Volverás a la pantalla de inicio de sesión. Tu progreso está guardado.</p>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('logout-overlay').remove()" class="btn-gray" style="flex:1;padding:11px">Cancelar</button>
+        <button onclick="doLogout()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#111827;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Salir</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+}
+
+function doLogout(){
+  localStorage.removeItem('pop_session');
+  window.location.href = 'Login.html';
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(msg, type='success'){
+  const el=document.createElement('div');
+  const bg=type==='error'?'#b91c1c':type==='warn'?'#92400e':'#065f46';
+  el.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${bg};color:#fff;padding:12px 22px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.2);white-space:nowrap;transition:opacity .3s`;
+  el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; },3000);
+  setTimeout(()=>el.remove(),3400);
+}
+
+// ── REAGENDAR → CHAT ─────────────────────────────────────────────
+function goReschedule(){
+  navigate('mensajes');
+  // Pre-rellena el input del chat con un mensaje sugerido
+  setTimeout(()=>{
+    const input = document.getElementById('chat-input');
+    if(input && !input.value){
+      const nextS = SESSIONS.find(s=>s.status==='programada');
+      const ref = nextS ? `mi sesión del ${nextS.date} a las ${nextS.time}` : 'mi próxima sesión';
+      input.value = `Hola Elena, necesito reagendar ${ref}. ¿Tendrías disponibilidad en otro momento?`;
+      updateSendBtn();
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }, 80);
+}
+
+// ── CAMBIO DE PSICÓLOGO MODAL ─────────────────────────────────────
+function showPsychChangeModal(){
+  const el=document.createElement('div');
+  el.className='modal-overlay';
+  el.id='psych-change-overlay';
+  el.onclick=e=>{if(e.target===el)el.remove();};
+  el.innerHTML=`<div class="modal-box" style="width:440px">
+    <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;font-size:15px;color:#111827">Solicitar cambio de psicólogo</div>
+      <button onclick="document.getElementById('psych-change-overlay').remove()" style="background:none;border:none;font-size:18px;color:#9ca3af;cursor:pointer;padding:4px">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="background:#f0fdf8;border:1px solid #d1fae5;border-radius:9px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#065f46;line-height:1.5">
+        Tu solicitud será revisada por nuestro equipo en un plazo máximo de <strong>48 horas laborables</strong>. Mientras tanto, podrás seguir usando la plataforma con normalidad.
+      </div>
+      <div style="margin-bottom:16px">
+        <label class="field-label">Motivo del cambio</label>
+        <select class="field-input" style="background:#fff;cursor:pointer">
+          <option>Incompatibilidad de horarios</option>
+          <option>Preferencia de estilo terapéutico</option>
+          <option>Necesito una especialización diferente</option>
+          <option>Motivos personales</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div style="margin-bottom:20px">
+        <label class="field-label">Cuéntanos más (opcional)</label>
+        <textarea class="field-input" placeholder="Cualquier información que nos ayude a asignarte el psicólogo más adecuado..." style="min-height:80px;resize:none"></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('psych-change-overlay').remove()" class="btn-gray" style="flex:1;padding:11px">Cancelar</button>
+        <button onclick="submitPsychChange()" class="btn-green" style="flex:2;padding:11px">Enviar solicitud</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+}
+function submitPsychChange(){
+  document.getElementById('psych-change-overlay')?.remove();
+  showToast('✓ Solicitud recibida. Nuestro equipo te contactará en 48h.');
+}
+
+function tabAyuda(){
+  const FAQS=[
+    { cat:'Sesiones', icon:'🎥', items:[
+      { id:'f1',  q:'¿Cómo me conecto a mi sesión?',
+        a:'Desde "Inicio" o "Sesiones" verás el botón verde 🚀 Conectar junto a tu próxima sesión. Pulsa unos minutos antes de la hora, comprueba cámara y micrófono en los pasos que aparecen y haz clic en "Conectarme ahora".' },
+      { id:'f2',  q:'¿Qué pasa si llego tarde?',
+        a:'La sesión dura 50 minutos y comienza en el horario acordado. Si llegas tarde el tiempo disponible se reduce. Si sabes que vas a retrasarte, avisa a tu psicóloga por el chat.' },
+      { id:'f3',  q:'¿Puedo reagendar mi sesión?',
+        a:'Sí. En "Sesiones" pulsa el botón "Reagendar" y se abrirá el chat con un mensaje ya redactado para pedirlo. También puedes hacerlo directamente desde "Mensajes".' },
+      { id:'f4',  q:'¿Qué necesito para la videollamada?',
+        a:'Un dispositivo con cámara y micrófono (ordenador, tablet o móvil), conexión a internet estable y un navegador actualizado (Chrome o Firefox recomendados). No necesitas instalar ninguna aplicación.' },
+      { id:'f5',  q:'¿Qué hago si tengo problemas técnicos durante la sesión?',
+        a:'Cierra el navegador, vuelve a entrar a la plataforma y pulsa "Conectar" de nuevo. Si el problema persiste, avisa a tu psicóloga por el chat para buscar una solución alternativa.' },
+      { id:'f6',  q:'¿Se graban las sesiones?',
+        a:'No. Las sesiones no se graban ni se almacenan en ningún servidor. Son completamente privadas y en tiempo real.' },
+    ]},
+    { cat:'Bono y pagos', icon:'💳', items:[
+      { id:'f7',  q:'¿Qué es el bono y cómo funciona?',
+        a:'El bono es tu paquete de sesiones contratado (por ejemplo, 4 sesiones mensuales). Cada sesión realizada descuenta una unidad. Puedes ver el estado de tu bono en el apartado "Sesiones".' },
+      { id:'f8',  q:'¿Qué pasa si se me caduca el bono?',
+        a:'Las sesiones no usadas antes de la fecha de caducidad se pierden. Te recomendamos renovar con antelación para no interrumpir tu proceso terapéutico.' },
+      { id:'f9',  q:'¿Puedo cambiar de plan?',
+        a:'Sí. Escríbenos a través del chat o por email y te ayudamos a cambiar al plan que mejor se adapte a tus necesidades.' },
+      { id:'f10', q:'¿Cómo y dónde pago?',
+        a:'El pago se gestiona de forma automática según el plan contratado. Puedes consultar el historial en el apartado "Facturas".' },
+      { id:'f11', q:'¿Puedo pedir una factura?',
+        a:'Sí. En "Facturas" encontrarás todas tus facturas disponibles para descargar en PDF.' },
+    ]},
+    { cat:'Psicóloga y tratamiento', icon:'🧠', items:[
+      { id:'f12', q:'¿Puedo cambiar de psicóloga?',
+        a:'Sí. En el apartado "Inicio", en la card de tu psicóloga asignada, encontrarás el botón "Solicitar cambio". También puedes escribirnos directamente.' },
+      { id:'f13', q:'¿Cómo me comunico con mi psicóloga entre sesiones?',
+        a:'A través del chat del apartado "Mensajes". Es el canal oficial de comunicación entre sesiones. No se atienden consultas por otros medios externos a la plataforma.' },
+      { id:'f14', q:'¿En qué horario puedo escribirle?',
+        a:'Puedes escribir en cualquier momento, pero las respuestas se atienden en horario de consulta: lunes a viernes de 9:00 a 18:00 h. Para urgencias fuera de ese horario, ver la pregunta sobre crisis.' },
+      { id:'f15', q:'¿Qué hago si estoy en crisis o necesito ayuda urgente?',
+        a:'Si estás en una situación de crisis llama al Teléfono de la Esperanza: 717 003 717, disponible 24 horas. Si hay riesgo para tu vida o la de terceros, llama al 112. La plataforma no está disponible 24/7 para emergencias.' },
+    ]},
+    { cat:'Privacidad y datos', icon:'🔒', items:[
+      { id:'f16', q:'¿Es confidencial todo lo que hablo en sesión?',
+        a:'Sí. Todo el contenido de las sesiones está protegido por el secreto profesional. Solo en casos de riesgo para tu vida o la de terceros podría romperse esta confidencialidad, siempre conforme a la ley.' },
+      { id:'f17', q:'¿Mis datos están protegidos?',
+        a:'Sí. Cumplimos con el RGPD (Reglamento General de Protección de Datos de la UE). Tus datos se almacenan de forma segura y nunca se comparten con terceros sin tu consentimiento explícito.' },
+      { id:'f18', q:'¿Puedo pedir que borren mis datos?',
+        a:'Sí. Tienes derecho al olvido. Escríbenos a través del chat o por email y gestionaremos tu solicitud de eliminación de datos en un plazo máximo de 30 días.' },
+    ]},
+    { cat:'Plataforma', icon:'📱', items:[
+      { id:'f19', q:'¿Cómo uso los ejercicios interactivos?',
+        a:'En el apartado "Ejercicios" encontrarás actividades organizadas por áreas vitales (personal, familia, pareja, laboral…). Haz clic en cualquiera para abrirlo. Tu psicóloga te indicará cuáles trabajar en cada momento.' },
+      { id:'f20', q:'¿Puedo usar la plataforma desde el móvil?',
+        a:'Sí. La plataforma funciona en navegadores móviles. Para las videollamadas recomendamos una pantalla suficientemente grande y una conexión estable.' },
+      { id:'f21', q:'¿Cómo cambio mis datos personales o contraseña?',
+        a:'Desde el apartado "Ajustes" puedes actualizar tu información personal, cambiar tu contraseña y configurar tus preferencias de notificación.' },
+      { id:'f22', q:'¿Qué hago si no puedo entrar a mi cuenta?',
+        a:'Usa la opción "¿Olvidaste tu contraseña?" en la pantalla de inicio de sesión para recuperar el acceso. Si el problema persiste, escríbenos al email de soporte y lo resolvemos en 24 h.' },
+    ]},
+  ];
+
+  function faqItem(item){
+    const open = faqOpen===item.id;
+    return `<div style="border-bottom:1px solid #f3f4f6">
+      <button onclick="faqOpen='${open?'null':item.id}';faqOpen=faqOpen==='null'?null:faqOpen;rerender()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;background:none;border:none;cursor:pointer;text-align:left">
+        <span style="font-size:13px;font-weight:${open?700:500};color:${open?'#111827':'#374151'};flex:1;line-height:1.4">${item.q}</span>
+        <span style="font-size:16px;color:${open?'#20dc95':'#9ca3af'};flex-shrink:0;transition:transform .2s;transform:rotate(${open?45:0}deg)">+</span>
+      </button>
+      ${open?`<div style="padding:0 0 14px 0;font-size:13px;color:#6b7280;line-height:1.7;animation:fadeUp .15s ease">${item.a}</div>`:''}
+    </div>`;
+  }
+
+  const cats = FAQS.map(cat=>`
+    <div class="card" style="padding:18px 22px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:16px">${cat.icon}</span>
+        <span style="font-size:14px;font-weight:800;color:#111827">${cat.cat}</span>
+      </div>
+      <div>${cat.items.map(faqItem).join('')}</div>
+    </div>`).join('');
+
+  return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
+    <div style="max-width:680px">
+      <h2 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:6px">Preguntas frecuentes</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:24px">¿No encuentras lo que buscas? Escríbenos por <button onclick="navigate('mensajes')" style="background:none;border:none;color:#20dc95;font-weight:700;font-size:13px;cursor:pointer;padding:0">el chat</button>.</p>
+      ${cats}
+    </div>
+  </div>`;
+}
+
+const TABS_FN={inicio:tabInicio,sesiones:tabSesiones,mensajes:tabMensajes,ejercicios:tabEjercicios,plan:tabPlan,facturas:tabFacturas,docs:tabDocumentos,ajustes:tabAjustes,ayuda:tabAyuda};
+
+function renderNav(){
+  document.getElementById('nav').innerHTML=NAV_ITEMS.map(n=>`
+    <button id="nav-btn-${n.id}" class="nav-btn ${currentNav===n.id?'active':''}" onclick="navigate('${n.id}')">
+      <span class="nav-icon">${n.icon}</span>${n.label}
+      ${n.badge?`<span class="nav-badge">${n.badge}</span>`:''}
+      ${currentNav===n.id?'<div class="nav-indicator"></div>':''}
+    </button>`).join('');
+}
+function renderTab(){
+  document.getElementById('tabcontent').innerHTML=TABS_FN[currentNav]();
+  document.getElementById('topbar-title').textContent=NAV_ITEMS.find(n=>n.id===currentNav)?.label||'';
+  if(currentNav==='mensajes'){
+    const c=document.getElementById('chat-msgs'); if(c) c.scrollTop=c.scrollHeight;
+  }
+}
+function rerender(){ renderNav(); renderTab(); }
+function navigate(id){ currentNav=id; rerender(); }
+
+// ── CHECKLIST ────────────────────────────────────────────────────
+const CHECKLIST_ITEMS = [
+  { id:'chk_ses',  label:'Consulta tu próxima sesión',      nav:'sesiones',   icon:'◷' },
+  { id:'chk_ej',   label:'Explora los ejercicios',          nav:'ejercicios', icon:'🧠' },
+  { id:'chk_msg',  label:'Escribe a tu psicóloga',          nav:'mensajes',   icon:'✉' },
+  { id:'chk_docs', label:'Revisa tus documentos',           nav:'docs',       icon:'⬚' },
+];
+function getChkState(){ try{ return JSON.parse(localStorage.getItem('pop_chk')||'{}'); }catch(e){ return {}; } }
+function chkDone(id){
+  const s=getChkState(); s[id]=true;
+  localStorage.setItem('pop_chk', JSON.stringify(s));
+  rerender();
+}
+function renderChecklist(){
+  const state = getChkState();
+  const done = CHECKLIST_ITEMS.filter(i=>state[i.id]).length;
+  if(done===CHECKLIST_ITEMS.length) return '';
+  const pct = Math.round(done/CHECKLIST_ITEMS.length*100);
+  const items = CHECKLIST_ITEMS.map(item=>{
+    const checked = !!state[item.id];
+    const onclk = checked ? '' : "navigate('"+item.nav+"');chkDone('"+item.id+"')";
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6;cursor:${checked?'default':'pointer'}" onclick="${onclk}">
+      <div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;${checked?'background:#20dc95;color:#fff':'border:2px solid #d1d5db;color:transparent'}">${checked?'✓':''}</div>
+      <span style="font-size:13px;color:${checked?'#9ca3af':'#374151'};${checked?'text-decoration:line-through':''};flex:1">${item.label}</span>
+      ${!checked?'<span style="font-size:11px;color:#20dc95;font-weight:600">Ir →</span>':''}
+    </div>`;
+  }).join('');
+  return `<div class="card" style="padding:16px 20px;margin-bottom:16px;border-color:#d1fae5;background:#f0fdf8">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#065f46">Primeros pasos 🌱</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:1px">${done} de ${CHECKLIST_ITEMS.length} completados</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:#065f46">${pct}%</div>
+      </div>
+    </div>
+    <div style="height:4px;background:#d1fae5;border-radius:4px;margin-bottom:12px"><div style="height:100%;width:${pct}%;background:#20dc95;border-radius:4px;transition:width .4s"></div></div>
+    ${items}
+  </div>`;
+}
+
+// ── TOUR ─────────────────────────────────────────────────────────
+const TOUR_STEPS = [
+  { navId:'inicio',     title:'Tu panel de inicio 🏠',     desc:'Aquí tienes todo de un vistazo: próxima sesión, mensajes recientes, estado del bono y tu psicóloga asignada. La lista de "Primeros pasos" te guiará al principio.' },
+  { navId:'sesiones',   title:'Sesiones 📅',               desc:'Consulta el calendario, el historial de sesiones y el estado de tu bono. Cuando sea la hora, pulsa el botón verde 🚀 Conectar para unirte a tu sesión.' },
+  { navId:'mensajes',   title:'Chat con tu psicóloga 💬',  desc:'Escríbele directamente entre sesiones. Ella te responderá en horario de atención (lunes a viernes, 9:00–18:00 h).' },
+  { navId:'ejercicios', title:'Ejercicios interactivos 🧠', desc:'Actividades organizadas por áreas vitales: personal, familia, pareja, laboral, social y salud. Tu psicóloga te indicará cuáles trabajar en cada momento.' },
+  { navId:'plan',       title:'Tu plan 📋',                desc:'Consulta los detalles de tu plan terapéutico, condiciones del bono y precios.' },
+  { navId:'docs',       title:'Documentos 📁',             desc:'Aquí encontrarás tu consentimiento informado firmado y los informes clínicos. Se irán añadiendo a lo largo del proceso.' },
+  { navId:'ajustes',    title:'Ajustes ⚙️',               desc:'Configura tus preferencias de notificación y actualiza tus datos personales cuando quieras.' },
+  { navId:'ayuda',      title:'Ayuda y soporte 💡',        desc:'Preguntas frecuentes sobre sesiones, pagos, privacidad y la plataforma. Y si no encuentras lo que buscas, usa el botón verde de WhatsApp 💬 en la esquina inferior derecha para contactar con soporte directamente.' },
+];
+
+function tourClear(){
+  document.getElementById('tour-overlay')?.remove();
+  document.querySelectorAll('[data-tour-hl]').forEach(el=>{
+    el.removeAttribute('data-tour-hl');
+    el.style.removeProperty('z-index');
+    el.style.removeProperty('box-shadow');
+    el.style.removeProperty('border-radius');
+    el.style.removeProperty('outline');
+  });
+}
+
+function tourShowStep(step){
+  tourClear();
+  if(step>=TOUR_STEPS.length){ localStorage.setItem('pop_tour_done','1'); currentNav='inicio'; rerender(); return; }
+  const s = TOUR_STEPS[step];
+  currentNav = s.navId;
+  renderNav();
+  renderTab();
+  setTimeout(()=>{
+    const btn = document.getElementById('nav-btn-'+s.navId);
+    if(!btn) return;
+    const rect = btn.getBoundingClientRect();
+    btn.setAttribute('data-tour-hl','1');
+    btn.style.zIndex = '9001';
+    btn.style.position = 'relative';
+    btn.style.boxShadow = '0 0 0 9999px rgba(15,23,42,0.6)';
+    btn.style.borderRadius = '10px';
+
+    const tip = document.createElement('div');
+    tip.id = 'tour-overlay';
+    const tipTop = Math.min(rect.top - 8, window.innerHeight - 220);
+    tip.style.cssText = `position:fixed;left:${rect.right+14}px;top:${Math.max(tipTop,12)}px;z-index:9002;background:#fff;border-radius:16px;padding:22px 24px;width:272px;box-shadow:0 12px 40px rgba(0,0,0,0.18);border:1.5px solid #e5e7eb`;
+    tip.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="display:flex;gap:5px">${TOUR_STEPS.map((_,i)=>`<div style="width:${i===step?18:6}px;height:6px;border-radius:3px;background:${i===step?'#20dc95':'#e5e7eb'};transition:width .2s"></div>`).join('')}</div>
+        <button onclick="tourSkip()" style="font-size:11px;color:#9ca3af;background:none;border:none;cursor:pointer;padding:0">Saltar</button>
+      </div>
+      <div style="font-size:16px;font-weight:800;color:#111827;margin-bottom:7px">${s.title}</div>
+      <div style="font-size:13px;color:#6b7280;line-height:1.55;margin-bottom:18px">${s.desc}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        ${step>0?`<button onclick="tourShowStep(${step-1})" style="padding:8px 14px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-size:12px;font-weight:600;cursor:pointer">← Atrás</button>`:`<span></span>`}
+        <button onclick="tourShowStep(${step+1})" style="padding:9px 18px;border-radius:9px;border:none;background:#20dc95;color:#065f46;font-size:13px;font-weight:700;cursor:pointer">${step===TOUR_STEPS.length-1?'¡Listo! ✓':'Siguiente →'}</button>
+      </div>`;
+    document.body.appendChild(tip);
+  }, 60);
+}
+
+function startTour(){ tourShowStep(0); }
+function tourSkip(){ tourClear(); localStorage.setItem('pop_tour_done','1'); currentNav='inicio'; rerender(); }
+
+// ── CONSENTIMIENTO INFORMADO ─────────────────────────────────────
+
+function ciInit(){
+  // Si ya firmó, ocultar overlay
+  if(localStorage.getItem('pop_consent')){
+    document.getElementById('consent-overlay').style.display='none';
+    return;
+  }
+  // Rellenar fecha automática
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  const el = document.getElementById('ci-date');
+  if(el) el.value = `${dd}/${mm}/${yyyy}`;
+  // Inicializar canvas
+  ciInitCanvas();
+}
+
+function ciCheckScroll(){
+  const el = document.getElementById('ci-doc-scroll');
+  const end = document.getElementById('ci-doc-end');
+  if(!el||!end) return;
+  const endRect = end.getBoundingClientRect();
+  const containerRect = el.getBoundingClientRect();
+  if(endRect.bottom <= containerRect.bottom + 40){
+    document.getElementById('ci-next-btn').disabled = false;
+    document.getElementById('ci-next-btn').style.cssText = 'padding:11px 28px;border-radius:10px;border:none;background:#20dc95;color:#065f46;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s';
+    document.getElementById('ci-scroll-hint').textContent = '✓ Has leído el documento. Pulsa el botón para continuar.';
+    document.getElementById('ci-scroll-hint').style.color = '#065f46';
+    document.getElementById('ci-scroll-hint').closest('div').style.background = '#f0fdf8';
+    document.getElementById('ci-scroll-hint').closest('div').style.borderColor = '#d1fae5';
+  }
+}
+
+function ciGoStep2(){
+  document.getElementById('ci-step1').style.display='none';
+  document.getElementById('ci-step2').style.display='block';
+  // Actualizar indicadores de paso
+  document.getElementById('ci-step1-ind').style.background='#f0fdf8';
+  document.getElementById('ci-step1-ind').style.borderColor='#a7f3d0';
+  document.getElementById('ci-step1-ind').querySelector('div').style.background='#a7f3d0';
+  document.getElementById('ci-step2-ind').style.background='#f0fdf8';
+  document.getElementById('ci-step2-ind').style.borderColor='#20dc95';
+  document.getElementById('ci-step2-ind').querySelector('div').style.background='#20dc95';
+  document.getElementById('ci-step2-ind').querySelector('div').style.color='#fff';
+  document.getElementById('ci-step2-ind').querySelector('span').style.color='#065f46';
+  // Ajustar canvas al tamaño real
+  setTimeout(ciResizeCanvas, 50);
+}
+
+function ciGoStep1(){
+  document.getElementById('ci-step2').style.display='none';
+  document.getElementById('ci-step1').style.display='flex';
+}
+
+// ── Canvas firma ─────────────────────────────────────────────────
+let sigDrawing = false, sigHasData = false, sigCtx = null, sigCanvas = null;
+let sigLastX = 0, sigLastY = 0;
+
+function ciInitCanvas(){
+  sigCanvas = document.getElementById('sig-canvas');
+  if(!sigCanvas) return;
+  sigCtx = sigCanvas.getContext('2d');
+  sigCtx.strokeStyle = '#111827';
+  sigCtx.lineWidth = 2;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+
+  sigCanvas.addEventListener('mousedown',  e=>{ sigDrawing=true; const p=sigPos(e); sigLastX=p.x; sigLastY=p.y; });
+  sigCanvas.addEventListener('mousemove',  e=>{ if(!sigDrawing) return; sigDraw(sigPos(e)); });
+  sigCanvas.addEventListener('mouseup',    ()=>{ sigDrawing=false; });
+  sigCanvas.addEventListener('mouseleave', ()=>{ sigDrawing=false; });
+
+  sigCanvas.addEventListener('touchstart', e=>{ e.preventDefault(); sigDrawing=true; const p=sigPos(e.touches[0]); sigLastX=p.x; sigLastY=p.y; },{passive:false});
+  sigCanvas.addEventListener('touchmove',  e=>{ e.preventDefault(); if(!sigDrawing) return; sigDraw(sigPos(e.touches[0])); },{passive:false});
+  sigCanvas.addEventListener('touchend',   ()=>{ sigDrawing=false; });
+}
+
+function ciResizeCanvas(){
+  sigCanvas = document.getElementById('sig-canvas');
+  if(!sigCanvas) return;
+  const rect = sigCanvas.getBoundingClientRect();
+  sigCanvas.width = rect.width * window.devicePixelRatio;
+  sigCanvas.height = rect.height * window.devicePixelRatio;
+  sigCtx = sigCanvas.getContext('2d');
+  sigCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  sigCtx.strokeStyle = '#111827';
+  sigCtx.lineWidth = 2;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+  ciInitCanvas();
+}
+
+function sigPos(e){
+  const rect = sigCanvas.getBoundingClientRect();
+  return { x: (e.clientX - rect.left), y: (e.clientY - rect.top) };
+}
+
+function sigDraw(pos){
+  if(!sigCtx) return;
+  sigCtx.beginPath();
+  sigCtx.moveTo(sigLastX, sigLastY);
+  sigCtx.lineTo(pos.x, pos.y);
+  sigCtx.stroke();
+  sigLastX = pos.x;
+  sigLastY = pos.y;
+  sigHasData = true;
+  document.getElementById('sig-placeholder').style.display='none';
+  ciValidate();
+}
+
+function ciClearSig(){
+  if(!sigCtx||!sigCanvas) return;
+  sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  sigHasData = false;
+  document.getElementById('sig-placeholder').style.display='flex';
+  ciValidate();
+}
+
+function ciValidate(){
+  const name = document.getElementById('ci-name')?.value.trim();
+  const checked = document.getElementById('ci-check')?.checked;
+  const btn = document.getElementById('ci-sign-btn');
+  if(!btn) return;
+  const ok = sigHasData && name && name.length>3 && checked;
+  btn.disabled = !ok;
+  btn.style.background = ok ? '#20dc95' : '#e5e7eb';
+  btn.style.color = ok ? '#065f46' : '#9ca3af';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+}
+
+function ciSubmit(){
+  const name = document.getElementById('ci-name').value.trim();
+  const date = document.getElementById('ci-date').value;
+  const sigData = sigCanvas.toDataURL('image/png');
+
+  // Guardar en localStorage
+  const record = { name, date, timestamp: new Date().toISOString(), sigData };
+  localStorage.setItem('pop_consent', JSON.stringify(record));
+
+  // Añadir documento firmado a DOCS
+  DOCS.push({
+    id: Date.now(),
+    name: 'Consentimiento informado firmado.pdf',
+    size: '—',
+    date: date,
+    category: 'Legal',
+    signed: true,
+    signedBy: name,
+  });
+
+  // Ocultar overlay con animación
+  const overlay = document.getElementById('consent-overlay');
+  overlay.style.transition = 'opacity .4s';
+  overlay.style.opacity = '0';
+  setTimeout(()=>{ overlay.style.display='none'; }, 420);
+
+  // Mostrar confirmación
+  showToast('✅ Consentimiento firmado. Bienvenida a POP Empower.');
+
+  // VIDsigner API (producción):
+  // fetch('/api/vidsigner/certify', { method:'POST', body: JSON.stringify(record) })
+  //   .then(r=>r.json()).then(d=>{ /* guardar d.certificateUrl en DOCS */ });
+}
+
+// ── IDIOMA ────────────────────────────────────────────────────────
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({ pageLanguage:'es', includedLanguages:'en,fr,de,pt,ca', autoDisplay:false }, 'google_translate_element');
+}
+function toggleLangPanel(){
+  const p = document.getElementById('lang-panel');
+  p.style.display = p.style.display==='none' ? 'block' : 'none';
+  if(p.style.display==='block'){
+    setTimeout(()=>document.addEventListener('click', closeLangPanel, {once:true}), 10);
+  }
+}
+function closeLangPanel(e){
+  const p = document.getElementById('lang-panel');
+  const btn = document.getElementById('lang-btn');
+  if(p && btn && !btn.contains(e.target)) p.style.display='none';
+}
+function selectLang(code, flag, label){
+  document.getElementById('lang-panel').style.display='none';
+  document.getElementById('lang-flag').textContent = flag;
+  document.getElementById('lang-label').textContent = label;
+  if(code==='es'){
+    // restaurar idioma original
+    const iframe = document.querySelector('.goog-te-banner-frame');
+    if(iframe) iframe.contentDocument?.querySelector('.goog-te-button button')?.click();
+    const restore = document.querySelector('.goog-te-menu-value span');
+    if(restore) restore.click();
+    location.reload();
+    return;
+  }
+  doGTranslate('es|'+code);
+}
+function doGTranslate(langPair, attempts){
+  attempts = attempts || 0;
+  if(attempts > 20) return; // máx 8 seg de espera
+  const lang = langPair.split('|')[1];
+  const sel = document.querySelector('select.goog-te-combo');
+  if(!sel){ setTimeout(()=>doGTranslate(langPair, attempts+1), 400); return; }
+  sel.value = lang;
+  sel.dispatchEvent(new Event('change'));
+}
+
+// ── ELIMINAR CUENTA ───────────────────────────────────────────────
+function showDeleteAccountModal(){
+  const existing = document.getElementById('delete-account-modal');
+  if(existing) existing.remove();
+  const ov = document.createElement('div');
+  ov.id = 'delete-account-modal';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10500;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden">
+      <div style="background:#fef2f2;padding:24px 24px 16px;text-align:center">
+        <div style="width:56px;height:56px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">⚠️</div>
+        <div style="font-size:17px;font-weight:800;color:#b91c1c;margin-bottom:6px">¿Eliminar tu cuenta?</div>
+        <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0">Esta acción es <strong>permanente e irreversible</strong>. Se eliminarán todos tus datos, historial clínico y documentos.</p>
+      </div>
+      <div style="padding:20px 24px">
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:12px 14px;margin-bottom:16px">
+          <div style="font-size:12px;color:#b91c1c;font-weight:600;margin-bottom:5px">Se eliminará permanentemente:</div>
+          ${['Tu información personal y datos de salud','Historial de sesiones y notas clínicas','Documentos firmados y consentimiento informado','Acceso a ejercicios y progreso terapéutico'].map(t=>`<div style="font-size:12px;color:#b91c1c;margin-bottom:2px">· ${t}</div>`).join('')}
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px">Escribe <strong>ELIMINAR</strong> para confirmar</label>
+          <input id="delete-confirm-input" class="field-input" placeholder="ELIMINAR" oninput="document.getElementById('delete-confirm-btn').disabled=this.value!=='ELIMINAR';document.getElementById('delete-confirm-btn').style.opacity=this.value==='ELIMINAR'?'1':'.4'"/>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onclick="document.getElementById('delete-account-modal').remove()" style="flex:1;padding:11px;border-radius:9px;border:1px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:13px;cursor:pointer">Cancelar</button>
+          <button id="delete-confirm-btn" disabled style="flex:1;padding:11px;border-radius:9px;border:none;background:#b91c1c;color:#fff;font-weight:700;font-size:13px;cursor:pointer;opacity:.4" onclick="submitDeleteAccount()">Eliminar cuenta</button>
+        </div>
+        <p style="font-size:11px;color:#9ca3af;text-align:center;margin:12px 0 0;line-height:1.5">Conforme al RGPD, recibirás confirmación por email en un plazo máximo de 72 horas.</p>
+      </div>
+    </div>`;
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+function submitDeleteAccount(){
+  document.getElementById('delete-account-modal').remove();
+  showToast('Solicitud enviada. Recibirás confirmación en tu email en menos de 72 h.');
+}
+
+// Inicializar consentimiento al cargar la página
+window.addEventListener('load', ciInit);
+
+rerender();
+if(!localStorage.getItem('pop_tour_done') && localStorage.getItem('pop_consent')){ setTimeout(startTour, 600); }
+</script>
+<!-- Botón flotante WhatsApp soporte -->
+<a href="https://wa.me/34699201600?text=Hola%2C%20necesito%20ayuda%20con%20la%20plataforma%20POP%20Empower%20%F0%9F%99%8F" target="_blank" rel="noopener"
+  title="Soporte por WhatsApp"
+  style="position:fixed;bottom:24px;right:24px;z-index:9000;width:52px;height:52px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.5);text-decoration:none;transition:transform .2s,box-shadow .2s"
+  onmouseenter="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 24px rgba(37,211,102,.65)'"
+  onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(37,211,102,.5)'">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+</a>
+<!-- Google Translate (fuera de pantalla para que inicialice el widget) -->
+<div id="google_translate_element" style="position:absolute;left:-9999px;top:-9999px;visibility:hidden"></div>
+<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<style>
+  /* ocultar barra superior de Google Translate */
+  .goog-te-banner-frame, .skiptranslate { display:none !important; }
+  body { top: 0 !important; }
+</style>
+</body>
+</html>

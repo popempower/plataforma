@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Registro</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fff;overflow:hidden;font-size:13px;color:#111827}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes checkPop{0%{transform:scale(0)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+.app{display:flex;height:100vh;overflow:hidden}
+.panel-left{width:42%;background:linear-gradient(160deg,#20dc95 0%,#0bbf7a 100%);display:flex;flex-direction:column;padding:40px 48px;position:relative;overflow:hidden;flex-shrink:0}
+.panel-left::before{content:'';position:absolute;top:-80px;right:-80px;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,.07)}
+.panel-left::after{content:'';position:absolute;bottom:-60px;left:-60px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.06)}
+@media(max-width:768px){.panel-left{display:none}.panel-right{padding:24px}}
+.panel-right{flex:1;display:flex;align-items:center;justify-content:center;padding:40px;overflow:auto;background:#fff}
+.form-wrap{width:100%;max-width:400px;animation:fadeUp .3s ease}
+.field-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;margin-top:14px}
+.field-input{width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:13px;outline:none;color:#111827;background:#fff;transition:border-color .15s,box-shadow .15s}
+.field-input:focus{border-color:#20dc95;box-shadow:0 0 0 3px rgba(32,220,149,.15)}
+.field-input.has-icon{padding-left:38px}
+.input-wrap{position:relative}
+.input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;color:#9ca3af;pointer-events:none}
+.btn-primary{width:100%;padding:13px;border-radius:10px;border:none;background:#20dc95;color:#065f46;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn-primary:hover:not(:disabled){background:#0bbf7a;box-shadow:0 4px 14px rgba(32,220,149,.4)}
+.btn-primary:disabled{background:#e5e7eb;color:#9ca3af;cursor:not-allowed;box-shadow:none}
+.btn-back{width:100%;padding:11px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;margin-top:10px;transition:all .15s}
+.btn-back:hover{border-color:#d1d5db;background:#fafafa}
+.step-dots{display:flex;align-items:center;gap:6px;margin-bottom:28px}
+.dot{height:8px;border-radius:4px;transition:all .3s}
+.dot.done{width:8px;background:#20dc95}
+.dot.active{width:24px;background:#20dc95}
+.dot.pending{width:8px;background:#e5e7eb}
+.step-lbl{font-size:11px;font-weight:700;color:#20dc95;text-transform:uppercase;letter-spacing:.05em;margin-left:4px}
+.tag-btn{padding:7px 13px;border-radius:99px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-weight:500;font-size:12px;cursor:pointer;font-family:inherit;transition:all .12s}
+.tag-btn.on{border-color:#20dc95;background:#f0fdf8;color:#065f46;font-weight:700}
+.avail-cell{height:30px;border-radius:6px;background:#f3f4f6;border:1.5px solid #e5e7eb;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;font-size:12px;font-weight:700;color:#065f46}
+.avail-cell.on{background:#20dc95;border-color:#0bbf7a}
+.tog{flex:1;padding:10px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;color:#6b7280;font-weight:500;font-size:12px;cursor:pointer;font-family:inherit;transition:all .12s}
+.tog.on{border-color:#20dc95;background:#f0fdf8;color:#065f46;font-weight:700}
+.plan-card{padding:14px 16px;border-radius:12px;border:2px solid #e5e7eb;cursor:pointer;position:relative;transition:all .15s;margin-bottom:10px}
+.plan-card.on{border-color:#20dc95;background:#f0fdf8}
+.plan-card.popular::before{content:'Recomendado';position:absolute;top:-9px;right:12px;background:#20dc95;color:#065f46;border-radius:10px;padding:2px 10px;font-size:10px;font-weight:700}
+.order-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:18px}
+.card-wrap{background:#fafafa;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin-bottom:16px}
+.spinner{width:16px;height:16px;border:2.5px solid rgba(6,95,70,.25);border-top-color:#065f46;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
+.success-icon{width:72px;height:72px;border-radius:50%;background:#20dc95;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 8px 28px rgba(32,220,149,.45);animation:checkPop .5s .1s ease both;font-size:30px;color:#065f46;font-weight:800}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel-left" id="panelLeft">
+    <div style="display:flex;align-items:center;gap:10px;position:relative;z-index:1">
+      <div style="width:36px;height:36px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span style="color:#065f46;font-weight:800;font-size:14px">P</span>
+      </div>
+      <span style="font-weight:800;font-size:18px;color:#fff">POP Empower</span>
+    </div>
+    <div id="brandBody" style="margin:auto 0;position:relative;z-index:1"></div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);position:relative;z-index:1">© 2026 POP Empower · RGPD Compliant · Datos cifrados</div>
+  </div>
+
+  <div class="panel-right">
+    <div class="form-wrap" id="formWrap"></div>
+  </div>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────
+const S = {
+  step: 0,
+  nombre:'', email:'', pass:'', rgpd:false,
+  motivos:[], prevPsych:null, prevDetail:'', disponibilidad:[],
+  cat:'individual', planId:'mensual',
+  promo:'', promoOk:false, consentChecks:[false,false,false,false,false],
+};
+
+const STEPS = ['Tu cuenta','Cuéntanos','Consentimiento','Tu plan','Pago'];
+
+const PLANES = {
+  individual:{label:'Terapia individual',icon:'👤',
+    sesion: {name:'Sesión suelta',   price:63,  sub:'por sesión',   features:['1 videollamada de 50 min','Chat con tu psicólogo','Notas de sesión']},
+    mensual:{name:'Bono mensual',    price:232, sub:'/mes · 4 ses', features:['4 videollamadas/mes','Chat ilimitado','Notas y objetivos','Recordatorios automáticos'],popular:true},
+  },
+  pareja:{label:'Pareja / familia',icon:'👫',
+    sesion: {name:'Sesión suelta',   price:90,  sub:'por sesión',   features:['1 videollamada de 50 min','Chat con tu psicólogo','Notas de sesión']},
+    mensual:{name:'Bono mensual',    price:340, sub:'/mes · 4 ses', features:['4 videollamadas/mes','Chat ilimitado','Notas y objetivos','Recordatorios automáticos'],popular:true},
+  },
+  psiquiatra:{label:'Psiquiatra',icon:'🩺',
+    sesion: {name:'Sesión suelta',   price:90,  sub:'por sesión',   features:['1 videollamada de 50 min','Chat con psiquiatra','Notas de sesión']},
+    mensual:{name:'Bono mensual',    price:340, sub:'/mes · 4 ses', features:['4 videollamadas/mes','Chat ilimitado','Seguimiento medicación','Recordatorios automáticos'],popular:true},
+  },
+};
+
+const MOTIVACIONES = ['Ansiedad o estrés','Depresión o tristeza','Problemas de pareja o familia','Autoestima','Duelo o pérdida','Traumas','Trastornos del sueño','Otro'];
+const HORARIOS    = ['9-13h','13-15h','15-18h','18-21h'];
+const DIAS        = ['Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+// ── BRAND PANEL ───────────────────────────────────────────────────
+const BRAND = [
+  {title:'Tu bienestar mental,<br>al alcance de tu mano.',body:'Conectamos pacientes con psicólogos profesionales para sesiones online, seguimiento continuo y apoyo personalizado.',stats:[['1.200+','Pacientes activos'],['98%','Satisfacción'],['50+','Psicólogos']]},
+  {title:'Todo empieza<br>por una conversación.',body:'Cuéntanos cómo te sientes. Tu información es completamente confidencial y nos ayuda a encontrar el psicólogo ideal para ti.',stats:[['100%','Confidencial'],['24h','Respuesta'],['5★','Valoración media']]},
+  {title:'Tu información,<br>siempre protegida.',body:'Tus sesiones son confidenciales. Solo compartimos información ante un riesgo grave para la vida, exigido por ley. Tus datos viajan cifrados.',stats:[['100%','Confidencial'],['Cifrado','256-bit'],['RGPD','Compliant']]},
+  {title:'Sin compromisos,<br>cancela cuando quieras.',body:'Todos nuestros planes son flexibles. Pausa, cambia de plan o cancela en cualquier momento sin penalización.',stats:[['Sin','permanencia'],['Flexible','100%'],['Reembolso','garantizado']]},
+  {title:'Pago seguro<br>y cifrado.',body:'Tus datos de pago viajan cifrados con SSL de 256 bits. Nunca almacenamos los datos de tu tarjeta en nuestros servidores.',stats:[['SSL','256-bit'],['PCI DSS','Compliant'],['3D Secure','Activado']]},
+  {title:'¡Ya eres parte<br>de POP Empower!',body:'Hemos recibido tu solicitud. Te llamaremos en menos de 24 horas para asignarte el psicólogo ideal y confirmar tu primera sesión.',stats:[['<24h','Te contactamos'],['Psicólogo','personalizado'],['Primera','sesión lista']]},
+];
+
+function renderBrand(){
+  const b = BRAND[Math.min(S.step, BRAND.length-1)];
+  document.getElementById('brandBody').innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Psicología online</div>
+    <div style="font-size:30px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:16px">${b.title}</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.8);line-height:1.7;margin-bottom:32px">${b.body}</div>
+    <div style="display:flex;gap:24px">
+      ${b.stats.map(([v,l])=>`<div><div style="font-size:22px;font-weight:800;color:#fff">${v}</div><div style="font-size:11px;color:rgba(255,255,255,.6)">${l}</div></div>`).join('')}
+    </div>`;
+}
+
+// ── SHARED ────────────────────────────────────────────────────────
+function dots(){
+  return `<div class="step-dots">
+    ${STEPS.map((_,i)=>`<div class="dot ${i<S.step?'done':i===S.step?'active':'pending'}"></div>`).join('')}
+    <span class="step-lbl">Paso ${S.step+1} de ${STEPS.length}</span>
+  </div>`;
+}
+
+function getPlan(){ return PLANES[S.cat][S.planId]; }
+function getTotal(){ const p=getPlan(); return S.promoOk ? Math.round(p.price*.85) : p.price; }
+
+// ── STEP 0: CUENTA ────────────────────────────────────────────────
+function step0(){
+  const passOk = S.pass.length>=8;
+  const canGo  = S.nombre.trim() && S.email.trim() && passOk && S.rgpd;
+  return `${dots()}
+  <h1 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:6px">Crea tu cuenta</h1>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:24px">Solo te llevará un minuto</p>
+
+  <label class="field-label" style="margin-top:0">Nombre completo</label>
+  <div class="input-wrap">
+    <span class="input-icon">👤</span>
+    <input class="field-input has-icon" type="text" placeholder="Ana Martínez" value="${S.nombre}" oninput="S.nombre=this.value;refreshBtn0()">
+  </div>
+
+  <label class="field-label">Email</label>
+  <div class="input-wrap">
+    <span class="input-icon">✉</span>
+    <input class="field-input has-icon" type="email" placeholder="tu@email.com" value="${S.email}" oninput="S.email=this.value;refreshBtn0()">
+  </div>
+
+  <label class="field-label">Contraseña</label>
+  <div class="input-wrap">
+    <span class="input-icon">🔒</span>
+    <input class="field-input has-icon" id="passInput" type="password" placeholder="Mínimo 8 caracteres" value="${S.pass}" oninput="S.pass=this.value;updatePassBar();refreshBtn0()">
+  </div>
+  <div id="passBar" style="display:${S.pass.length?'flex':'none'};gap:4px;align-items:center;margin-top:6px">
+    <div id="pb1" style="flex:1;height:3px;border-radius:2px;background:${S.pass.length>=8?'#20dc95':'#e5e7eb'}"></div>
+    <div id="pb2" style="flex:1;height:3px;border-radius:2px;background:${/[A-Z]/.test(S.pass)?'#20dc95':'#e5e7eb'}"></div>
+    <div id="pb3" style="flex:1;height:3px;border-radius:2px;background:${/\d/.test(S.pass)?'#20dc95':'#e5e7eb'}"></div>
+    <span id="pbLbl" style="font-size:10px;color:#9ca3af;margin-left:6px">${S.pass.length<6?'Débil':S.pass.length<8?'Regular':'Fuerte'}</span>
+  </div>
+
+  <label style="display:flex;gap:10px;align-items:flex-start;margin-top:18px;margin-bottom:22px;cursor:pointer" onclick="S.rgpd=!S.rgpd;refreshChk();refreshBtn0()">
+    <div id="chk" style="width:18px;height:18px;border-radius:5px;border:1.5px solid ${S.rgpd?'#20dc95':'#d1d5db'};background:${S.rgpd?'#20dc95':'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .12s">
+      ${S.rgpd?'<span style="font-size:10px;color:#065f46;font-weight:800">✓</span>':''}
+    </div>
+    <span style="font-size:12px;color:#6b7280;line-height:1.5">Acepto los <span style="color:#20dc95;font-weight:600">Términos de servicio</span> y la <span style="color:#20dc95;font-weight:600">Política de privacidad</span> (RGPD)</span>
+  </label>
+
+  <button class="btn-primary" id="btn0" onclick="goStep1()" ${canGo?'':'disabled'}>Continuar →</button>
+  <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:16px">¿Ya tienes cuenta? <a href="Login.html" style="color:#20dc95;font-weight:600;text-decoration:none">Inicia sesión</a></p>`;
+}
+
+function updatePassBar(){
+  const bar=document.getElementById('passBar'); if(!bar) return;
+  bar.style.display=S.pass.length?'flex':'none';
+  document.getElementById('pb1').style.background=S.pass.length>=8?'#20dc95':'#e5e7eb';
+  document.getElementById('pb2').style.background=/[A-Z]/.test(S.pass)?'#20dc95':'#e5e7eb';
+  document.getElementById('pb3').style.background=/\d/.test(S.pass)?'#20dc95':'#e5e7eb';
+  document.getElementById('pbLbl').textContent=S.pass.length<6?'Débil':S.pass.length<8?'Regular':'Fuerte';
+}
+function refreshChk(){
+  const el=document.getElementById('chk'); if(!el) return;
+  el.style.borderColor=S.rgpd?'#20dc95':'#d1d5db';
+  el.style.background=S.rgpd?'#20dc95':'#fff';
+  el.innerHTML=S.rgpd?'<span style="font-size:10px;color:#065f46;font-weight:800">✓</span>':'';
+}
+function refreshBtn0(){
+  const btn=document.getElementById('btn0'); if(!btn) return;
+  const ok=S.nombre.trim()&&S.email.trim()&&S.pass.length>=8&&S.rgpd;
+  btn.disabled=!ok;
+}
+function goStep1(){ if(!S.nombre.trim()||!S.email.trim()||S.pass.length<8||!S.rgpd) return; S.step=1; rerender(); }
+
+// ── STEP 1: INTAKE ────────────────────────────────────────────────
+function step1(){
+  const canGo = S.motivos.length>0 && S.prevPsych!==null && S.disponibilidad.length>0;
+  const slotK = (d,h) => d+'|'+h;
+  return `${dots()}
+  <h1 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:6px">Cuéntanos un poco</h1>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:20px">Para asignarte el psicólogo ideal. Completamente confidencial.</p>
+
+  <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:10px">¿Cuál es tu motivo principal?</div>
+  <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px">
+    ${MOTIVACIONES.map(m=>`<button class="tag-btn ${S.motivos.includes(m)?'on':''}" onclick="toggleM('${m}')">${m}</button>`).join('')}
+  </div>
+
+  <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">¿Cuándo puedes tener tus sesiones?<span style="font-weight:400;color:#9ca3af"> (selecciona todo lo que aplica)</span></div>
+  <div style="display:grid;grid-template-columns:28px repeat(${HORARIOS.length},1fr);gap:4px;margin-bottom:20px">
+    <div></div>
+    ${HORARIOS.map(h=>`<div style="text-align:center;font-size:10px;font-weight:600;color:#9ca3af;line-height:1.3;padding:2px">${h}</div>`).join('')}
+    ${DIAS.map(d=>
+      `<div style="font-size:11px;font-weight:600;color:#374151;display:flex;align-items:center;padding-right:4px">${d}</div>`
+      +HORARIOS.map(h=>{const k=slotK(d,h);const on=S.disponibilidad.includes(k);return `<div class="avail-cell ${on?'on':''}" onclick="toggleSlot('${k}')">${on?'✓':''}</div>`;}).join('')
+    ).join('')}
+  </div>
+
+  <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">¿Has ido al psicólogo anteriormente?</div>
+  <div style="display:flex;gap:8px;margin-bottom:${S.prevPsych==='si'?'10px':'22px'}">
+    <button class="tog ${S.prevPsych==='si'?'on':''}" onclick="S.prevPsych='si';rerender()">Sí, he tenido</button>
+    <button class="tog ${S.prevPsych==='no'?'on':''}" onclick="S.prevPsych='no';rerender()">No, primera vez</button>
+  </div>
+  ${S.prevPsych==='si'?`<input class="field-input" style="margin-bottom:22px" placeholder="¿Con qué frecuencia? ¿Hace cuánto fue la última vez?" value="${S.prevDetail.replace(/"/g,'&quot;')}" oninput="S.prevDetail=this.value">`:``}
+
+  <button class="btn-primary" onclick="goStep2()" ${canGo?'':'disabled'}>Continuar →</button>
+  ${!canGo?`<p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:8px">Completa motivo, disponibilidad y experiencia previa</p>`:''}
+  <button class="btn-back" onclick="S.step=0;rerender()">← Atrás</button>`;
+}
+
+function toggleM(m){ S.motivos=S.motivos.includes(m)?S.motivos.filter(x=>x!==m):[...S.motivos,m]; rerender(); }
+function toggleSlot(k){ S.disponibilidad=S.disponibilidad.includes(k)?S.disponibilidad.filter(x=>x!==k):[...S.disponibilidad,k]; rerender(); }
+function goStep2(){ if(!S.motivos.length||!S.prevPsych||!S.disponibilidad.length) return; S.step=2; rerender(); }
+
+// ── STEP 2: CONSENTIMIENTO INFORMADO ─────────────────────────────
+function stepConsent(){
+  const checks = S.consentChecks;
+  const allOk = checks.every(Boolean);
+  const CLAUSES = [
+    'Entiendo que la psicoterapia online tiene limitaciones respecto a la presencial. Ante una crisis grave acudiré a urgencias o llamaré al <strong>024</strong>.',
+    'Sé que mis sesiones son confidenciales, salvo obligación legal: riesgo para la vida propia o ajena, o situaciones de peligro para menores.',
+    'Consiento el tratamiento de mis datos de salud (categoría especial RGPD) para la prestación del servicio psicológico por POP Empower.',
+    'Entiendo que puedo retirar este consentimiento en cualquier momento sin consecuencias, notificándolo por escrito.',
+    'He leído, entendido y acepto el Consentimiento Informado para psicoterapia online de POP Empower.'
+  ];
+  return `${dots()}
+  <h1 style="font-size:22px;font-weight:800;color:#111827;margin-bottom:6px">Consentimiento informado</h1>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:18px">Requisito legal antes de comenzar tu terapia. Lee y acepta cada punto.</p>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+    ${CLAUSES.map((clause,i)=>`
+    <label style="display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:10px;border:1.5px solid ${checks[i]?'#20dc95':'#e5e7eb'};background:${checks[i]?'#f0fdf8':'#fff'};cursor:pointer;transition:all .15s" onclick="S.consentChecks[${i}]=!S.consentChecks[${i}];rerender()">
+      <div style="width:18px;height:18px;border-radius:5px;border:1.5px solid ${checks[i]?'#20dc95':'#d1d5db'};background:${checks[i]?'#20dc95':'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:all .12s">
+        ${checks[i]?'<span style="font-size:10px;color:#065f46;font-weight:800">✓</span>':''}
+      </div>
+      <span style="font-size:12px;color:#374151;line-height:1.55">${clause}</span>
+    </label>`).join('')}
+  </div>
+  ${!allOk?'<p style="text-align:center;font-size:11px;color:#9ca3af;margin-bottom:10px">Acepta todos los puntos para continuar</p>':''}
+  <button class="btn-primary" onclick="goStep3()" ${allOk?'':'disabled'}>Continuar →</button>
+  <button class="btn-back" onclick="S.step=1;rerender()">← Atrás</button>`;
+}
+
+function goStep3(){ if(!S.consentChecks.every(Boolean)) return; S.step=3; rerender(); }
+
+// ── STEP 2: PLAN ─────────────────────────────────────────────────
+function step2(){
+  const cats = Object.entries(PLANES);
+  return `${dots()}
+  <h1 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:6px">Elige tu servicio</h1>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:20px">Puedes cambiarlo en cualquier momento</p>
+
+  <div style="display:flex;gap:8px;margin-bottom:18px">
+    ${cats.map(([id,c])=>`<button onclick="S.cat='${id}';S.planId='mensual';rerender()" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${S.cat===id?'#20dc95':'#e5e7eb'};background:${S.cat===id?'#f0fdf8':'#fff'};color:${S.cat===id?'#065f46':'#6b7280'};font-weight:${S.cat===id?700:500};font-size:11px;cursor:pointer;font-family:inherit;text-align:center;line-height:1.4;transition:all .15s">
+      <div style="font-size:18px;margin-bottom:4px">${c.icon}</div>${c.label}
+    </button>`).join('')}
+  </div>
+
+  ${['sesion','mensual'].map(pid=>{
+    const p = PLANES[S.cat][pid];
+    return `<div class="plan-card ${S.planId===pid?'on':''} ${p.popular?'popular':''}" onclick="S.planId='${pid}';rerender()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${S.planId===pid?'#20dc95':'#d1d5db'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s">
+            ${S.planId===pid?'<div style="width:8px;height:8px;border-radius:50%;background:#20dc95"></div>':''}
+          </div>
+          <span style="font-weight:700;font-size:14px;color:#111827">${p.name}</span>
+        </div>
+        <div style="text-align:right"><span style="font-weight:800;font-size:18px;color:#111827">${p.price}€</span><span style="font-size:11px;color:#6b7280"> ${p.sub}</span></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-left:26px">
+        ${p.features.map(f=>`<span style="font-size:11px;color:#6b7280">· ${f}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('')}
+
+  <button class="btn-primary" style="margin-top:6px" onclick="S.step=4;rerender()">Continuar →</button>
+  <button class="btn-back" onclick="S.step=2;rerender()">← Atrás</button>`;
+}
+
+// ── STEP 3: PAGO ─────────────────────────────────────────────────
+function step3(){
+  const plan = getPlan();
+  const total = getTotal();
+  const desc = S.promoOk ? plan.price - total : 0;
+  return `${dots()}
+  <h1 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:6px">Pago seguro</h1>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:20px">Tu primera sesión, un paso más cerca.</p>
+
+  <!-- Resumen pedido -->
+  <div class="order-box">
+    <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Resumen del pedido</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div>
+        <div style="font-weight:600;font-size:13px">${plan.name}</div>
+        <div style="font-size:11px;color:#9ca3af">${PLANES[S.cat].label} · ${plan.sub}</div>
+      </div>
+      <div style="font-weight:700;font-size:15px">${plan.price}€</div>
+    </div>
+    ${S.promoOk?`<div style="display:flex;justify-content:space-between;font-size:12px;color:#065f46;font-weight:600;margin-bottom:6px"><span>Descuento (15%)</span><span>-${desc}€</span></div>`:''}
+    <div style="border-top:1px solid #e5e7eb;padding-top:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:700;font-size:14px">Total hoy</span>
+      <span style="font-weight:800;font-size:18px;color:#111827">${total}€</span>
+    </div>
+  </div>
+
+  <!-- Código promo -->
+  <div style="display:flex;gap:8px;margin-bottom:18px">
+    <input class="field-input" id="promoInput" placeholder="Código promocional" value="${S.promo}" oninput="S.promo=this.value" style="flex:1" ${S.promoOk?'disabled':''}>
+    <button onclick="applyPromo()" style="padding:0 16px;border-radius:9px;border:1.5px solid ${S.promoOk?'#20dc95':'#e5e7eb'};background:${S.promoOk?'#f0fdf8':'#fff'};color:${S.promoOk?'#065f46':'#374151'};font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .12s">${S.promoOk?'✓ Aplicado':'Aplicar'}</button>
+  </div>
+
+  <!-- Formulario de tarjeta -->
+  <div class="card-wrap">
+    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:14px;display:flex;align-items:center;gap:6px">
+      🔒 Datos de pago
+      <span style="margin-left:auto;font-size:10px;font-weight:500;color:#9ca3af">Cifrado SSL 256-bit</span>
+    </div>
+    <label class="field-label" style="margin-top:0">Número de tarjeta</label>
+    <div class="input-wrap">
+      <span class="input-icon">💳</span>
+      <input class="field-input has-icon" id="cardNum" placeholder="1234 5678 9012 3456" maxlength="19" oninput="fmtCard(this)" style="letter-spacing:.06em;font-variant-numeric:tabular-nums">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div>
+        <label class="field-label" style="margin-top:0">Caducidad</label>
+        <input class="field-input" id="cardExp" placeholder="MM/AA" maxlength="5" oninput="fmtExp(this)">
+      </div>
+      <div>
+        <label class="field-label" style="margin-top:0">CVC</label>
+        <input class="field-input" id="cardCvc" placeholder="123" maxlength="3" type="password">
+      </div>
+    </div>
+    <label class="field-label">Titular de la tarjeta</label>
+    <input class="field-input" id="cardName" placeholder="Nombre como aparece en la tarjeta">
+  </div>
+
+  <button class="btn-primary" id="payBtn" onclick="doPay()">Pagar ${total}€ →</button>
+  <button class="btn-back" onclick="S.step=3;rerender()">← Atrás</button>
+
+  <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;font-size:11px;color:#9ca3af">
+    <svg width="44" height="18" viewBox="0 0 66 26" fill="none"><rect width="66" height="26" rx="4" fill="#635BFF"/><text x="33" y="18" text-anchor="middle" font-size="13" fill="white" font-family="system-ui,sans-serif" font-weight="700">stripe</text></svg>
+    Pago procesado por Stripe · Nunca almacenamos tu tarjeta
+  </div>`;
+}
+
+function fmtCard(el){
+  let v=el.value.replace(/\D/g,'').slice(0,16);
+  el.value=v.match(/.{1,4}/g)?.join(' ')||v;
+}
+function fmtExp(el){
+  let v=el.value.replace(/\D/g,'').slice(0,4);
+  if(v.length>2) v=v.slice(0,2)+'/'+v.slice(2);
+  el.value=v;
+}
+function applyPromo(){
+  if(S.promoOk){ S.promoOk=false; S.promo=''; rerender(); return; }
+  const VALID=['BIENVENIDA20','PROMO15','POPDEMO'];
+  if(VALID.includes(S.promo.trim().toUpperCase())){ S.promoOk=true; rerender(); }
+  else{ alert('Código no válido. Prueba BIENVENIDA20 para el demo.'); }
+}
+function doPay(){
+  const num=document.getElementById('cardNum')?.value.replace(/\s/g,'');
+  const exp=document.getElementById('cardExp')?.value;
+  const cvc=document.getElementById('cardCvc')?.value;
+  const name=document.getElementById('cardName')?.value.trim();
+  if(!num||num.length<15){ alert('Introduce un número de tarjeta válido'); return; }
+  if(!exp||exp.length<5){ alert('Introduce la fecha de caducidad'); return; }
+  if(!cvc||cvc.length<3){ alert('Introduce el CVC'); return; }
+  if(!name){ alert('Introduce el titular de la tarjeta'); return; }
+  const btn=document.getElementById('payBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>Procesando pago...';
+  setTimeout(()=>{ S.step=5; rerender(); }, 2000);
+}
+
+// ── STEP 4: ÉXITO ─────────────────────────────────────────────────
+function step4(){
+  const nombre1 = S.nombre.split(' ')[0] || 'Usuario';
+  return `<div style="text-align:center;animation:fadeUp .4s ease">
+    <div class="success-icon">✓</div>
+    <h1 style="font-size:26px;font-weight:800;color:#111827;margin-bottom:10px">¡Todo listo, ${nombre1}!</h1>
+    <p style="font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:24px">
+      Hemos recibido tu solicitud y tu primer pago.<br>
+      Te hemos enviado un <strong>email de confirmación</strong> a ${S.email}.<br>
+      Te contactaremos en las próximas <strong>24 horas</strong> para asignarte el psicólogo ideal.
+    </p>
+    <div style="background:#f0fdf8;border:1px solid #d1fae5;border-radius:12px;padding:16px 20px;margin-bottom:20px;text-align:left">
+      <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:10px">¿Qué pasa ahora?</div>
+      ${[['1.','Te llamamos en menos de 24h'],['2.','Hablamos 10 min sobre tu situación'],['3.','Asignamos el psicólogo ideal para ti'],['4.','Recibes tu primera cita por email']].map(([n,v])=>`
+        <div style="display:flex;gap:10px;margin-bottom:8px;align-items:flex-start">
+          <span style="font-size:12px;color:#20dc95;font-weight:800;min-width:18px">${n}</span>
+          <span style="font-size:12px;color:#065f46">${v}</span>
+        </div>`).join('')}
+    </div>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin-bottom:24px;font-size:12px;color:#6b7280;display:flex;gap:10px;align-items:center;text-align:left">
+      <span style="font-size:18px">📞</span>
+      <span>¿Dudas? Escríbenos a <strong style="color:#111827">info@popempower.com</strong><br>o WhatsApp al <strong style="color:#111827">699 201 600</strong></span>
+    </div>
+    <button class="btn-primary" onclick="localStorage.setItem('pop_session',JSON.stringify({email:S.email,role:'paciente',name:S.nombre}));window.location.href='Patient Portal (14).html'">Ir a mi área personal →</button>
+  </div>`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+const RENDERERS = [step0, step1, stepConsent, step2, step3, step4];
+
+function rerender(){
+  const wrap = document.getElementById('formWrap');
+  wrap.innerHTML = RENDERERS[S.step]();
+  wrap.style.animation = 'none';
+  requestAnimationFrame(() => { wrap.style.animation = 'fadeUp .3s ease'; });
+  renderBrand();
+}
+
+rerender();
+</script>
+</body>
+</html>

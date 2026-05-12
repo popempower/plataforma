@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POP Empower — Acceso</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fafafa;min-height:100vh;display:flex;align-items:center;justify-content:center;font-size:13px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glow-pulse{0%,100%{box-shadow:0 4px 14px rgba(32,220,149,.45)}50%{box-shadow:0 4px 28px rgba(32,220,149,.85),0 0 0 6px rgba(32,220,149,.15)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.wrap{width:100%;max-width:420px;padding:24px;animation:fadeUp .3s ease}
+.logo-area{text-align:center;margin-bottom:32px}
+.logo-icon{width:48px;height:48px;background:#20dc95;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;margin-bottom:12px}
+.logo-title{font-size:22px;font-weight:800;color:#111827;margin-bottom:4px}
+.logo-sub{font-size:13px;color:#6b7280;font-weight:400}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:32px 28px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.field{margin-bottom:18px}
+.field-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px}
+.field-input{width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:13px;outline:none;color:#111827;transition:border-color .15s;background:#fff}
+.field-input:focus{border-color:#20dc95}
+.field-input.error{border-color:#ef4444}
+.password-wrap{position:relative}
+.password-wrap .field-input{padding-right:42px}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:15px;padding:4px;line-height:1}
+.eye-btn:hover{color:#374151}
+.forgot{text-align:right;margin-top:-10px;margin-bottom:18px}
+.forgot a{font-size:12px;color:#20dc95;font-weight:600;text-decoration:none}
+.forgot a:hover{text-decoration:underline}
+.btn-login{width:100%;padding:12px;background:#20dc95;color:#065f46;border:none;border-radius:9px;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;animation:glow-pulse 2s ease-in-out infinite;transition:opacity .15s}
+.btn-login:hover{opacity:.9}
+.btn-login:disabled{opacity:.6;cursor:not-allowed;animation:none}
+.spinner{width:16px;height:16px;border:2px solid rgba(6,95,70,.3);border-top-color:#065f46;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:500;margin-bottom:16px;display:none}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#d1d5db;font-size:11px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#e5e7eb}
+.demo-accounts{background:#f0fdf8;border:1px solid #d1fae5;border-radius:10px;padding:14px 16px}
+.demo-title{font-size:11px;font-weight:700;color:#065f46;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.demo-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #d1fae5;cursor:pointer;transition:opacity .12s}
+.demo-row:last-child{border-bottom:none;padding-bottom:0}
+.demo-row:hover{opacity:.7}
+.demo-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
+.demo-badge.admin{background:#1e1b4b;color:#c7d2fe}
+.demo-badge.paciente{background:#eff6ff;color:#1d4ed8}
+.demo-badge.psico{background:#fdf4ff;color:#7e22ce}
+.demo-badge.empresa{background:#fff7ed;color:#c2410c}
+.demo-email{font-size:12px;color:#374151;font-weight:500}
+.demo-hint{font-size:11px;color:#6b7280;margin-top:8px}
+.footer{text-align:center;margin-top:20px;font-size:12px;color:#9ca3af}
+.footer a{color:#20dc95;text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="logo-area">
+    <div class="logo-icon">P</div>
+    <div class="logo-title">POP Empower</div>
+    <div class="logo-sub">Plataforma de psicología online</div>
+  </div>
+
+  <div class="card">
+    <div class="error-msg" id="errMsg">Email o contraseña incorrectos. Inténtalo de nuevo.</div>
+
+    <div class="field">
+      <label class="field-label">Email</label>
+      <input class="field-input" id="emailInput" type="email" placeholder="tu@email.com" autocomplete="email" />
+    </div>
+
+    <div class="field">
+      <label class="field-label">Contraseña</label>
+      <div class="password-wrap">
+        <input class="field-input" id="passInput" type="password" placeholder="••••••••" autocomplete="current-password" />
+        <button class="eye-btn" id="eyeBtn" onclick="togglePass()" type="button">👁</button>
+      </div>
+    </div>
+
+    <div class="forgot"><a href="#" onclick="showForgot(event)">¿Olvidaste tu contraseña?</a></div>
+
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Entrar</button>
+
+    <div class="divider">accesos de prueba</div>
+
+    <div class="demo-accounts">
+      <div class="demo-title">Cuentas demo</div>
+      <div class="demo-row" onclick="fillDemo('admin@popempower.com','admin123')">
+        <span class="demo-badge admin">Admin</span>
+        <span class="demo-email">admin@popempower.com</span>
+      </div>
+      <div class="demo-row" onclick="fillDemo('ana@gmail.com','1234')">
+        <span class="demo-badge paciente">Paciente</span>
+        <span class="demo-email">ana@gmail.com</span>
+      </div>
+      <div class="demo-row" onclick="fillDemo('laura@psico.com','1234')">
+        <span class="demo-badge psico">Psicóloga</span>
+        <span class="demo-email">laura@psico.com</span>
+      </div>
+      <div class="demo-row" onclick="fillDemo('adam.vazquez@amadeus.com','POP2026')">
+        <span class="demo-badge" style="background:#faf5ff;color:#6b21a8">B2B</span>
+        <span class="demo-email">adam.vazquez@amadeus.com</span>
+      </div>
+      <div class="demo-hint">Haz clic en una cuenta para rellenar el formulario automáticamente</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    ¿Eres nuevo? <a href="Onboarding.html">Reservar primera sesión</a> &nbsp;·&nbsp;
+    <a href="#">Política de privacidad</a>
+  </div>
+</div>
+
+<!-- Modal olvide contraseña -->
+<div id="forgotOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:fadeUp .2s ease">
+    <div style="font-weight:700;font-size:15px;color:#111827;margin-bottom:6px">Restablecer contraseña</div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:18px">Te enviaremos un enlace a tu email para que puedas crear una nueva contraseña.</div>
+    <label class="field-label">Tu email</label>
+    <input class="field-input" id="forgotEmail" type="email" placeholder="tu@email.com" style="margin-bottom:16px" />
+    <div style="display:flex;gap:8px">
+      <button onclick="closeForgot()" style="flex:1;padding:10px;background:#fafafa;border:1px solid #e5e7eb;border-radius:9px;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;color:#374151">Cancelar</button>
+      <button onclick="sendReset()" style="flex:1;padding:10px;background:#20dc95;border:none;border-radius:9px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;color:#065f46">Enviar enlace</button>
+    </div>
+    <div id="forgotOk" style="display:none;margin-top:14px;background:#f0fdf8;border:1px solid #d1fae5;border-radius:8px;padding:10px 14px;font-size:12px;color:#065f46;font-weight:500">
+      ✓ Si el email existe en nuestro sistema, recibirás el enlace en breve.
+    </div>
+  </div>
+</div>
+
+<script>
+// Usuarios demo — en producción esto se reemplaza por Supabase Auth
+const USERS = [
+  { email: 'admin@popempower.com', password: 'admin123', role: 'admin',    redirect: 'Admin_Dashboard (2).html' },
+  { email: 'ana@gmail.com',        password: '1234',     role: 'paciente', redirect: 'Patient Portal (14).html' },
+  { email: 'carlos@gmail.com',     password: '1234',     role: 'paciente', redirect: 'Patient Portal (14).html' },
+  { email: 'laura@psico.com',      password: '1234',     role: 'psicologa',redirect: 'Psychologist_Dashboard.html' },
+  { email: 'sofia@psico.com',      password: '1234',     role: 'psicologa',redirect: 'Psychologist_Dashboard.html' },
+  { email: 'empresa@empresa.com',  password: '1234',     role: 'admin',    redirect: 'Admin_Dashboard (2).html' },
+  { email: 'adam.vazquez@amadeus.com', password: 'POP2026', role: 'b2b', redirect: 'B2B_Portal.html' },
+];
+
+const NAMES = {
+  'admin@popempower.com': 'Administrador',
+  'ana@gmail.com':        'Ana Martínez',
+  'carlos@gmail.com':     'Carlos Ruiz',
+  'laura@psico.com':      'Laura González',
+  'sofia@psico.com':      'Sofía Herrera',
+  'empresa@empresa.com':  'TechCorp SL',
+  'adam.vazquez@amadeus.com': 'Adam Vazquez',
+};
+
+let passVisible = false;
+
+function togglePass() {
+  passVisible = !passVisible;
+  document.getElementById('passInput').type = passVisible ? 'text' : 'password';
+  document.getElementById('eyeBtn').textContent = passVisible ? '🙈' : '👁';
+}
+
+function fillDemo(email, pass) {
+  document.getElementById('emailInput').value = email;
+  document.getElementById('passInput').value = pass;
+  document.getElementById('emailInput').classList.remove('error');
+  document.getElementById('passInput').classList.remove('error');
+  document.getElementById('errMsg').style.display = 'none';
+}
+
+function doLogin() {
+  const email    = document.getElementById('emailInput').value.trim().toLowerCase();
+  const password = document.getElementById('passInput').value;
+  const errMsg   = document.getElementById('errMsg');
+  const btn      = document.getElementById('loginBtn');
+
+  document.getElementById('emailInput').classList.remove('error');
+  document.getElementById('passInput').classList.remove('error');
+  errMsg.style.display = 'none';
+
+  if (!email) { document.getElementById('emailInput').classList.add('error'); return; }
+  if (!password) { document.getElementById('passInput').classList.add('error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Entrando...';
+
+  setTimeout(() => {
+    const user = USERS.find(u => u.email === email && u.password === password);
+    if (user) {
+      localStorage.setItem('pop_session', JSON.stringify({
+        email: user.email,
+        role:  user.role,
+        name:  NAMES[user.email] || user.email
+      }));
+      window.location.href = user.redirect;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = 'Entrar';
+      errMsg.style.display = 'block';
+      document.getElementById('emailInput').classList.add('error');
+      document.getElementById('passInput').classList.add('error');
+      document.getElementById('passInput').value = '';
+    }
+  }, 800);
+}
+
+// Enter para login
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// Modal contraseña olvidada
+function showForgot(e) {
+  e.preventDefault();
+  const email = document.getElementById('emailInput').value.trim();
+  if (email) document.getElementById('forgotEmail').value = email;
+  const overlay = document.getElementById('forgotOverlay');
+  overlay.style.display = 'flex';
+}
+
+function closeForgot() {
+  document.getElementById('forgotOverlay').style.display = 'none';
+  document.getElementById('forgotOk').style.display = 'none';
+  document.getElementById('forgotEmail').value = '';
+}
+
+function sendReset() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) return;
+  // En producción: supabase.auth.resetPasswordForEmail(email)
+  document.getElementById('forgotOk').style.display = 'block';
+  setTimeout(closeForgot, 2500);
+}
+
+document.getElementById('forgotOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeForgot();
+});
+
+// Si ya hay sesión activa, redirigir sin pasar por login
+const session = localStorage.getItem('pop_session');
+if (session) {
+  try {
+    const user = JSON.parse(session);
+    const found = USERS.find(u => u.email === user.email);
+    if (found) window.location.href = found.redirect;
+  } catch(e) {
+    localStorage.removeItem('pop_session');
+  }
+}
+</script>
+</body>
+</html>
