@@ -380,19 +380,26 @@ function applyPromo(){
   if(VALID.includes(S.promo.trim().toUpperCase())){ S.promoOk=true; rerender(); }
   else{ alert('Código no válido. Prueba BIENVENIDA20 para el demo.'); }
 }
+const STRIPE_LINKS = {
+  individual: {
+    sesion:  'https://buy.stripe.com/test_5kQ3cxdCAdSNcmqeYh3gk00',
+    mensual: 'https://buy.stripe.com/test_28E28tbus5mh3PU5nH3gk01',
+  },
+  pareja: {
+    sesion:  'https://buy.stripe.com/test_8x27sN0PO4id5Y217r3gk02',
+    mensual: 'https://buy.stripe.com/test_9B64gBaqo8yt2LQdUd3gk03',
+  },
+  psiquiatra: {
+    sesion:  'https://buy.stripe.com/test_9B69AV8ig6qldqug2l3gk04',
+    mensual: 'https://buy.stripe.com/test_3cI7sN9mk2a5euy7vP3gk05',
+  },
+};
+
 function doPay(){
-  const num=document.getElementById('cardNum')?.value.replace(/\s/g,'');
-  const exp=document.getElementById('cardExp')?.value;
-  const cvc=document.getElementById('cardCvc')?.value;
-  const name=document.getElementById('cardName')?.value.trim();
-  if(!num||num.length<15){ alert('Introduce un número de tarjeta válido'); return; }
-  if(!exp||exp.length<5){ alert('Introduce la fecha de caducidad'); return; }
-  if(!cvc||cvc.length<3){ alert('Introduce el CVC'); return; }
-  if(!name){ alert('Introduce el titular de la tarjeta'); return; }
-  const btn=document.getElementById('payBtn');
-  btn.disabled=true;
-  btn.innerHTML='<span class="spinner"></span>Procesando pago...';
-  setTimeout(()=>{ S.step=5; rerender(); }, 2000);
+  const link = STRIPE_LINKS[S.cat]?.[S.planId];
+  if(!link){ alert('Plan no disponible'); return; }
+  const url = link + '?prefilled_email=' + encodeURIComponent(S.email);
+  window.location.href = url;
 }
 
 // ── STEP 4: ÉXITO ─────────────────────────────────────────────────
