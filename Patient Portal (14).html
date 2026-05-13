@@ -116,10 +116,14 @@ input{font-family:inherit}
   /* ── CHAT ── */
   .chat-bubble{max-width:82vw!important}
 
-  /* ── SCROLL: permitir vertical, bloquear horizontal ── */
-  [style*="overflow:auto"]{overflow-x:hidden!important;overflow-y:auto!important;height:auto!important}
-  [style*="overflow: auto"]{overflow-x:hidden!important;overflow-y:auto!important;height:auto!important}
-  #tabcontent > div{height:auto!important;min-height:0!important}
+  /* ── SCROLL: flujo natural de página en móvil ── */
+  html{overflow-x:hidden!important;height:auto!important}
+  body{overflow-x:hidden!important;overflow-y:auto!important;height:auto!important}
+  [style*="overflow:auto"]{overflow:visible!important;height:auto!important}
+  [style*="overflow: auto"]{overflow:visible!important;height:auto!important}
+  #content{overflow:visible!important;height:auto!important}
+  #tabcontent{overflow:visible!important;height:auto!important;flex:none!important}
+  #tabcontent > div{height:auto!important;min-height:0!important;overflow:visible!important}
 
   /* ── PREVENIR OVERFLOW HORIZONTAL ── */
   img,iframe,video,table{max-width:100%!important}
