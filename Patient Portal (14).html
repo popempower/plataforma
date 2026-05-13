@@ -1523,6 +1523,9 @@ function toggleCalDropdown(btnId) {
 }
 function openSessionModal(){ document.getElementById('session-modal').style.display='flex'; }
 function closeSessionModal(){ document.getElementById('session-modal').style.display='none'; }
+const PAT_EDGE='https://kfekcgmwoatjjovhaaiq.supabase.co/functions/v1/create-whereby-room';
+let _patMeetingId='';
+
 async function enterSession(){
   closeSessionModal();
   document.getElementById('app').style.display='none';
@@ -1532,12 +1535,13 @@ async function enterSession(){
   room.innerHTML = renderSessionRoom();
   srTimerStart();
   try {
-    const res = await fetch('https://kfekcgmwoatjjovhaaiq.supabase.co/functions/v1/create-whereby-room',{
+    const res = await fetch(PAT_EDGE,{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY}
     });
     const data = await res.json();
     if(!data.roomUrl) throw new Error(data.message||'Error al crear sala');
+    _patMeetingId = data.meetingId||'';
     const guestUrl = data.roomUrl + (data.roomUrl.includes('?') ? '&' : '?') + 'leaveButton=off';
     window._wherebyRoomUrl = guestUrl;
     const overlay = document.getElementById('sr-loading-overlay');
@@ -1549,8 +1553,22 @@ async function enterSession(){
     if(overlay) overlay.innerHTML = `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:14px">⚠️</div><div style="color:rgba(255,255,255,.7);font-size:14px;font-weight:600;margin-bottom:8px">No se pudo conectar</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:20px">${e.message}</div><button onclick="exitSession()" style="padding:10px 22px;border-radius:9px;border:none;background:#20dc95;color:#065f46;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">Volver</button></div>`;
   }
 }
+
+async function endPatWherebyRoom(){
+  if(!_patMeetingId) return;
+  const id=_patMeetingId;
+  _patMeetingId='';
+  try{
+    await fetch(PAT_EDGE,{
+      method:'DELETE',
+      headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+      body:JSON.stringify({meetingId:id})
+    });
+  }catch(e){}
+}
 function exitSession(){
   clearInterval(window._srTimer);
+  endPatWherebyRoom();
   document.getElementById('session-room').classList.remove('active');
   document.getElementById('app').style.display='flex';
 }

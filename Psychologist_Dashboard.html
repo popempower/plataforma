@@ -2872,6 +2872,7 @@ function enterSession(patName, patInitials){
 
 function exitSession(){
   if(srState.timerInterval) clearInterval(srState.timerInterval);
+  srEndWherebyRoom();
   document.getElementById('session-room').style.display='none';
   document.getElementById('portal-ui').style.display='flex';
   srState.endModal=false;
@@ -3460,19 +3461,22 @@ function renderTab(){
   }
 }
 let _srGuestUrl='';
+let _srMeetingId='';
+const SR_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWtjZ213b2F0ampvdmhhYWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYzNzIxNjQsImV4cCI6MjA2MTk0ODE2NH0.oa9HPCxqPOqRcBm_JJbHPvbLBbUTqrOCSJMlPaYoSRRh1wwTqbKQP-p57dSkGgL8Ohqt9YiOfMUsAC0cc';
+const SR_EDGE='https://kfekcgmwoatjjovhaaiq.supabase.co/functions/v1/create-whereby-room';
 
 async function srIniciarSala(){
   const btn=document.getElementById('sr-start-btn');
   if(btn){btn.disabled=true;btn.textContent='Creando sala...';}
   try{
-    const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWtjZ213b2F0ampvdmhhYWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYzNzIxNjQsImV4cCI6MjA2MTk0ODE2NH0.oa9HPCxqPOqRcBm_JJbHPvbLBbUTqrOCSJMlPaYoSRRh1wwTqbKQP-p57dSkGgL8Ohqt9YiOfMUsAC0cc';
-    const res=await fetch('https://kfekcgmwoatjjovhaaiq.supabase.co/functions/v1/create-whereby-room',{
+    const res=await fetch(SR_EDGE,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+ANON}
+      headers:{'Content-Type':'application/json','apikey':SR_ANON,'Authorization':'Bearer '+SR_ANON}
     });
     const data=await res.json();
     if(!data.roomUrl) throw new Error(data.message||'Error al crear sala');
     _srGuestUrl=data.roomUrl;
+    _srMeetingId=data.meetingId||'';
     const frame=document.getElementById('sr-whereby-frame');
     const overlay=document.getElementById('sr-waiting-overlay');
     if(frame) frame.src=data.hostRoomUrl+'&lang=es&background=off&leaveButton=off';
@@ -3484,6 +3488,19 @@ async function srIniciarSala(){
     if(btn){btn.disabled=false;btn.textContent='🎥 Iniciar videollamada';}
     showToast('❌ Error al crear sala: '+e.message);
   }
+}
+
+async function srEndWherebyRoom(){
+  if(!_srMeetingId) return;
+  const id=_srMeetingId;
+  _srMeetingId='';
+  try{
+    await fetch(SR_EDGE,{
+      method:'DELETE',
+      headers:{'Content-Type':'application/json','apikey':SR_ANON,'Authorization':'Bearer '+SR_ANON},
+      body:JSON.stringify({meetingId:id})
+    });
+  }catch(e){ /* silencioso — la sala caduca sola en el peor caso */ }
 }
 
 function srCopyGuestLink(){
