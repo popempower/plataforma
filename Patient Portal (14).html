@@ -12,6 +12,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;overflow:hidden;backgr
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
 @keyframes glow-pulse{0%,100%{box-shadow:0 4px 14px rgba(32,220,149,.45)}50%{box-shadow:0 4px 28px rgba(32,220,149,.85),0 0 0 6px rgba(32,220,149,.15)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .fadeUp{animation:fadeUp .22s ease}
 .btn-entrar{animation:glow-pulse 2s ease-in-out infinite}
 button{font-family:inherit;cursor:pointer}
@@ -994,8 +995,8 @@ function tabAjustes() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div><label class="field-label">Nombre completo</label><input class="field-input" value="Ana Martínez"/></div>
           <div><label class="field-label">Email</label><input class="field-input" type="email" value="ana.martinez@email.com"/></div>
-          <div><label class="field-label">Teléfono</label><input class="field-input" value="+34 612 345 678"/></div>
-          <div><label class="field-label">Fecha de alta</label><input class="field-input" value="1 Marzo 2026" disabled style="color:#9ca3af;background:#fafafa"/></div>
+          <div><label class="field-label">Teléfono</label>${phoneInputHTML('pat-tel','+34612345678')}</div>
+          <div><label class="field-label">Fecha de nacimiento</label><input class="field-input" type="date" value="1990-05-15"/></div>
         </div>
         <button id="save-btn" onclick="saveProfile()" class="btn-green" style="margin-top:8px">Guardar cambios</button>
       </div>
@@ -1461,7 +1462,7 @@ function calNav(d){ calMonth=Math.max(0,Math.min(11,calMonth+d)); rerender(); }
 function toggleNotif(k){ notifs[k]=!notifs[k]; rerender(); }
 function saveProfile(){
   const btn=document.getElementById('save-btn');
-  if(btn){btn.textContent='✓ Guardado';btn.style.background='#f0fdf8';setTimeout(()=>{btn.textContent='Guardar cambios';btn.style.background='#20dc95';},2000);}
+  if(btn){btn.textContent='✓ Guardado';btn.style.background='#f0fdf8';btn.style.color='#065f46';setTimeout(()=>{btn.textContent='Guardar cambios';btn.style.background='#20dc95';btn.style.color='#065f46';},2000);}
 }
 function showCancelModal(){ const m=document.getElementById('cancel-modal'); if(m) m.style.display='flex'; }
 function hideCancelModal(){ const m=document.getElementById('cancel-modal'); if(m) m.style.display='none'; }
@@ -1522,13 +1523,30 @@ function toggleCalDropdown(btnId) {
 }
 function openSessionModal(){ document.getElementById('session-modal').style.display='flex'; }
 function closeSessionModal(){ document.getElementById('session-modal').style.display='none'; }
-function enterSession(){
+async function enterSession(){
   closeSessionModal();
   document.getElementById('app').style.display='none';
   const room = document.getElementById('session-room');
   room.classList.add('active');
+  window._wherebyRoomUrl = null;
   room.innerHTML = renderSessionRoom();
   srTimerStart();
+  try {
+    const res = await fetch('https://kfekcgmwoatjjovhaaiq.supabase.co/functions/v1/create-whereby-room',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY}
+    });
+    const data = await res.json();
+    if(!data.roomUrl) throw new Error(data.message||'Error al crear sala');
+    window._wherebyRoomUrl = data.roomUrl;
+    const overlay = document.getElementById('sr-loading-overlay');
+    const area = document.getElementById('sr-video-area');
+    if(overlay) overlay.style.display='none';
+    if(area) area.innerHTML = `<iframe id="sr-patient-frame" src="${data.roomUrl}" allow="camera; microphone; fullscreen; speaker; display-capture" style="width:100%;height:100%;border:none;display:block"></iframe>`;
+  } catch(e) {
+    const overlay = document.getElementById('sr-loading-overlay');
+    if(overlay) overlay.innerHTML = `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:14px">⚠️</div><div style="color:rgba(255,255,255,.7);font-size:14px;font-weight:600;margin-bottom:8px">No se pudo conectar</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:20px">${e.message}</div><button onclick="exitSession()" style="padding:10px 22px;border-radius:9px;border:none;background:#20dc95;color:#065f46;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">Volver</button></div>`;
+  }
 }
 function exitSession(){
   clearInterval(window._srTimer);
@@ -1654,13 +1672,13 @@ function renderSessionRoom(){
   const m=String(Math.floor(srTimerSecs/60)).padStart(2,'0');
   const s=String(srTimerSecs%60).padStart(2,'0');
 
-  // URL de la sala Whereby.
-  // En producción este valor llega del backend tras llamar a:
-  //   POST https://api.whereby.dev/v1/meetings
-  //   Authorization: Bearer TU_API_KEY
-  // El backend devuelve { roomUrl, hostRoomUrl } y el frontend usa roomUrl.
-  const wherebyRoom = window._wherebyRoomUrl ||
-    'https://whereby.com/popempower-sesion?embed&floatSelf&leaveButton=off&screenshare=off&logo=off&background=on&displayName=Ana%20Mart%C3%ADnez';
+  const videoContent = window._wherebyRoomUrl
+    ? `<iframe id="sr-patient-frame" src="${window._wherebyRoomUrl}" allow="camera; microphone; fullscreen; speaker; display-capture" style="width:100%;height:100%;border:none;display:block"></iframe>`
+    : `<div id="sr-loading-overlay" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0d1117">
+        <div style="width:44px;height:44px;border:3px solid #20dc95;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div>
+        <div style="color:rgba(255,255,255,.7);font-size:14px;font-weight:600">Preparando tu sala...</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.3)">Esto puede tardar unos segundos</div>
+      </div>`;
 
   return `
     <!-- TOPBAR POP -->
@@ -1678,13 +1696,9 @@ function renderSessionRoom(){
       <button onclick="srShowEndModal()" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">Finalizar sesión</button>
     </div>
 
-    <!-- WHEREBY IFRAME (ocupa todo el espacio restante) -->
-    <div style="flex:1;overflow:hidden;position:relative">
-      <iframe
-        src="${wherebyRoom}"
-        allow="camera; microphone; fullscreen; speaker; display-capture"
-        style="width:100%;height:100%;border:none;display:block"
-      ></iframe>
+    <!-- WHEREBY IFRAME -->
+    <div id="sr-video-area" style="flex:1;overflow:hidden;position:relative">
+      ${videoContent}
     </div>`;
 }
 
@@ -1798,12 +1812,43 @@ function confirmLogout(){
   document.body.appendChild(el);
 }
 
-const sb = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWtjZ213b2F0ampvdmhhYWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MDMyMjksImV4cCI6MjA5NDE3OTIyOX0.9oSRRh1wwTqbKQP-p57dSkGgL8Ohqt9YiOfMUsAC0cc');
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWtjZ213b2F0ampvdmhhYWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYzNzIxNjQsImV4cCI6MjA2MTk0ODE2NH0.oa9HPCxqPOqRcBm_JJbHPvbLBbUTqrOCSJMlPaYoSRRh1wwTqbKQP-p57dSkGgL8Ohqt9YiOfMUsAC0cc';
+const sb = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co', ANON_KEY);
 
 async function doLogout(){
   localStorage.removeItem('pop_session');
   await sb.auth.signOut();
   window.location.href = 'Login.html';
+}
+
+// ── PHONE INPUT ───────────────────────────────────────────────────
+const PHONE_PREFIXES=[
+  {c:'+34',l:'🇪🇸 +34'},{c:'+351',l:'🇵🇹 +351'},{c:'+33',l:'🇫🇷 +33'},
+  {c:'+44',l:'🇬🇧 +44'},{c:'+49',l:'🇩🇪 +49'},{c:'+39',l:'🇮🇹 +39'},
+  {c:'+32',l:'🇧🇪 +32'},{c:'+31',l:'🇳🇱 +31'},{c:'+41',l:'🇨🇭 +41'},
+  {c:'+1', l:'🇺🇸 +1'},{c:'+52',l:'🇲🇽 +52'},{c:'+54',l:'🇦🇷 +54'},
+  {c:'+57',l:'🇨🇴 +57'},{c:'+56',l:'🇨🇱 +56'},
+];
+function parsePhone(v=''){
+  for(const p of PHONE_PREFIXES.slice().sort((a,b)=>b.c.length-a.c.length)){
+    const d=v.replace(/\s/g,'');
+    if(d.startsWith(p.c)) return {prefix:p.c,number:d.slice(p.c.length)};
+  }
+  return {prefix:'+34',number:v.replace(/^\+?\d{1,3}/,'').trim()};
+}
+function phoneInputHTML(id,val=''){
+  const {prefix,number}=parsePhone(val);
+  const opts=PHONE_PREFIXES.map(p=>`<option value="${p.c}"${p.c===prefix?' selected':''}>${p.l}</option>`).join('');
+  return `<div style="display:flex;gap:4px">
+    <select id="${id}-prefix" class="field-input" style="width:110px;flex-shrink:0;padding-left:6px;padding-right:4px">${opts}</select>
+    <input id="${id}-num" class="field-input" type="tel" style="flex:1" value="${number}" placeholder="612 345 678"/>
+  </div>`;
+}
+function getPhone(id){
+  const p=document.getElementById(id+'-prefix');
+  const n=document.getElementById(id+'-num');
+  if(!p||!n) return '';
+  return p.value+(n.value.trim()?n.value.trim():'');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────
@@ -1875,6 +1920,7 @@ function submitPsychChange(){
   document.getElementById('psych-change-overlay')?.remove();
   showToast('✓ Solicitud recibida. Nuestro equipo te contactará en 48h.');
 }
+
 
 function tabAyuda(){
   const FAQS=[
