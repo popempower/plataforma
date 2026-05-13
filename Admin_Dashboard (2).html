@@ -905,8 +905,8 @@ function _programaModal(id,preEmpresaId){
         <div><label class="field-label">Prefijo código ID</label><input class="field-input" id="pPrefijo" value="${prog?.prefijo_codigo||''}" placeholder="AMAD, TELE..." maxlength="6" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" /></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><label class="field-label">Fecha inicio</label><input class="field-input" id="pInicio" value="${prog?.fecha_inicio||''}" placeholder="DD/MM/YYYY" /></div>
-        <div><label class="field-label">Fecha fin prevista</label><input class="field-input" id="pFin" value="${prog?.fecha_fin||''}" placeholder="DD/MM/YYYY" /></div>
+        <div><label class="field-label">Fecha inicio</label><input class="field-input" type="date" id="pInicio" value="${prog?.fecha_inicio||''}" /></div>
+        <div><label class="field-label">Fecha fin prevista</label><input class="field-input" type="date" id="pFin" value="${prog?.fecha_fin||''}" /></div>
       </div>
       <div style="background:#f0fdf8;border:1px solid #d1fae5;border-radius:9px;padding:14px;margin-top:12px">
         <div style="font-size:11px;font-weight:700;color:#065f46;margin-bottom:10px">🔗 Links Typeform (encuestas)</div>
@@ -951,8 +951,8 @@ function openNuevoParticipanteModal(programaId){
       </div>
       <label class="field-label">Email *</label><input class="field-input" id="npEmail" type="email" />
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><label class="field-label">Teléfono</label><input class="field-input" id="npTel" /></div>
-        <div><label class="field-label">Fecha nacimiento</label><input class="field-input" id="npFnac" placeholder="DD/MM/YYYY" /></div>
+        <div><label class="field-label">Teléfono</label>${phoneInputHTML('npTel')}</div>
+        <div><label class="field-label">Fecha nacimiento</label><input class="field-input" id="npFnac" type="date" /></div>
       </div>
       <label class="field-label">Idioma</label>
       <select class="field-input" id="npIdioma"><option>Español</option><option>Inglés</option><option>Catalán</option></select>
@@ -973,7 +973,7 @@ function saveNuevoParticipante(programaId){
   const apellidos=document.getElementById('npApellidos').value.trim();
   const email=document.getElementById('npEmail').value.trim();
   if(!nombre||!apellidos||!email) return alert('Nombre, apellidos y email son obligatorios');
-  PARTICIPANTES.push({id:Date.now(),programa_id:programaId,nombre,apellidos,email,codigo:nextCodigo(programaId),telefono:document.getElementById('npTel').value,fecha_nacimiento:document.getElementById('npFnac').value,idioma:document.getElementById('npIdioma').value,psicologa:document.getElementById('npPsico').value,sesiones_realizadas:0,fecha_inicio_sesiones:'',fecha_fin_sesiones:'',encuesta_pre:'pendiente',encuesta_post:'pendiente',estado:'en_curso',comentarios:''});
+  PARTICIPANTES.push({id:Date.now(),programa_id:programaId,nombre,apellidos,email,codigo:nextCodigo(programaId),telefono:getPhone('npTel'),fecha_nacimiento:document.getElementById('npFnac').value,idioma:document.getElementById('npIdioma').value,psicologa:document.getElementById('npPsico').value,sesiones_realizadas:0,fecha_inicio_sesiones:'',fecha_fin_sesiones:'',encuesta_pre:'pendiente',encuesta_post:'pendiente',estado:'en_curso',comentarios:''});
   closeModal(); rerender();}
 
 function openImportModal(programaId){
@@ -2093,9 +2093,9 @@ function openPsicoModal(id){
           <div><label class="field-label">Apellidos</label><input class="field-input" id="pm-apellidos-${id}" value="${p.name.split(' ').slice(1).join(' ')}"/></div>
         </div>
         <div><label class="field-label">Email</label><input class="field-input" id="pm-email-${id}" value="${p.email}"/></div>
-        <div><label class="field-label">Teléfono</label><input class="field-input" id="pm-phone-${id}" value="${p.phone}"/></div>
+        <div><label class="field-label">Teléfono</label>${phoneInputHTML('pm-phone-'+id,p.phone||'')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div><label class="field-label">Fecha de nacimiento</label><input class="field-input" id="pm-nac-${id}" value="${p.nacimiento||''}"/></div>
+          <div><label class="field-label">Fecha de nacimiento</label><input class="field-input" type="date" id="pm-nac-${id}" value="${toDateInput(p.nacimiento||'')}"/></div>
           <div><label class="field-label">DNI / NIE</label><input class="field-input" id="pm-dni-${id}" value="${p.dni||''}"/></div>
         </div>
       </div>
@@ -2318,7 +2318,7 @@ function savePsicoModal(id){
     const n=g(`pm-nombre-${id}`),ap=g(`pm-apellidos-${id}`);
     if(n) p.name=(n+' '+(ap||'')).trim();
     const e=g(`pm-email-${id}`); if(e) p.email=e;
-    const ph=g(`pm-phone-${id}`); if(ph) p.phone=ph;
+    const ph=getPhone(`pm-phone-${id}`); if(ph) p.phone=ph;
     const nac=g(`pm-nac-${id}`); if(nac!==null) p.nacimiento=nac;
     const dni=g(`pm-dni-${id}`); if(dni!==null) p.dni=dni;
     const city=g(`pm-ciudad-${id}`); if(city) p.ciudad=city;
@@ -2637,11 +2637,11 @@ function openNewPsicoModal(){
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label class="field-label">Email <span style="color:#ef4444">*</span></label><input class="field-input" id="np-email" type="email" placeholder="email@ejemplo.com"/></div>
-        <div><label class="field-label">Teléfono</label><input class="field-input" id="np-phone" placeholder="+34 600 000 000"/></div>
+        <div><label class="field-label">Teléfono</label>${phoneInputHTML('np-phone')}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label class="field-label">Nº Colegiado <span style="color:#ef4444">*</span></label><input class="field-input" id="np-col" placeholder="M-00000"/></div>
-        <div><label class="field-label">Fecha de nacimiento</label><input class="field-input" id="np-nac" placeholder="DD/MM/AAAA"/></div>
+        <div><label class="field-label">Fecha de nacimiento</label><input class="field-input" id="np-nac" type="date"/></div>
       </div>
       <div style="border-top:1px solid #f3f4f6;padding-top:12px">
         <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Configuración económica</div>
@@ -2707,7 +2707,7 @@ async function doAltaPsico(){
   // 3. Insertar en psychologists
   const {error:psicoError} = await sbAdmin.from('psychologists').insert({
     id:uid, nombre, apellidos, email,
-    phone:g('np-phone'), num_colegiado:col,
+    phone:getPhone('np-phone'), num_colegiado:col,
     fecha_nac:g('np-nac')||null,
     tarifa, tarifa_pareja:tarifaPareja, irpf,
     status:'pendiente'
@@ -2723,7 +2723,7 @@ async function doAltaPsico(){
   const initials=((nombre[0]||'')+(apellidos[0]||'')).toUpperCase();
   PSYCHOLOGISTS.push({
     id:PSYCHOLOGISTS.length+100, name:fullName, initials, email,
-    phone:g('np-phone'), ciudad:'', colegiado:col,
+    phone:getPhone('np-phone'), ciudad:'', colegiado:col,
     tarifa, tarifaPareja, haceParejas:tarifaPareja!==null,
     irpf, status:'pendiente', patients:0, sesiones_mes:0,
     especialidades:[], idiomas:[], vacaciones:[],
@@ -2743,8 +2743,8 @@ function addVacacion(id){
       <button onclick="psicoModalTab='disponibilidad';openPsicoModal(${id})" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9ca3af">✕</button>
     </div>
     <div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px">
-      <div><label class="field-label">Fecha inicio</label><input class="field-input" id="vac-desde" placeholder="DD/MM/AAAA"/></div>
-      <div><label class="field-label">Fecha fin</label><input class="field-input" id="vac-hasta" placeholder="DD/MM/AAAA"/></div>
+      <div><label class="field-label">Fecha inicio</label><input class="field-input" type="date" id="vac-desde"/></div>
+      <div><label class="field-label">Fecha fin</label><input class="field-input" type="date" id="vac-hasta"/></div>
     </div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px">
       <button onclick="psicoModalTab='disponibilidad';openPsicoModal(${id})" class="btn-gray">Cancelar</button>
@@ -3145,6 +3145,36 @@ function showModal(html){
   document.getElementById('modals').appendChild(el);
 }
 function closeModal(){ document.getElementById('active-modal')?.remove(); document.getElementById('modals').innerHTML=''; }
+
+const PHONE_PREFIXES=[
+  {c:'+34',l:'🇪🇸 +34'},{c:'+351',l:'🇵🇹 +351'},{c:'+33',l:'🇫🇷 +33'},
+  {c:'+44',l:'🇬🇧 +44'},{c:'+49',l:'🇩🇪 +49'},{c:'+39',l:'🇮🇹 +39'},
+  {c:'+32',l:'🇧🇪 +32'},{c:'+31',l:'🇳🇱 +31'},{c:'+41',l:'🇨🇭 +41'},
+  {c:'+1', l:'🇺🇸 +1'},{c:'+52',l:'🇲🇽 +52'},{c:'+54',l:'🇦🇷 +54'},
+  {c:'+57',l:'🇨🇴 +57'},{c:'+56',l:'🇨🇱 +56'},
+];
+function parsePhone(v=''){
+  const s=v.toString().replace(/[\s\-]/g,'');
+  for(const p of PHONE_PREFIXES){ if(s.startsWith(p.c)) return {pre:p.c,num:s.slice(p.c.length)}; }
+  for(const p of PHONE_PREFIXES){ const c=p.c.replace('+',''); if(s.startsWith(c)) return {pre:p.c,num:s.slice(c.length)}; }
+  return {pre:'+34',num:s.replace(/^\+/,'')};
+}
+function phoneInputHTML(id,val=''){
+  const {pre,num}=parsePhone(val);
+  const opts=PHONE_PREFIXES.map(p=>`<option value="${p.c}"${p.c===pre?' selected':''}>${p.l}</option>`).join('');
+  return `<div style="display:flex;gap:6px"><select id="${id}-prefix" style="height:36px;border:1.5px solid #e5e7eb;border-radius:7px;background:#fff;font-size:12px;padding:0 6px;color:#111827;cursor:pointer">${opts}</select><input type="tel" id="${id}-num" class="field-input" style="flex:1;min-width:0" placeholder="600 000 000" value="${num}"/></div>`;
+}
+function getPhone(id){
+  const pre=document.getElementById(id+'-prefix'), num=document.getElementById(id+'-num');
+  if(!pre||!num){const el=document.getElementById(id);return el?el.value:'';}
+  const n=num.value.replace(/\s/g,''); return n?pre.value+n:'';
+}
+function toDateInput(v=''){
+  if(!v)return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
+  const m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:'';
+}
 
 function showToast(msg, duration=3200){
   let c=document.getElementById('toast-container');

@@ -1826,7 +1826,7 @@ function tabAjustes(){
         <div><label class="field-label">Fecha nacimiento *</label><input class="field-input" type="date" value="${psychProfile.fechaNac}" oninput="psychProfile.fechaNac=this.value"/></div>
         <div><label class="field-label">Ciudad</label><input class="field-input" value="${psychProfile.ciudad}" oninput="psychProfile.ciudad=this.value" placeholder="Madrid"/></div>
         <div><label class="field-label">Provincia</label><input class="field-input" value="${psychProfile.provincia}" oninput="psychProfile.provincia=this.value" placeholder="Madrid"/></div>
-        <div><label class="field-label">Teléfono *</label><input class="field-input" value="${psychProfile.telefono}" oninput="psychProfile.telefono=this.value" placeholder="+34 600 000 000"/></div>
+        <div><label class="field-label">Teléfono *</label>${phoneInputHTML('psych-tel',psychProfile.telefono||'')}</div>
         <div style="grid-column:span 2"><label class="field-label">Email *</label><input class="field-input" type="email" value="${psychProfile.email}" oninput="psychProfile.email=this.value"/></div>
         <div><label class="field-label">DNI / NIE *</label><input class="field-input" value="${psychProfile.dni}" oninput="psychProfile.dni=this.value" placeholder="00000000A"/></div>
         <div><label class="field-label">Nº Colegiado *</label><input class="field-input" value="${psychProfile.numColegiado}" oninput="psychProfile.numColegiado=this.value" placeholder="M-12345"/></div>
@@ -2756,6 +2756,9 @@ function saveProfileComplete(){
   document.querySelectorAll('.field-input[data-pf]').forEach(el => {
     psychProfile[el.dataset.pf] = el.value;
   });
+  // Sync phone component
+  const tel = getPhone('psych-tel');
+  if(tel) psychProfile.telefono = tel;
 
   const missing = PROFILE_REQUIRED.filter(r => !psychProfile[r.key] || String(psychProfile[r.key]).trim() === '');
   const hasEsp  = ESPECIALIDAD_KEYS.some(k => psychProfile[k]);
@@ -3444,6 +3447,30 @@ function renderTab(){
     setTimeout(()=>{const c=document.getElementById('chat-msgs');if(c)c.scrollTop=c.scrollHeight;},50);
   }
 }
+const PHONE_PREFIXES=[
+  {c:'+34',l:'🇪🇸 +34'},{c:'+351',l:'🇵🇹 +351'},{c:'+33',l:'🇫🇷 +33'},
+  {c:'+44',l:'🇬🇧 +44'},{c:'+49',l:'🇩🇪 +49'},{c:'+39',l:'🇮🇹 +39'},
+  {c:'+32',l:'🇧🇪 +32'},{c:'+31',l:'🇳🇱 +31'},{c:'+41',l:'🇨🇭 +41'},
+  {c:'+1', l:'🇺🇸 +1'},{c:'+52',l:'🇲🇽 +52'},{c:'+54',l:'🇦🇷 +54'},
+  {c:'+57',l:'🇨🇴 +57'},{c:'+56',l:'🇨🇱 +56'},
+];
+function parsePhone(v=''){
+  const s=v.toString().replace(/[\s\-]/g,'');
+  for(const p of PHONE_PREFIXES){ if(s.startsWith(p.c)) return {pre:p.c,num:s.slice(p.c.length)}; }
+  for(const p of PHONE_PREFIXES){ const c=p.c.replace('+',''); if(s.startsWith(c)) return {pre:p.c,num:s.slice(c.length)}; }
+  return {pre:'+34',num:s.replace(/^\+/,'')};
+}
+function phoneInputHTML(id,val=''){
+  const {pre,num}=parsePhone(val);
+  const opts=PHONE_PREFIXES.map(p=>`<option value="${p.c}"${p.c===pre?' selected':''}>${p.l}</option>`).join('');
+  return `<div style="display:flex;gap:6px"><select id="${id}-prefix" style="height:36px;border:1.5px solid #e5e7eb;border-radius:7px;background:#fff;font-size:12px;padding:0 6px;color:#111827;cursor:pointer">${opts}</select><input type="tel" id="${id}-num" class="field-input" style="flex:1;min-width:0" placeholder="600 000 000" value="${num}"/></div>`;
+}
+function getPhone(id){
+  const pre=document.getElementById(id+'-prefix'), num=document.getElementById(id+'-num');
+  if(!pre||!num){const el=document.getElementById(id);return el?el.value:'';}
+  const n=num.value.replace(/\s/g,''); return n?pre.value+n:'';
+}
+
 function showToast(msg){
   document.querySelectorAll('.pop-toast').forEach(t=>t.remove());
   const t=document.createElement('div');
