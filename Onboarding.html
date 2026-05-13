@@ -60,6 +60,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fff;overfl
   .btn-primary,.btn-back{font-size:13px;padding:12px}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 <div class="app">
@@ -80,6 +81,12 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fff;overfl
 </div>
 
 <script>
+// ── SUPABASE ──────────────────────────────────────────────────────
+const sb = supabase.createClient(
+  'https://kfekcgmwoatjjovhaaiq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWtjZ213b2F0ampvdmhhYWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYzNzIxNjQsImV4cCI6MjA2MTk0ODE2NH0.oa9HPCxqPOqRcBm_JJbHPvbLBbUTqrOCSJMlPaYoSRRh1wwTqbKQP-p57dSkGgL8Ohqt9YiOfMUsAC0cc'
+);
+
 // ── STATE ─────────────────────────────────────────────────────────
 const S = {
   step: 0,
@@ -87,6 +94,7 @@ const S = {
   motivos:[], prevPsych:null, prevDetail:'', disponibilidad:[],
   cat:'individual', planId:'mensual',
   promo:'', promoOk:false, consentChecks:[false,false,false,false,false],
+  userId: null, signupError: '',
 };
 
 const STEPS = ['Tu cuenta','Cuéntanos','Consentimiento','Tu plan','Pago'];
@@ -181,6 +189,7 @@ function step0(){
     <span style="font-size:12px;color:#6b7280;line-height:1.5">Acepto los <span style="color:#20dc95;font-weight:600">Términos de servicio</span> y la <span style="color:#20dc95;font-weight:600">Política de privacidad</span> (RGPD)</span>
   </label>
 
+  ${S.signupError ? `<p style="font-size:12px;color:#ef4444;text-align:center;margin-bottom:10px;line-height:1.5">${S.signupError}</p>` : ''}
   <button class="btn-primary" id="btn0" onclick="goStep1()" ${canGo?'':'disabled'}>Continuar →</button>
   <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:16px">¿Ya tienes cuenta? <a href="Login.html" style="color:#20dc95;font-weight:600;text-decoration:none">Inicia sesión</a></p>`;
 }
@@ -204,7 +213,23 @@ function refreshBtn0(){
   const ok=S.nombre.trim()&&S.email.trim()&&S.pass.length>=8&&S.rgpd;
   btn.disabled=!ok;
 }
-function goStep1(){ if(!S.nombre.trim()||!S.email.trim()||S.pass.length<8||!S.rgpd) return; S.step=1; rerender(); }
+async function goStep1(){
+  if(!S.nombre.trim()||!S.email.trim()||S.pass.length<8||!S.rgpd) return;
+  const btn = document.getElementById('btn0');
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Creando cuenta...'; }
+  S.signupError = '';
+  const { data, error } = await sb.auth.signUp({ email: S.email, password: S.pass });
+  if(error){
+    S.signupError = error.message.toLowerCase().includes('already')
+      ? 'Este email ya tiene una cuenta. <a href="Login.html" style="color:#20dc95;font-weight:600">Inicia sesión</a>'
+      : 'No se pudo crear la cuenta. Inténtalo de nuevo.';
+    rerender();
+    return;
+  }
+  S.userId = data.user?.id || null;
+  S.step = 1;
+  rerender();
+}
 
 // ── STEP 1: INTAKE ────────────────────────────────────────────────
 function step1(){
@@ -411,7 +436,7 @@ function step4(){
       <span style="font-size:18px">📞</span>
       <span>¿Dudas? Escríbenos a <strong style="color:#111827">info@popempower.com</strong><br>o WhatsApp al <strong style="color:#111827">699 201 600</strong></span>
     </div>
-    <button class="btn-primary" onclick="localStorage.setItem('pop_session',JSON.stringify({email:S.email,role:'paciente',name:S.nombre}));window.location.href='Patient Portal (14).html'">Ir a mi área personal →</button>
+    <button class="btn-primary" onclick="localStorage.setItem('pop_session',JSON.stringify({email:S.email,role:'paciente',name:S.nombre,id:S.userId}));window.location.href='Patient Portal (14).html'">Ir a mi área personal →</button>
   </div>`;
 }
 
