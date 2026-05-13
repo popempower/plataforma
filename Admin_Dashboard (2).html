@@ -2823,13 +2823,13 @@ function renderNewPatientModal(){
         </select>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
+      <div style="display:grid;grid-template-columns:${isInf?'1fr':'1fr 1fr'};gap:12px">
+        ${!isInf?`<div>
           <label class="field-label">Plan</label>
           <select id="np-plan" class="field-input">
             ${SERVICES.filter(s=>s.activo).map(s=>`<option value="${s.name}">${s.name} — ${s.precio} €</option>`).join('')}
           </select>
-        </div>
+        </div>`:''}
         <div>
           <label class="field-label">Tipo terapia</label>
           <select id="np-terapia" class="field-input">
