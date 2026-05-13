@@ -89,7 +89,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fafafa;min
   </div>
 
   <div class="footer">
-    ¿Eres nuevo? <a href="Onboarding.html">Reservar primera sesión</a> &nbsp;·&nbsp;
+    ¿Eres nuevo? <a href="onboarding.html">Reservar primera sesión</a> &nbsp;·&nbsp;
     <a href="#">Política de privacidad</a>
   </div>
 </div>
@@ -117,10 +117,10 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const REDIRECTS = {
-  admin:        'Admin_Dashboard (2).html',
-  patient:      'Patient Portal (14).html',
-  psychologist: 'Psychologist_Dashboard.html',
-  b2b:          'B2B_Portal.html',
+  admin:        'admin.html',
+  patient:      'paciente.html',
+  psychologist: 'psicologa.html',
+  b2b:          'empresa.html',
 };
 
 let passVisible = false;
@@ -203,7 +203,7 @@ async function sendReset() {
   const email = document.getElementById('forgotEmail').value.trim();
   if (!email) return;
   await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + '/Login.html'
+    redirectTo: window.location.origin + '/login.html'
   });
   document.getElementById('forgotOk').style.display = 'block';
   setTimeout(closeForgot, 2500);

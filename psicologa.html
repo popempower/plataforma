@@ -3574,7 +3574,7 @@ const sb = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co','eyJ
 async function doLogout(){
   localStorage.removeItem('pop_session');
   await sb.auth.signOut();
-  window.location.href = 'Login.html';
+  window.location.href = 'login.html';
 }
 
 // ── IDIOMA ────────────────────────────────────────────────────────

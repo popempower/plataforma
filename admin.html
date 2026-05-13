@@ -983,7 +983,7 @@ async function saveNuevoParticipante(programaId){
   if(btn){btn.disabled=true;btn.textContent='Enviando...';}
   PARTICIPANTES.push({id:Date.now(),programa_id:programaId,nombre,apellidos,email,codigo:nextCodigo(programaId),telefono:getPhone('npTel'),fecha_nacimiento:document.getElementById('npFnac').value,idioma:document.getElementById('npIdioma').value,psicologa:document.getElementById('npPsico').value,sesiones_realizadas:0,fecha_inicio_sesiones:'',fecha_fin_sesiones:'',encuesta_pre:'pendiente',encuesta_post:'pendiente',estado:'en_curso',comentarios:''});
   const {error:invErr}=await sbAdmin.auth.admin.inviteUserByEmail(email,{
-    redirectTo:'https://plataforma-woad.vercel.app/Login.html',
+    redirectTo:'https://plataforma-woad.vercel.app/login.html',
     data:{full_name:nombre+' '+apellidos,role:'b2b'}
   });
   if(btn){btn.disabled=false;btn.textContent='Añadir participante';}
@@ -2701,7 +2701,7 @@ async function doAltaPsico(){
   const tarifaPareja=isNaN(tpRaw)||g('np-tarifa-pareja')===''?null:tpRaw;
   const irpf=parseFloat(g('np-irpf'))||7;
   const fullName=`${nombre} ${apellidos}`;
-  const redirectTo='https://plataforma-woad.vercel.app/Login.html';
+  const redirectTo='https://plataforma-woad.vercel.app/login.html';
 
   // 1. Enviar invitación — Supabase manda el email automáticamente
   const {data:inviteData, error:inviteError} = await sbAdmin.auth.admin.inviteUserByEmail(email, {
@@ -2946,7 +2946,7 @@ async function doAltaPaciente(){
     const btn=document.querySelector('.modal-box .btn-green');
     if(btn){btn.disabled=true;btn.textContent='Enviando invite...';}
     const {error:invErr}=await sbAdmin.auth.admin.inviteUserByEmail(email,{
-      redirectTo:'https://plataforma-woad.vercel.app/Login.html',
+      redirectTo:'https://plataforma-woad.vercel.app/login.html',
       data:{full_name:nombre+(apellidos?' '+apellidos:''),role:'patient'}
     });
     if(btn){btn.disabled=false;}
@@ -3721,7 +3721,7 @@ const sbAdmin = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co'
 async function doLogout(){
   localStorage.removeItem('pop_session');
   await sb.auth.signOut();
-  window.location.href = 'Login.html';
+  window.location.href = 'login.html';
 }
 
 rerender();
