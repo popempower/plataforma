@@ -968,13 +968,26 @@ function openNuevoParticipanteModal(programaId){
     </div>
   </div>`;}
 
-function saveNuevoParticipante(programaId){
+async function saveNuevoParticipante(programaId){
   const nombre=document.getElementById('npNombre').value.trim();
   const apellidos=document.getElementById('npApellidos').value.trim();
   const email=document.getElementById('npEmail').value.trim();
   if(!nombre||!apellidos||!email) return alert('Nombre, apellidos y email son obligatorios');
+  const btn=document.querySelector('.modal-box .btn-green');
+  if(btn){btn.disabled=true;btn.textContent='Enviando...';}
   PARTICIPANTES.push({id:Date.now(),programa_id:programaId,nombre,apellidos,email,codigo:nextCodigo(programaId),telefono:getPhone('npTel'),fecha_nacimiento:document.getElementById('npFnac').value,idioma:document.getElementById('npIdioma').value,psicologa:document.getElementById('npPsico').value,sesiones_realizadas:0,fecha_inicio_sesiones:'',fecha_fin_sesiones:'',encuesta_pre:'pendiente',encuesta_post:'pendiente',estado:'en_curso',comentarios:''});
-  closeModal(); rerender();}
+  const {error:invErr}=await sbAdmin.auth.admin.inviteUserByEmail(email,{
+    redirectTo:'https://plataforma-woad.vercel.app/Login.html',
+    data:{full_name:nombre+' '+apellidos,role:'b2b'}
+  });
+  if(btn){btn.disabled=false;btn.textContent='Añadir participante';}
+  closeModal();rerender();
+  if(invErr&&!invErr.message.includes('already been registered')){
+    showToast(`✓ ${nombre} añadido — ⚠️ error invite: ${invErr.message}`);
+  } else {
+    showToast(`✓ ${nombre} añadido y invite enviado a ${email}`);
+  }
+}
 
 function openImportModal(programaId){
   _b2bImportProgramaId=programaId; _b2bImportRows=[];
@@ -2801,7 +2814,7 @@ function renderNewPatientModal(){
         <div><label class="field-label">Apellidos</label><input id="np-apellidos" class="field-input" placeholder="Apellidos"/></div>
       </div>
       <div><label class="field-label">Email *</label><input id="np-email" class="field-input" type="email" placeholder="email@ejemplo.com"/></div>
-      <div><label class="field-label">Teléfono</label><input id="np-tel" class="field-input" placeholder="+34 600 000 000"/></div>
+      <div><label class="field-label">Teléfono</label>${phoneInputHTML('np-tel')}</div>
 
       <div>
         <label class="field-label">Asignar psicóloga</label>
@@ -2833,6 +2846,10 @@ function renderNewPatientModal(){
       </div>`:''}
 
       ${isInf?`<div style="border-top:2px solid #ede9fe;padding-top:15px">
+        <div style="font-weight:700;font-size:13px;color:#7c3aed;margin-bottom:10px">🤝 Colaboración</div>
+        <div><label class="field-label">Sesiones de colaboración (para el influencer)</label><input id="np-colab-ses" class="field-input" type="number" min="0" placeholder="Ej: 4" style="max-width:160px"/></div>
+      </div>
+      <div style="border-top:2px solid #ede9fe;padding-top:15px">
         <div style="font-weight:700;font-size:13px;color:#7c3aed;margin-bottom:12px;display:flex;align-items:center;gap:6px">
           <span style="background:#7c3aed;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px">1</span>
           Código propio — sesiones gratuitas
@@ -2869,11 +2886,11 @@ function renderNewPatientModal(){
   </div>`);
 }
 
-function doAltaPaciente(){
+async function doAltaPaciente(){
   const nombre=(document.getElementById('np-nombre')?.value||'').trim();
   const apellidos=(document.getElementById('np-apellidos')?.value||'').trim();
   const email=(document.getElementById('np-email')?.value||'').trim();
-  const tel=(document.getElementById('np-tel')?.value||'').trim();
+  const tel=getPhone('np-tel');
   const psicoId=parseInt(document.getElementById('np-psico')?.value)||null;
   const planName=document.getElementById('np-plan')?.value||'';
   const tipoTerapia=document.getElementById('np-terapia')?.value||'individual';
@@ -2884,16 +2901,19 @@ function doAltaPaciente(){
   const newId=Math.max(...PATIENTS.map(p=>p.id))+1;
   const infCode=(document.getElementById('np-inf-code')?.value||'').trim()||null;
 
+  const colabSes=_npTipo==='influencer'?parseInt(document.getElementById('np-colab-ses')?.value)||0:0;
   PATIENTS.push({
     id:newId,
     name:nombre+(apellidos?' '+apellidos:''),
-    email,tel,
+    email,phone:tel,
     psicologaId:psicoId,
-    psico:psico?.name||'',
+    psico:psico?.id||null,
     tipo:_npTipo,
     influencerCode:_npTipo==='influencer'?infCode:null,
     empresa:null,
-    plan:planName,
+    plan:_npTipo==='influencer'&&colabSes?`${colabSes} sesiones colaboración`:planName,
+    total:colabSes||4,
+    usado:0,
     alta:new Date().toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}),
     caducidad:null,
     status:'activo',
@@ -2916,11 +2936,25 @@ function doAltaPaciente(){
     const nextId=Math.max(...PROMO_CODES.map(c=>c.id))+1;
     if(infCode) PROMO_CODES.push({id:nextId,code:infCode,type:'influencer',value:infVal,unit:'sesiones',uses:0,maxUses:infMax?parseInt(infMax):null,caducidad:fmtCad(infCad),status:'activo',description:`${infVal} sesiones gratuitas — ${nombre} (influencer, cuenta propia)`});
     if(fansCode) PROMO_CODES.push({id:nextId+1,code:fansCode,type:'referido',value:fansVal,unit:'%',uses:0,maxUses:fansMax?parseInt(fansMax):null,caducidad:fmtCad(fansCad),status:'activo',description:`${fansVal}% descuento — seguidores de ${nombre}`});
+
+    const btn=document.querySelector('.modal-box .btn-green');
+    if(btn){btn.disabled=true;btn.textContent='Enviando invite...';}
+    const {error:invErr}=await sbAdmin.auth.admin.inviteUserByEmail(email,{
+      redirectTo:'https://plataforma-woad.vercel.app/Login.html',
+      data:{full_name:nombre+(apellidos?' '+apellidos:''),role:'patient'}
+    });
+    if(btn){btn.disabled=false;}
+    closeModal();rerender();
+    if(invErr&&!invErr.message.includes('already been registered')){
+      showToast(`⭐ ${nombre} creado + códigos — ⚠️ error invite: ${invErr.message}`);
+    } else {
+      showToast(`⭐ ${nombre} creado, ${colabSes} sesiones asignadas e invite enviado`);
+    }
+    return;
   }
 
-  const wasInf=_npTipo==='influencer';
   closeModal();rerender();
-  showToast(`Paciente ${nombre} creado ✓${wasInf?' + códigos generados':''}`);}
+  showToast(`✓ Paciente ${nombre} creado`);}
 function openNewCompanyModal(){ openNewEmpresaModal(); }
 
 function openNewPromoModal(){
