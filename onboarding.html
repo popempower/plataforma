@@ -174,7 +174,7 @@ function step0(){
     <div id="chk" style="width:18px;height:18px;border-radius:5px;border:1.5px solid ${S.rgpd?'#20dc95':'#d1d5db'};background:${S.rgpd?'#20dc95':'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .12s">
       ${S.rgpd?'<span style="font-size:10px;color:#065f46;font-weight:800">✓</span>':''}
     </div>
-    <span style="font-size:12px;color:#6b7280;line-height:1.5">Acepto los <span style="color:#20dc95;font-weight:600">Términos de servicio</span> y la <span style="color:#20dc95;font-weight:600">Política de privacidad</span> (RGPD)</span>
+    <span style="font-size:12px;color:#6b7280;line-height:1.5">Acepto los <a href="https://popempower.com/condiciones-generales-de-contratacion/" target="_blank" onclick="event.stopPropagation()" style="color:#20dc95;font-weight:600;text-decoration:none">Términos de servicio</a> y la <a href="https://popempower.com/privacidad/" target="_blank" onclick="event.stopPropagation()" style="color:#20dc95;font-weight:600;text-decoration:none">Política de privacidad</a> (RGPD)</span>
   </label>
 
   ${S.signupError ? `<p style="font-size:12px;color:#ef4444;text-align:center;margin-bottom:10px;line-height:1.5">${S.signupError}</p>` : ''}
