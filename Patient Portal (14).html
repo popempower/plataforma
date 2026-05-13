@@ -127,8 +127,12 @@ input{font-family:inherit}
   [style*="overflow:auto"]{overflow:visible!important;height:auto!important}
   [style*="overflow: auto"]{overflow:visible!important;height:auto!important}
   #content{overflow:visible!important;height:auto!important}
-  #tabcontent{overflow:visible!important;height:auto!important;flex:none!important}
-  #tabcontent > div{height:auto!important;min-height:0!important;overflow:visible!important}
+  #tabcontent{display:block!important;overflow:visible!important;height:auto!important;flex:none!important}
+  #tabcontent > div{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;flex:none!important}
+
+  /* ── PRÓXIMA SESIÓN: botones en fila completa ── */
+  [style*="justify-content:space-between;align-items:center;gap:16px"] > [style*="display:flex;gap:8px"]{width:100%!important;flex-wrap:wrap!important}
+  [style*="justify-content:space-between;align-items:center;gap:16px"] > [style*="display:flex;gap:8px"] button{flex:1!important;min-width:80px!important;white-space:nowrap!important}
 
   /* ── PREVENIR OVERFLOW HORIZONTAL ── */
   img,iframe,video,table{max-width:100%!important}
@@ -2351,7 +2355,7 @@ if(!localStorage.getItem('pop_tour_done') && localStorage.getItem('pop_consent')
   <button class="m-nav-btn active" data-nav="inicio" onclick="navigate('inicio')"><span class="m-nav-icon">🏠</span>Inicio</button>
   <button class="m-nav-btn" data-nav="sesiones" onclick="navigate('sesiones')"><span class="m-nav-icon">📅</span>Sesiones</button>
   <button class="m-nav-btn" data-nav="mensajes" onclick="navigate('mensajes')"><span class="m-nav-icon">💬</span>Mensajes</button>
-  <button class="m-nav-btn" data-nav="plan" onclick="navigate('plan')"><span class="m-nav-icon">📋</span>Plan</button>
+  <button class="m-nav-btn" data-nav="ejercicios" onclick="navigate('ejercicios')"><span class="m-nav-icon">🧠</span>Ejercicios</button>
   <button class="m-nav-btn" data-nav="ajustes" onclick="navigate('ajustes')"><span class="m-nav-icon">⚙️</span>Ajustes</button>
 </div>
 </body>
