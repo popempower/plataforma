@@ -317,7 +317,7 @@ textarea.field-input{resize:vertical;min-height:80px}
         <div style="display:flex;gap:8px;margin-bottom:16px" id="sr-end-status-btns">
           <button onclick="srSelectStatus(this,'realizada')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #20dc95;background:rgba(32,220,149,.1);color:#20dc95;font-weight:600;font-size:11px;cursor:pointer;font-family:inherit">Realizada</button>
           <button onclick="srSelectStatus(this,'cancelada')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #30363d;background:transparent;color:rgba(255,255,255,.5);font-weight:600;font-size:11px;cursor:pointer;font-family:inherit">Cancelada</button>
-          <button onclick="srSelectStatus(this,'no_empezaron')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #30363d;background:transparent;color:rgba(255,255,255,.5);font-weight:600;font-size:11px;cursor:pointer;font-family:inherit">No empezaron</button>
+          <button onclick="srSelectStatus(this,'cancelada_cobro')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #30363d;background:transparent;color:rgba(255,255,255,.5);font-weight:600;font-size:11px;cursor:pointer;font-family:inherit">Cancelada con cobro</button>
         </div>
         <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px">Notas de cierre</div>
         <textarea placeholder="Resumen de la sesión, próximos pasos..." style="width:100%;height:80px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;font-family:inherit;font-size:12px;color:#fff;resize:none;outline:none"></textarea>
@@ -422,7 +422,7 @@ const SES_ST = {
   programada:      {label:'Programada',         bg:'#f3f4f6',color:'#6b7280',dot:'#9ca3af'},
   cancelada:       {label:'Cancelada',          bg:'#fef2f2',color:'#b91c1c',dot:'#ef4444'},
   cancelada_cobro: {label:'Cancelada (cobro)',  bg:'#fff7ed',color:'#c2410c',dot:'#f97316'},
-  no_empezaron:    {label:'No empezaron',       bg:'#faf5ff',color:'#6b21a8',dot:'#a855f7'},
+  cancelada_cobro: {label:'Cancelada con cobro', bg:'#fff7ed',color:'#c2410c',dot:'#f97316'},
   externa:         {label:'Fuera plataforma',   bg:'#f0f9ff',color:'#0c4a6e',dot:'#0284c7'},
 };
 const PAT_ST = {
@@ -2989,7 +2989,7 @@ function tabAyuda(){
     {cat:'Política de cancelaciones',icon:NAV_SVG.pacientes,items:[
       {q:'¿Qué pasa si un paciente cancela con poco tiempo?',a:'Si el paciente cancela con menos de 24h de antelación, la sesión se contabiliza como consumida del bono. POP Empower notifica automáticamente al paciente esta política en el momento del alta. Puedes ver el historial de cancelaciones en la ficha de cada paciente.'},
       {q:'¿Y si soy yo quien necesita cancelar?',a:'Si necesitas cancelar una sesión, hazlo siempre con el máximo margen posible — idealmente 48h. En ese caso la sesión NO se descuenta del bono del paciente y puedes reprogramarla sin coste. Es importante mantener la regularidad para la adherencia terapéutica.'},
-      {q:'¿Qué hago si el paciente no se conecta?',a:'Si el paciente no se presenta pasados 10-15 minutos, espera en la sala de espera virtual. Puedes enviar un mensaje desde el chat de la plataforma. Si no hay respuesta, finaliza la sesión marcándola como "No empezaron" y el equipo de POP gestionará la incidencia.'},
+      {q:'¿Qué hago si el paciente no se conecta?',a:'Si el paciente no se presenta pasados 10-15 minutos, espera en la sala de espera virtual. Puedes enviar un mensaje desde el chat de la plataforma. Si no hay respuesta, finaliza la sesión marcándola como "Cancelada con cobro" — la sesión contará para tu factura y el equipo de POP gestionará la incidencia con el paciente.'},
       {q:'¿Puedo dar de baja a un paciente?',a:'Sí. En la ficha del paciente puedes cambiar su estado a "Baja" cuando el proceso terapéutico concluye. Es buena práctica hacer una sesión de cierre cuando es posible. Si hay alguna situación de derivación o urgencia, contacta con el equipo de POP por WhatsApp.'},
     ]},
     {cat:'Uso de la plataforma',icon:NAV_SVG.notas,items:[
