@@ -1538,11 +1538,12 @@ async function enterSession(){
     });
     const data = await res.json();
     if(!data.roomUrl) throw new Error(data.message||'Error al crear sala');
-    window._wherebyRoomUrl = data.roomUrl;
+    const guestUrl = data.roomUrl + (data.roomUrl.includes('?') ? '&' : '?') + 'leaveButton=off';
+    window._wherebyRoomUrl = guestUrl;
     const overlay = document.getElementById('sr-loading-overlay');
     const area = document.getElementById('sr-video-area');
     if(overlay) overlay.style.display='none';
-    if(area) area.innerHTML = `<iframe id="sr-patient-frame" src="${data.roomUrl}" allow="camera; microphone; fullscreen; speaker; display-capture" style="width:100%;height:100%;border:none;display:block"></iframe>`;
+    if(area) area.innerHTML = `<iframe id="sr-patient-frame" src="${guestUrl}" allow="camera; microphone; fullscreen; speaker; display-capture" style="width:100%;height:100%;border:none;display:block"></iframe>`;
   } catch(e) {
     const overlay = document.getElementById('sr-loading-overlay');
     if(overlay) overlay.innerHTML = `<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:14px">⚠️</div><div style="color:rgba(255,255,255,.7);font-size:14px;font-weight:600;margin-bottom:8px">No se pudo conectar</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:20px">${e.message}</div><button onclick="exitSession()" style="padding:10px 22px;border-radius:9px;border:none;background:#20dc95;color:#065f46;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">Volver</button></div>`;

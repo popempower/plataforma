@@ -3475,7 +3475,7 @@ async function srIniciarSala(){
     _srGuestUrl=data.roomUrl;
     const frame=document.getElementById('sr-whereby-frame');
     const overlay=document.getElementById('sr-waiting-overlay');
-    if(frame) frame.src=data.hostRoomUrl+'&lang=es&background=off';
+    if(frame) frame.src=data.hostRoomUrl+'&lang=es&background=off&leaveButton=off';
     if(overlay) overlay.style.display='none';
     const gl=document.getElementById('sr-guest-link');
     const gu=document.getElementById('sr-guest-url');
