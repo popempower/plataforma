@@ -310,8 +310,10 @@ textarea.field-input{resize:vertical;min-height:80px}
       </div>
       <div style="padding:20px 24px">
         <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:8px">Estado de la sesión</div>
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-          ${['realizada','cancelada','no_empezaron'].map(v=>`<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.borderColor='#30363d';b.style.background='transparent';b.style.color='rgba(255,255,255,.5)'});this.style.borderColor='#20dc95';this.style.background='rgba(32,220,149,.1)';this.style.color='#20dc95'" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid ${v==='realizada'?'#20dc95':'#30363d'};background:${v==='realizada'?'rgba(32,220,149,.1)':'transparent'};color:${v==='realizada'?'#20dc95':'rgba(255,255,255,.5)'};font-weight:600;font-size:11px;cursor:pointer;font-family:inherit">${SES_ST[v]?.label||v}</button>`).join('')}
+        <div style="display:flex;gap:8px;margin-bottom:16px" id="sr-end-status-btns">
+          <button onclick="srSelectStatus(this,'realizada')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #20dc95;background:rgba(32,220,149,.1);color:#20dc95;font-weight:600;font-size:11px;cursor:pointer;font-family:inherit">Realizada</button>
+          <button onclick="srSelectStatus(this,'cancelada')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #30363d;background:transparent;color:rgba(255,255,255,.5);font-weight:600;font-size:11px;cursor:pointer;font-family:inherit">Cancelada</button>
+          <button onclick="srSelectStatus(this,'no_empezaron')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #30363d;background:transparent;color:rgba(255,255,255,.5);font-weight:600;font-size:11px;cursor:pointer;font-family:inherit">No empezaron</button>
         </div>
         <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px">Notas de cierre</div>
         <textarea placeholder="Resumen de la sesión, próximos pasos..." style="width:100%;height:80px;padding:10px;border-radius:8px;border:1px solid #30363d;background:#0d1117;font-family:inherit;font-size:12px;color:#fff;resize:none;outline:none"></textarea>
@@ -2953,6 +2955,13 @@ function srSendMsg(){
   div.innerHTML=`<div style="max-width:80%;padding:8px 12px;border-radius:12px 12px 2px 12px;background:rgba(32,220,149,.15);color:#a7f3d0;font-size:12px;line-height:1.5">${text}</div><span style="font-size:10px;color:rgba(255,255,255,.25);margin-top:3px">${now}</span>`;
   container.appendChild(div);
   container.scrollTop=container.scrollHeight;
+}
+function srSelectStatus(btn, status){
+  document.querySelectorAll('#sr-end-status-btns button').forEach(b=>{
+    b.style.borderColor='#30363d';b.style.background='transparent';b.style.color='rgba(255,255,255,.5)';
+  });
+  btn.style.borderColor='#20dc95';btn.style.background='rgba(32,220,149,.1)';btn.style.color='#20dc95';
+  document.getElementById('sr-end-modal').dataset.status=status;
 }
 function srOpenEndModal(){
   srState.endModal=true;
