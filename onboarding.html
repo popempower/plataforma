@@ -94,7 +94,7 @@ function parsePhone(v=''){
 function phoneInputHTML(id,val=''){
   const {pre,num}=parsePhone(val);
   const opts=PHONE_PREFIXES.map(p=>`<option value="${p.c}"${p.c===pre?' selected':''}>${p.l}</option>`).join('');
-  return `<div style="display:flex;gap:6px"><select id="${id}-prefix" autocomplete="tel-country-code" style="height:42px;border:1.5px solid #e5e7eb;border-radius:9px;background:#fff;font-size:12px;padding:0 6px;color:#111827;cursor:pointer;font-family:inherit" onchange="refreshBtn0()">${opts}</select><input type="tel" id="${id}-num" autocomplete="tel-national" style="flex:1;padding:11px 14px;border-radius:9px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:13px;outline:none;color:#111827;background:#fff" placeholder="600 000 000" value="${num}" oninput="refreshBtn0()"/></div>`;
+  return `<div style="display:flex;gap:6px"><select id="${id}-prefix" autocomplete="off" style="height:42px;border:1.5px solid #e5e7eb;border-radius:9px;background:#fff;font-size:12px;padding:0 6px;color:#111827;cursor:pointer;font-family:inherit" onchange="refreshBtn0()">${opts}</select><input type="tel" id="${id}-num" autocomplete="off" name="whatsapp-phone" style="flex:1;padding:11px 14px;border-radius:9px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:13px;outline:none;color:#111827;background:#fff" placeholder="600 000 000" value="${num}" oninput="refreshBtn0()"/></div>`;
 }
 function getPhone(id){
   const pre=document.getElementById(id+'-prefix'), num=document.getElementById(id+'-num');
@@ -111,7 +111,7 @@ const sb = supabase.createClient(
 // ── STATE ─────────────────────────────────────────────────────────
 const S = {
   step: 0,
-  nombre:'', email:'', phone:'', pass:'', rgpd:false,
+  nombre:'', apellidos:'', email:'', phone:'', pass:'', rgpd:false,
   motivos:[], prevPsych:null, prevDetail:'', disponibilidad:[],
   cat:'individual', planId:'mensual',
   promo:'', promoOk:false, consentChecks:[false,false,false,false,false],
@@ -171,15 +171,21 @@ function getTotal(){ const p=getPlan(); return S.promoOk ? Math.round(p.price*.8
 // ── STEP 0: CUENTA ────────────────────────────────────────────────
 function step0(){
   const passOk = S.pass.length>=8;
-  const canGo  = S.nombre.trim() && S.email.trim() && S.phone.trim() && passOk && S.rgpd;
+  const canGo  = S.nombre.trim() && S.apellidos.trim() && S.email.trim() && passOk && S.rgpd;
   return `${dots()}
   <h1 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:6px">Crea tu cuenta</h1>
   <p style="font-size:13px;color:#6b7280;margin-bottom:24px">Solo te llevará un minuto</p>
 
-  <label class="field-label" style="margin-top:0">Nombre completo</label>
+  <label class="field-label" style="margin-top:0">Nombre</label>
   <div class="input-wrap">
     <span class="input-icon">👤</span>
-    <input class="field-input has-icon" type="text" placeholder="Ana Martínez" value="${S.nombre}" oninput="S.nombre=this.value;refreshBtn0()">
+    <input class="field-input has-icon" type="text" autocomplete="given-name" placeholder="Ana" value="${S.nombre}" oninput="S.nombre=this.value;refreshBtn0()">
+  </div>
+
+  <label class="field-label">Apellidos</label>
+  <div class="input-wrap">
+    <span class="input-icon">👤</span>
+    <input class="field-input has-icon" type="text" autocomplete="family-name" placeholder="Martínez García" value="${S.apellidos}" oninput="S.apellidos=this.value;refreshBtn0()">
   </div>
 
   <label class="field-label">Email</label>
@@ -217,7 +223,7 @@ function refreshChk(){
 }
 function refreshBtn0(){
   const btn=document.getElementById('btn0'); if(!btn) return;
-  const ok=S.nombre.trim()&&S.email.trim()&&getPhone('ob-phone')&&S.pass.length>=8&&S.rgpd;
+  const ok=S.nombre.trim()&&S.apellidos.trim()&&S.email.trim()&&S.pass.length>=8&&S.rgpd;
   btn.disabled=!ok;
 }
 async function goStep1(){
@@ -226,7 +232,7 @@ async function goStep1(){
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Creando cuenta...'; }
   S.signupError = '';
   S.phone = getPhone('ob-phone');
-  const { data, error } = await sb.auth.signUp({ email: S.email, password: S.pass, options: { data: { full_name: S.nombre, phone: S.phone } } });
+  const { data, error } = await sb.auth.signUp({ email: S.email, password: S.pass, options: { data: { full_name: S.nombre + ' ' + S.apellidos, nombre: S.nombre, apellidos: S.apellidos, phone: S.phone } } });
   if(error){
     S.signupError = error.message.toLowerCase().includes('already')
       ? 'Este email ya tiene una cuenta. <a href="login.html" style="color:#20dc95;font-weight:600">Inicia sesión</a>'
