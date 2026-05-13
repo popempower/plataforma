@@ -69,7 +69,8 @@ button,input,textarea,select{font-family:inherit}
   #sidebar{display:none!important}
   #content{height:auto!important;overflow:visible!important;overflow-x:hidden!important;flex:none!important;min-height:calc(100vh - 50px)}
   #topbar{padding:0 14px;gap:6px;height:50px}
-  #topbar > div:nth-child(2),#topbar > div:nth-child(3),#topbar > button{display:none!important}
+  #topbar > div:nth-child(2),#topbar > div:nth-child(3),#topbar > button:not(#mobile-logout){display:none!important}
+  #mobile-logout{display:flex!important}
   #tabcontent{display:block!important;overflow:visible!important;overflow-x:hidden!important;height:auto!important;flex:none!important;padding-bottom:76px!important}
   #tabcontent > div{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;flex:none!important;padding:16px!important}
   #mobile-nav{display:flex!important}
@@ -120,14 +121,17 @@ button,input,textarea,select{font-family:inherit}
       <span style="font-weight:700;font-size:14px;color:#111827">POP Empower</span>
     </div>
     <div id="nav" style="flex:1;display:flex;flex-direction:column;gap:2px;overflow:auto"></div>
-    <div class="sidebar-user">
-      <div class="av" style="width:30px;height:30px;background:#20dc95;font-size:10px;color:#065f46">AV</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:12px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Adam Vazquez</div>
-        <div style="font-size:10px;color:#9ca3af">AMAD001</div>
+    <div class="sidebar-user" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div class="av" style="width:30px;height:30px;background:#20dc95;font-size:10px;color:#065f46">AV</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:12px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Adam Vazquez</div>
+          <div style="font-size:10px;color:#9ca3af">AMAD001</div>
+        </div>
       </div>
-      <button onclick="confirmLogout()" title="Cerrar sesión" style="background:none;border:none;cursor:pointer;color:#9ca3af;display:flex;align-items:center" onmouseenter="this.style.color='#ef4444'" onmouseleave="this.style.color='#9ca3af'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <button onclick="confirmLogout()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit" onmouseenter="this.style.background='#fee2e2'" onmouseleave="this.style.background='#fef2f2'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Cerrar sesión
       </button>
     </div>
   </div>
@@ -139,6 +143,9 @@ button,input,textarea,select{font-family:inherit}
       <button onclick="startTour()" title="Tour guiado" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;color:#6b7280;display:flex;align-items:center;gap:5px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
         Tour
+      </button>
+      <button id="mobile-logout" onclick="confirmLogout()" style="display:none;width:30px;height:30px;border-radius:7px;border:1px solid #fecaca;background:#fef2f2;align-items:center;justify-content:center;cursor:pointer;color:#b91c1c" title="Cerrar sesión">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
     <div id="tabcontent"></div>
