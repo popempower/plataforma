@@ -59,6 +59,20 @@ textarea.field-input{resize:vertical;min-height:80px}
 .pat-row:last-child{border-bottom:none}
 .toggle{width:40px;height:22px;border-radius:11px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:none;display:inline-block}
 .toggle-knob{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+#mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:62px;background:#fff;border-top:1px solid #e5e7eb;z-index:100;align-items:stretch}
+.m-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;font-size:10px;color:#9ca3af;cursor:pointer;padding:4px 2px;font-family:inherit;transition:color .12s}
+.m-nav-btn.active{color:#20dc95}
+.m-nav-icon{font-size:20px;line-height:1}
+@media(max-width:768px){
+  body{overflow:auto}
+  #portal-ui{height:auto;min-height:100vh;flex-direction:column;overflow:visible}
+  #sidebar{display:none}
+  #main{height:auto;overflow:visible}
+  #content{overflow:visible;padding-bottom:72px}
+  #topbar{padding:0 12px;gap:8px;height:46px}
+  #mobile-nav{display:flex}
+  .modal-box{width:calc(100vw - 32px)!important;max-width:none!important}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -3333,6 +3347,9 @@ function renderNav(){
       ${n.badge?`<span class="nav-badge">${n.badge}</span>`:''}
       ${currentNav===n.id?'<div class="nav-indicator"></div>':''}
     </button>`).join('');
+  document.querySelectorAll('.m-nav-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.nav===currentNav);
+  });
 }
 function renderTab(){
   const el=document.getElementById('content');
@@ -3565,5 +3582,13 @@ rerender();
 <div id="google_translate_element" style="position:absolute;left:-9999px;top:-9999px;visibility:hidden"></div>
 <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 <style>.goog-te-banner-frame,.skiptranslate{display:none!important}body{top:0!important}</style>
+
+<div id="mobile-nav">
+  <button class="m-nav-btn active" data-nav="inicio" onclick="navigate('inicio')"><span class="m-nav-icon">🏠</span>Inicio</button>
+  <button class="m-nav-btn" data-nav="agenda" onclick="navigate('agenda')"><span class="m-nav-icon">📅</span>Agenda</button>
+  <button class="m-nav-btn" data-nav="pacientes" onclick="navigate('pacientes')"><span class="m-nav-icon">👥</span>Pacientes</button>
+  <button class="m-nav-btn" data-nav="mensajes" onclick="navigate('mensajes')"><span class="m-nav-icon">💬</span>Mensajes</button>
+  <button class="m-nav-btn" data-nav="ajustes" onclick="navigate('ajustes')"><span class="m-nav-icon">⚙️</span>Ajustes</button>
+</div>
 </body>
 </html>
