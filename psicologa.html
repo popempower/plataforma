@@ -472,6 +472,9 @@ let ausencias = []; // [{id,desde,hasta,motivo,tipo}]
 let _ausenciaId = 1;
 let EXTERNAL_SESSIONS = []; // [{id,patientId,patientName,date,time,duration,motivo,nota}]
 let _extSesId = 1;
+
+// Billing — estado Supabase
+let _bs = {loading:false,loaded:false,psyId:null,tarifa:25,irpf:7,sessions:[],extSes:[],invoice:null};
 let CANCELLED_BILLABLE = []; // sessions cancelled but still billed: [{patient,importe}]
 let psychContract = {signed: false, date: null, signerName: null};
 let _ctSigCanvas=null, _ctSigCtx=null, _ctSigHasData=false, _ctSigLastX=0, _ctSigLastY=0;
@@ -1551,6 +1554,69 @@ function downloadFacturaPDF(monthKey){
 }
 
 // ── TAB: FACTURACIÓN ──────────────────────────────────────────────
+// ── BILLING SUPABASE ──────────────────────────────────────────
+async function bsInit(){
+  if(_bs.psyId) return true;
+  const {data:{user}} = await sb.auth.getUser();
+  if(!user) return false;
+  const {data} = await sb.from('psychologists').select('id,tarifa,irpf').eq('id',user.id).single();
+  if(!data) return false;
+  _bs.psyId=data.id; _bs.tarifa=data.tarifa||25; _bs.irpf=data.irpf||7;
+  billingConfig.tarifaSesion=_bs.tarifa; billingConfig.irpf=_bs.irpf;
+  return true;
+}
+
+async function bsLoad(){
+  _bs.loading=true; rerender();
+  if(!await bsInit()){ _bs.loading=false; rerender(); return; }
+  const [mn,yr]=billingConfig.selectedMonth.split(' ');
+  const mes=MONTH_NAME_TO_IDX[mn]+1, anio=parseInt(yr);
+  const from=`${anio}-${String(mes).padStart(2,'0')}-01`;
+  const to=new Date(anio,mes,0).toISOString().split('T')[0];
+  const [r1,r2,r3]=await Promise.all([
+    sb.from('sessions').select('id,estado,fecha,patients(nombre,apellidos)').eq('psychologist_id',_bs.psyId).in('estado',['realizada','cancelada_cobro']).gte('fecha',from).lte('fecha',to),
+    sb.from('external_sessions').select('*').eq('psychologist_id',_bs.psyId).gte('fecha',from).lte('fecha',to).eq('billable',true),
+    sb.from('invoices').select('*').eq('psychologist_id',_bs.psyId).eq('mes',mes).eq('anio',anio).maybeSingle(),
+  ]);
+  _bs.sessions=r1.data||[]; _bs.extSes=r2.data||[]; _bs.invoice=r3.data;
+  _bs.loading=false; _bs.loaded=true; rerender();
+}
+
+async function bsGenerateDraft(){
+  if(!await bsInit()) return showToast('Error: inicia sesión','error');
+  const [mn,yr]=billingConfig.selectedMonth.split(' ');
+  const mes=MONTH_NAME_TO_IDX[mn]+1, anio=parseInt(yr);
+  const patMap={};
+  for(const s of _bs.sessions){
+    const nm=s.patients?`${s.patients.nombre} ${s.patients.apellidos}`:'Desconocido';
+    if(!patMap[nm]) patMap[nm]={tipo:s.estado,count:0};
+    patMap[nm].count++;
+  }
+  const items=[
+    ...Object.entries(patMap).map(([nm,v])=>({patient_name:nm,tipo:v.tipo,importe:parseFloat((v.count*_bs.tarifa).toFixed(2))})),
+    ..._bs.extSes.map(e=>({patient_name:e.patient_name,tipo:'externa',importe:parseFloat((_bs.tarifa).toFixed(2))})),
+  ];
+  const total_ses=_bs.sessions.length+_bs.extSes.length;
+  const bruto=parseFloat(items.reduce((a,i)=>a+i.importe,0).toFixed(2));
+  const {data:inv,error}=await sb.from('invoices').upsert(
+    {psychologist_id:_bs.psyId,mes,anio,sesiones:total_ses,importe_bruto:bruto,irpf_pct:_bs.irpf,tarifa:_bs.tarifa,estado:'borrador'},
+    {onConflict:'psychologist_id,mes,anio'}
+  ).select().single();
+  if(error) return showToast('Error generando borrador: '+error.message,'error');
+  await sb.from('invoice_items').delete().eq('invoice_id',inv.id);
+  if(items.length) await sb.from('invoice_items').insert(items.map(i=>({...i,invoice_id:inv.id})));
+  _bs.loaded=false; await bsLoad();
+  showToast('Borrador generado','success');
+}
+
+async function bsConfirm(){
+  if(!_bs.invoice) return;
+  const {error}=await sb.from('invoices').update({estado:'confirmada',confirmada_at:new Date().toISOString()}).eq('id',_bs.invoice.id);
+  if(error) return showToast('Error: '+error.message,'error');
+  showToast('Factura confirmada. POP Empower la revisará y te pagará por transferencia.','success');
+  _bs.loaded=false; await bsLoad();
+}
+
 function tabFacturacion(){
   const months = Object.keys(BILLING_MONTHS);
   const sel = billingConfig.selectedMonth;
@@ -1739,7 +1805,7 @@ function tabFacturacion(){
           <input type="number" min="0" max="50" step="0.5" value="${irpf}" onchange="billingConfig.irpf=parseFloat(this.value)||0;rerender()" style="width:46px;padding:4px 6px;border-radius:6px;border:1px solid #e5e7eb;font-size:13px;font-weight:700;color:#111827;outline:none;text-align:center" onfocus="this.style.borderColor='#20dc95'" onblur="this.style.borderColor='#e5e7eb'"/>
           <span style="font-size:13px;font-weight:700;color:#374151">%</span>
         </div>
-        <select class="field-input" style="font-size:12px;padding:7px 12px;width:auto" onchange="billingConfig.selectedMonth=this.value;rerender()">
+        <select class="field-input" style="font-size:12px;padding:7px 12px;width:auto" onchange="billingConfig.selectedMonth=this.value;_bs.loaded=false;_bs.loading=false;rerender();bsLoad()">
           ${months.map(m=>`<option ${m===sel?'selected':''}>${m}</option>`).join('')}
         </select>
       </div>
@@ -1748,7 +1814,45 @@ function tabFacturacion(){
     <!-- Bonus trimestral -->
     ${bonusWidget}
 
-    <!-- Detalle factura -->
+    <!-- Factura real (Supabase) -->
+    ${(()=>{
+      if(_bs.loading) return `<div class="card" style="display:flex;align-items:center;gap:12px;padding:20px;margin-bottom:18px"><div class="spin"></div><span style="color:#6b7280;font-size:13px">Cargando factura...</span></div>`;
+      if(!_bs.loaded) return '';
+      const inv=_bs.invoice, estado=inv?.estado||'sin_borrador';
+      const patMap={};
+      for(const s of _bs.sessions){
+        const nm=s.patients?`${s.patients.nombre} ${s.patients.apellidos}`:'Desconocido';
+        if(!patMap[nm]) patMap[nm]={tipo:s.estado,count:0};
+        patMap[nm].count++;
+      }
+      const sbTot=_bs.sessions.length+_bs.extSes.length;
+      const bruto=parseFloat(Object.entries(patMap).reduce((a,[,v])=>a+v.count*_bs.tarifa,0)+_bs.extSes.length*_bs.tarifa).toFixed(2);
+      const irpfAmt=parseFloat(bruto*_bs.irpf/100).toFixed(2);
+      const neto=(parseFloat(bruto)-parseFloat(irpfAmt)).toFixed(2);
+      const sesLines=[
+        ...Object.entries(patMap).map(([nm,v])=>`<div style="display:grid;grid-template-columns:2fr 55px 75px 80px;padding:9px 20px;border-bottom:1px solid #f3f4f6;align-items:center"><div style="font-size:13px;color:#111827;font-weight:500">${nm}${v.tipo==='cancelada_cobro'?'<span style="font-size:10px;background:#fff7ed;color:#c2410c;border-radius:4px;padding:1px 6px;margin-left:6px;font-weight:600">No-show</span>':''}</div><div style="font-size:13px;font-weight:600;color:#374151">${v.count}</div><div style="font-size:12px;color:#6b7280">${_bs.tarifa.toFixed(2)} €</div><div style="font-size:13px;font-weight:700;color:#111827">${(v.count*_bs.tarifa).toFixed(2)} €</div></div>`),
+        ..._bs.extSes.map(e=>`<div style="display:grid;grid-template-columns:2fr 55px 75px 80px;padding:9px 20px;border-bottom:1px solid #f3f4f6;align-items:center;background:#f0f9ff"><div style="font-size:13px;color:#111827;font-weight:500">${e.patient_name}<span style="font-size:10px;background:#e0f2fe;color:#0c4a6e;border-radius:4px;padding:1px 6px;margin-left:6px;font-weight:600">Fuera plataforma · ${e.motivo}</span></div><div style="font-size:13px;font-weight:600;color:#374151">1</div><div style="font-size:12px;color:#6b7280">${_bs.tarifa.toFixed(2)} €</div><div style="font-size:13px;font-weight:700;color:#111827">${_bs.tarifa.toFixed(2)} €</div></div>`),
+      ].join('');
+      const badge=estado==='confirmada'?`<span style="background:#f0fdf8;color:#065f46;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700">✓ Confirmada — pendiente pago</span>`:estado==='pagada'?`<span style="background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700">✓ Pagada</span>`:estado==='borrador'?`<span style="background:#fef3c7;color:#92400e;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700">Borrador — pendiente de confirmar</span>`:`<span style="background:#f3f4f6;color:#6b7280;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700">Sin borrador</span>`;
+      const actions=estado==='sin_borrador'?`<button onclick="bsGenerateDraft()" class="btn-green" style="padding:7px 16px;font-size:12px">Generar borrador</button>`:estado==='borrador'?`<button onclick="bsGenerateDraft()" style="padding:7px 14px;font-size:12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;font-weight:600">Actualizar borrador</button><button onclick="bsConfirm()" class="btn-green" style="padding:7px 16px;font-size:12px;margin-left:8px">Confirmar factura →</button>`:estado==='confirmada'?`<span style="font-size:12px;color:#9ca3af">Esperando transferencia de POP Empower</span>`:`<span style="font-size:12px;color:#059669;font-weight:700">✓ Pagada</span>`;
+      return `<div class="card" style="padding:0;overflow:hidden;margin-bottom:18px;border:2px solid #20dc95">
+        <div style="padding:13px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;background:#f0fdf8">
+          <div><div style="font-weight:700;font-size:13px;color:#111827">Factura real — ${sel}</div><div style="font-size:11px;color:#6b7280;margin-top:2px">${sbTot} sesiones · ${Object.keys(patMap).length} pacientes · ${_bs.extSes.length} fuera plataforma</div></div>
+          ${badge}
+        </div>
+        ${sbTot===0?`<div style="padding:28px;text-align:center;color:#9ca3af;font-size:13px">Sin sesiones registradas en Supabase este mes.<br><span style="font-size:11px">Las sesiones aparecen cuando se realizan desde la plataforma o se registran manualmente.</span></div>`:`
+        <div style="display:grid;grid-template-columns:2fr 55px 75px 80px;padding:8px 20px;background:#f9fafb;border-bottom:1px solid #e5e7eb">${['Paciente','Ses.','Tarifa','Total'].map(h=>`<div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase">${h}</div>`).join('')}</div>
+        ${sesLines}
+        <div style="padding:10px 20px;border-top:1px solid #e5e7eb">
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6"><span style="font-size:12px;color:#6b7280">Base imponible</span><span style="font-size:12px;font-weight:600">${bruto} €</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6"><span style="font-size:12px;color:#6b7280">IRPF ${_bs.irpf}%</span><span style="font-size:12px;font-weight:600;color:#ef4444">- ${irpfAmt} €</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="font-size:13px;font-weight:700;color:#111827">Total a cobrar</span><span style="font-size:15px;font-weight:800;color:#111827">${neto} €</span></div>
+        </div>`}
+        <div style="padding:10px 20px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end">${actions}</div>
+      </div>`;
+    })()}
+
+    <!-- Detalle factura (mock histórico) -->
     ${detalle}
 
     <!-- Historial -->
@@ -3417,18 +3521,31 @@ function showExternalSessionModal(){
   </div>`);
 }
 
-function saveExternalSession(){
-  const patId=parseInt(document.getElementById('ext-patient')?.value||0);
+async function saveExternalSession(){
+  const patSel=document.getElementById('ext-patient')?.value||'';
   const date=document.getElementById('ext-date')?.value;
   const time=document.getElementById('ext-time')?.value;
   const duration=parseInt(document.getElementById('ext-duration')?.value||50);
   const motivo=document.getElementById('ext-motivo')?.value||'Otro';
   const nota=document.getElementById('ext-nota')?.value?.trim()||'';
-  if(!patId||!date||!time){ showToast('Paciente, fecha y hora son obligatorios','error'); return; }
-  const pat=PATIENTS.find(p=>p.id===patId);
-  EXTERNAL_SESSIONS.push({id:_extSesId++,patientId:patId,patientName:pat?.name||'—',date,time,duration,motivo,nota,billable:true});
+  let patient_name=patSel;
+  if(/^\d+$/.test(patSel)){
+    const pat=PATIENTS.find(p=>p.id===parseInt(patSel));
+    patient_name=pat?.name||'Paciente';
+  }
+  if(!patient_name||!date||!time){ showToast('Paciente, fecha y hora son obligatorios','error'); return; }
+  if(!await bsInit()){ showToast('Error de autenticación','error'); return; }
+  const {error}=await sb.from('external_sessions').insert({
+    psychologist_id:_bs.psyId, patient_name, fecha:date, hora:time, duracion:duration, motivo, nota, billable:true
+  });
+  if(error) return showToast('Error: '+error.message,'error');
+  EXTERNAL_SESSIONS.push({id:_extSesId++,patientName:patient_name,date,time,duration,motivo,nota,billable:true});
+  const [mn,yr]=billingConfig.selectedMonth.split(' ');
+  const mes=MONTH_NAME_TO_IDX[mn]+1, anio=parseInt(yr);
+  const d=new Date(date);
+  if(d.getMonth()+1===mes && d.getFullYear()===anio) _bs.loaded=false;
   closeModal(); rerender();
-  showToast(`Sesión externa de ${pat?.name||'paciente'} registrada y añadida a facturación`,'success');
+  showToast(`Sesión de ${patient_name} registrada y añadida a facturación`,'success');
 }
 
 // ── RENDER ────────────────────────────────────────────────────────
@@ -3648,7 +3765,11 @@ function agendaNav(delta){
 }
 
 function rerender(){ renderNav(); renderTab(); }
-function navigate(id){ currentNav=id; closeMasMenu(); rerender(); }
+function navigate(id){
+  currentNav=id; closeMasMenu();
+  if(id==='facturacion' && !_bs.loaded && !_bs.loading) bsLoad();
+  rerender();
+}
 function toggleMasMenu(){ const o=document.getElementById('mas-overlay'); if(o) o.style.display=o.style.display==='flex'?'none':'flex'; }
 function closeMasMenu(){ const o=document.getElementById('mas-overlay'); if(o) o.style.display='none'; }
 
