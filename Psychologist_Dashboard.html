@@ -3450,18 +3450,15 @@ function renderTab(){
     setTimeout(()=>{const c=document.getElementById('chat-msgs');if(c)c.scrollTop=c.scrollHeight;},50);
   }
 }
-const WHEREBY_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmFwcGVhci5pbiIsImF1ZCI6Imh0dHBzOi8vYXBpLmFwcGVhci5pbi92MSIsImV4cCI6OTAwNzE5OTI1NDc0MDk5MSwiaWF0IjoxNzc4Njc0NjczLCJvcmdhbml6YXRpb25JZCI6MzQwMzE5LCJqdGkiOiJkM2JjZjc4MS0zZmRkLTQyMzAtYTFiYS1lNmIyMzdmNTg2NmYifQ.MkUF4xNGcDM0n-M8CFpxKRvQ249o33Z3BZ34Pw6MUVs';
 let _srGuestUrl='';
 
 async function srIniciarSala(){
   const btn=document.getElementById('sr-start-btn');
   if(btn){btn.disabled=true;btn.textContent='Creando sala...';}
   try{
-    const endDate=new Date(Date.now()+90*60*1000).toISOString();
-    const res=await fetch('https://api.whereby.dev/v1/meetings',{
+    const res=await fetch('https://kfekcgmwoatjjovhaaiq.supabase.co/functions/v1/create-whereby-room',{
       method:'POST',
-      headers:{'Authorization':'Bearer '+WHEREBY_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({endDate,fields:['hostRoomUrl']})
+      headers:{'Content-Type':'application/json','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWtjZ213b2F0ampvdmhhYWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYzNzIxNjQsImV4cCI6MjA2MTk0ODE2NH0.oa9HPCxqPOqRcBm_JJbHPvbLBbUTqrOCSJMlPaYoSRRh1wwTqbKQP-p57dSkGgL8Ohqt9YiOfMUsAC0cc'}
     });
     const data=await res.json();
     if(!data.roomUrl) throw new Error(data.message||'Error al crear sala');
