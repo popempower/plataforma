@@ -78,6 +78,30 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fff;overfl
 </div>
 
 <script>
+// ── PHONE HELPERS ─────────────────────────────────────────────────
+const PHONE_PREFIXES=[
+  {c:'+34',l:'🇪🇸 +34'},{c:'+351',l:'🇵🇹 +351'},{c:'+33',l:'🇫🇷 +33'},
+  {c:'+44',l:'🇬🇧 +44'},{c:'+49',l:'🇩🇪 +49'},{c:'+39',l:'🇮🇹 +39'},
+  {c:'+32',l:'🇧🇪 +32'},{c:'+31',l:'🇳🇱 +31'},{c:'+41',l:'🇨🇭 +41'},
+  {c:'+1', l:'🇺🇸 +1'}, {c:'+52',l:'🇲🇽 +52'},{c:'+54',l:'🇦🇷 +54'},
+  {c:'+57',l:'🇨🇴 +57'},{c:'+56',l:'🇨🇱 +56'},
+];
+function parsePhone(v=''){
+  const s=v.toString().replace(/[\s\-]/g,'');
+  for(const p of PHONE_PREFIXES){ if(s.startsWith(p.c)) return {pre:p.c,num:s.slice(p.c.length)}; }
+  return {pre:'+34',num:s.replace(/^\+/,'')};
+}
+function phoneInputHTML(id,val=''){
+  const {pre,num}=parsePhone(val);
+  const opts=PHONE_PREFIXES.map(p=>`<option value="${p.c}"${p.c===pre?' selected':''}>${p.l}</option>`).join('');
+  return `<div style="display:flex;gap:6px"><select id="${id}-prefix" autocomplete="tel-country-code" style="height:42px;border:1.5px solid #e5e7eb;border-radius:9px;background:#fff;font-size:12px;padding:0 6px;color:#111827;cursor:pointer;font-family:inherit" onchange="refreshBtn0()">${opts}</select><input type="tel" id="${id}-num" autocomplete="tel-national" style="flex:1;padding:11px 14px;border-radius:9px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:13px;outline:none;color:#111827;background:#fff" placeholder="600 000 000" value="${num}" oninput="refreshBtn0()"/></div>`;
+}
+function getPhone(id){
+  const pre=document.getElementById(id+'-prefix'), num=document.getElementById(id+'-num');
+  if(!pre||!num) return '';
+  const n=num.value.replace(/\s/g,''); return n?pre.value+n:'';
+}
+
 // ── SUPABASE ──────────────────────────────────────────────────────
 const sb = supabase.createClient(
   'https://kfekcgmwoatjjovhaaiq.supabase.co',
@@ -161,14 +185,11 @@ function step0(){
   <label class="field-label">Email</label>
   <div class="input-wrap">
     <span class="input-icon">✉</span>
-    <input class="field-input has-icon" type="email" placeholder="tu@email.com" value="${S.email}" oninput="S.email=this.value;refreshBtn0()">
+    <input class="field-input has-icon" type="email" autocomplete="email" placeholder="tu@email.com" value="${S.email}" oninput="S.email=this.value;refreshBtn0()">
   </div>
 
   <label class="field-label">Teléfono (WhatsApp)</label>
-  <div class="input-wrap">
-    <span class="input-icon">📱</span>
-    <input class="field-input has-icon" type="tel" placeholder="+34 600 000 000" value="${S.phone}" oninput="S.phone=this.value;refreshBtn0()">
-  </div>
+  ${phoneInputHTML('ob-phone', S.phone)}
 
   <label class="field-label">Contraseña</label>
   <div class="input-wrap">
@@ -196,7 +217,7 @@ function refreshChk(){
 }
 function refreshBtn0(){
   const btn=document.getElementById('btn0'); if(!btn) return;
-  const ok=S.nombre.trim()&&S.email.trim()&&S.phone.trim()&&S.pass.length>=8&&S.rgpd;
+  const ok=S.nombre.trim()&&S.email.trim()&&getPhone('ob-phone')&&S.pass.length>=8&&S.rgpd;
   btn.disabled=!ok;
 }
 async function goStep1(){
@@ -204,6 +225,7 @@ async function goStep1(){
   const btn = document.getElementById('btn0');
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Creando cuenta...'; }
   S.signupError = '';
+  S.phone = getPhone('ob-phone');
   const { data, error } = await sb.auth.signUp({ email: S.email, password: S.pass, options: { data: { full_name: S.nombre, phone: S.phone } } });
   if(error){
     S.signupError = error.message.toLowerCase().includes('already')
