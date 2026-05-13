@@ -208,7 +208,7 @@ async function goStep1(){
   if(error){
     S.signupError = error.message.toLowerCase().includes('already')
       ? 'Este email ya tiene una cuenta. <a href="login.html" style="color:#20dc95;font-weight:600">Inicia sesión</a>'
-      : 'No se pudo crear la cuenta. Inténtalo de nuevo.';
+      : 'Error: ' + error.message;
     rerender();
     return;
   }
