@@ -2713,23 +2713,26 @@ async function doAltaPsico(){
     status:'pendiente'
   });
 
+  if(btn){btn.disabled=false;btn.textContent='Dar de alta y enviar acceso';}
+
   if(psicoError){
     showToast('⚠️ Invitación enviada pero error guardando perfil: '+psicoError.message);
-  } else {
-    const initials=((nombre[0]||'')+(apellidos[0]||'')).toUpperCase();
-    PSYCHOLOGISTS.push({
-      id:PSYCHOLOGISTS.length+100, name:fullName, initials, email,
-      phone:g('np-phone'), ciudad:'', colegiado:col,
-      tarifa, tarifaPareja, haceParejas:tarifaPareja!==null,
-      irpf, status:'pendiente', patients:0, sesiones_mes:0,
-      especialidades:[], idiomas:[], vacaciones:[],
-      alta:new Date().toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}),
-      contrato:{firmado:false,fecha:null},
-      disponibilidad:{lun:'—',mar:'—',mie:'—',jue:'—',vie:'—',sab:'—',dom:'—'}
-    });
-    closeModal(); rerender();
-    showToast(`✉️ Invitación enviada a ${email} — ${fullName} recibirá el email para activar su cuenta`);
+    return;
   }
+
+  const initials=((nombre[0]||'')+(apellidos[0]||'')).toUpperCase();
+  PSYCHOLOGISTS.push({
+    id:PSYCHOLOGISTS.length+100, name:fullName, initials, email,
+    phone:g('np-phone'), ciudad:'', colegiado:col,
+    tarifa, tarifaPareja, haceParejas:tarifaPareja!==null,
+    irpf, status:'pendiente', patients:0, sesiones_mes:0,
+    especialidades:[], idiomas:[], vacaciones:[],
+    alta:new Date().toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}),
+    contrato:{firmado:false,fecha:null},
+    disponibilidad:{lun:'—',mar:'—',mie:'—',jue:'—',vie:'—',sab:'—',dom:'—'}
+  });
+  closeModal(); rerender();
+  showToast(`✉️ Invitación enviada a ${email} — ${fullName} recibirá el email para activar su cuenta`);
 }
 
 function addVacacion(id){
