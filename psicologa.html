@@ -371,7 +371,7 @@ const PATIENTS = [
    objectives:[{t:'Burnout laboral',p:25},{t:'Límites personales',p:20}],
    docs:[],nota:'Burnout laboral. Muy inicio de proceso. Pendiente definir objetivos.'},
   {id:7,name:'Isabel Fernández',initials:'IF',plan:'Bono 4 ses',used:2,total:4, next:'Viern 10:00', status:'pausa',  unread:0,email:'isabel.fern@email.com',   phone:'+34 644 678 901',alta:'10 Feb 2026',empresa:'—',
-   sessions:[{d:'17 Abr',t:'10:00',s:'no_empezaron'},{d:'10 Abr',t:'10:00',s:'realizada'},{d:'3 Abr',t:'10:00',s:'realizada'}],
+   sessions:[{d:'17 Abr',t:'10:00',s:'cancelada_cobro'},{d:'10 Abr',t:'10:00',s:'realizada'},{d:'3 Abr',t:'10:00',s:'realizada'}],
    objectives:[{t:'Trastorno adaptativo',p:50}],
    docs:['Informe inicial.pdf'],nota:'Trastorno adaptativo. En pausa por viaje de trabajo.'},
 ];
@@ -914,7 +914,7 @@ function tabAgenda(){
     '23':['programada','programada'],'24':['programada','programada'],
     '27':['programada'],'29':['programada','programada'],'30':['programada'],
   };
-  const STATUS_COLOR={realizada:'#20dc95',en_curso:'#f59e0b',programada:'#9ca3af',cancelada:'#ef4444',no_empezaron:'#a855f7'};
+  const STATUS_COLOR={realizada:'#20dc95',en_curso:'#f59e0b',programada:'#9ca3af',cancelada:'#ef4444',cancelada_cobro:'#f97316'};
   // April 2026: starts Wednesday (day 3, 0=Sun) → offset 2 for Mon-start
   const firstDayOffset=2;
   const daysInApril=30;
@@ -2436,7 +2436,7 @@ function openNotesModal(sesId){
       <div>
         <label class="field-label">Estado de la sesión</label>
         <div style="display:flex;gap:8px">
-          ${['realizada','cancelada','no_empezaron'].map(st=>`<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.borderColor='#e5e7eb';b.style.background='#fff';b.style.color='#6b7280'});this.style.borderColor='#20dc95';this.style.background='#f0fdf8';this.style.color='#065f46'" style="padding:7px 14px;border-radius:8px;border:1.5px solid ${s.status===st?'#20dc95':'#e5e7eb'};background:${s.status===st?'#f0fdf8':'#fff'};color:${s.status===st?'#065f46':'#6b7280'};font-weight:600;font-size:12px;cursor:pointer">${SES_ST[st]?.label||st}</button>`).join('')}
+          ${['realizada','cancelada','cancelada_cobro'].map(st=>`<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.borderColor='#e5e7eb';b.style.background='#fff';b.style.color='#6b7280'});this.style.borderColor='#20dc95';this.style.background='#f0fdf8';this.style.color='#065f46'" style="padding:7px 14px;border-radius:8px;border:1.5px solid ${s.status===st?'#20dc95':'#e5e7eb'};background:${s.status===st?'#f0fdf8':'#fff'};color:${s.status===st?'#065f46':'#6b7280'};font-weight:600;font-size:12px;cursor:pointer">${SES_ST[st]?.label||st}</button>`).join('')}
         </div>
       </div>
       <div>
@@ -2604,7 +2604,7 @@ function openAddNoteModal(patId){
           <select class="field-input" id="note-status">
             <option value="realizada">Realizada</option>
             <option value="cancelada">Cancelada</option>
-            <option value="no_empezaron">No llegaron a empezar</option>
+            <option value="cancelada_cobro">Cancelada con cobro</option>
           </select>
         </div>
       </div>
@@ -2637,7 +2637,7 @@ function openEditNoteModal(patId,noteIdx){
         <div><label class="field-label">Fecha</label><input class="field-input" id="note-date" value="${n.date}" readonly style="background:#fafafa;color:#6b7280"/></div>
         <div><label class="field-label">Estado</label>
           <select class="field-input" id="note-status">
-            ${['realizada','cancelada','no_empezaron'].map(s=>`<option value="${s}" ${n.status===s?'selected':''}>${SES_ST[s]?.label||s}</option>`).join('')}
+            ${['realizada','cancelada','cancelada_cobro'].map(s=>`<option value="${s}" ${n.status===s?'selected':''}>${SES_ST[s]?.label||s}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -3092,7 +3092,7 @@ function tabEstadisticas(){
   const allSes = PATIENTS.flatMap(p=>p.sessions);
   const totReal  = allSes.filter(s=>s.s==='realizada').length;
   const totCan   = allSes.filter(s=>s.s==='cancelada'||s.s==='cancelada_cobro').length;
-  const totNoSh  = allSes.filter(s=>s.s==='no_empezaron').length;
+  const totNoSh  = allSes.filter(s=>s.s==='cancelada_cobro').length;
   const totContado = totReal+totCan+totNoSh;
   const tasaAdh  = totContado>0 ? Math.round(totReal/totContado*100) : 0;
   const tasaCan  = totContado>0 ? Math.round(totCan/totContado*100)  : 0;
