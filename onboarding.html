@@ -87,7 +87,7 @@ const sb = supabase.createClient(
 // ── STATE ─────────────────────────────────────────────────────────
 const S = {
   step: 0,
-  nombre:'', email:'', pass:'', rgpd:false,
+  nombre:'', email:'', phone:'', pass:'', rgpd:false,
   motivos:[], prevPsych:null, prevDetail:'', disponibilidad:[],
   cat:'individual', planId:'mensual',
   promo:'', promoOk:false, consentChecks:[false,false,false,false,false],
@@ -147,7 +147,7 @@ function getTotal(){ const p=getPlan(); return S.promoOk ? Math.round(p.price*.8
 // ── STEP 0: CUENTA ────────────────────────────────────────────────
 function step0(){
   const passOk = S.pass.length>=8;
-  const canGo  = S.nombre.trim() && S.email.trim() && passOk && S.rgpd;
+  const canGo  = S.nombre.trim() && S.email.trim() && S.phone.trim() && passOk && S.rgpd;
   return `${dots()}
   <h1 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:6px">Crea tu cuenta</h1>
   <p style="font-size:13px;color:#6b7280;margin-bottom:24px">Solo te llevará un minuto</p>
@@ -162,6 +162,12 @@ function step0(){
   <div class="input-wrap">
     <span class="input-icon">✉</span>
     <input class="field-input has-icon" type="email" placeholder="tu@email.com" value="${S.email}" oninput="S.email=this.value;refreshBtn0()">
+  </div>
+
+  <label class="field-label">Teléfono (WhatsApp)</label>
+  <div class="input-wrap">
+    <span class="input-icon">📱</span>
+    <input class="field-input has-icon" type="tel" placeholder="+34 600 000 000" value="${S.phone}" oninput="S.phone=this.value;refreshBtn0()">
   </div>
 
   <label class="field-label">Contraseña</label>
@@ -190,7 +196,7 @@ function refreshChk(){
 }
 function refreshBtn0(){
   const btn=document.getElementById('btn0'); if(!btn) return;
-  const ok=S.nombre.trim()&&S.email.trim()&&S.pass.length>=8&&S.rgpd;
+  const ok=S.nombre.trim()&&S.email.trim()&&S.phone.trim()&&S.pass.length>=8&&S.rgpd;
   btn.disabled=!ok;
 }
 async function goStep1(){
@@ -198,7 +204,7 @@ async function goStep1(){
   const btn = document.getElementById('btn0');
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Creando cuenta...'; }
   S.signupError = '';
-  const { data, error } = await sb.auth.signUp({ email: S.email, password: S.pass });
+  const { data, error } = await sb.auth.signUp({ email: S.email, password: S.pass, options: { data: { full_name: S.nombre, phone: S.phone } } });
   if(error){
     S.signupError = error.message.toLowerCase().includes('already')
       ? 'Este email ya tiene una cuenta. <a href="login.html" style="color:#20dc95;font-weight:600">Inicia sesión</a>'
