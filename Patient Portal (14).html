@@ -154,8 +154,11 @@ input{font-family:inherit}
         <div style="font-size:11px;color:#9ca3af">Paciente</div>
       </div>
       <button onclick="navigate('ajustes')" title="Ajustes" style="background:none;border:none;color:#9ca3af;font-size:14px;padding:2px 4px;cursor:pointer">⚙</button>
-      <button onclick="confirmLogout()" title="Cerrar sesión" style="background:none;border:none;color:#9ca3af;font-size:13px;padding:2px 4px;cursor:pointer;line-height:1">⎋</button>
     </div>
+    <button onclick="confirmLogout()" style="margin-top:8px;width:100%;padding:8px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit" onmouseenter="this.style.background='#fee2e2'" onmouseleave="this.style.background='#fef2f2'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Cerrar sesión
+    </button>
   </div>
   <div id="content">
     <div id="topbar">
