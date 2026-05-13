@@ -128,15 +128,22 @@ input{font-family:inherit}
   [style*="overflow: auto"]{overflow:visible!important;height:auto!important}
   #content{overflow:visible!important;height:auto!important}
   #tabcontent{display:block!important;overflow:visible!important;height:auto!important;flex:none!important}
-  #tabcontent > div{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;flex:none!important}
+  #tabcontent > div:not(.modal-overlay){display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;flex:none!important}
 
   /* ── PRÓXIMA SESIÓN: botones en fila completa ── */
   [style*="justify-content:space-between;align-items:center;gap:16px"] > [style*="display:flex;gap:8px"]{width:100%!important;flex-wrap:wrap!important}
   [style*="justify-content:space-between;align-items:center;gap:16px"] > [style*="display:flex;gap:8px"] button{flex:1!important;min-width:80px!important;white-space:nowrap!important}
 
   /* ── PREVENIR OVERFLOW HORIZONTAL ── */
+  #tabcontent{overflow-x:hidden!important}
+  #tabcontent [style*="display:flex"] > *{min-width:0}
+  #tabcontent [style*="display:grid"] > *{min-width:0}
   img,iframe,video,table{max-width:100%!important}
   pre{white-space:pre-wrap!important}
+
+  /* ── MÁS MENU ── */
+  .mas-item{width:100%;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;font-size:14px;font-weight:600;color:#374151;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px}
+  .mas-item:active{background:#f0fdf8;border-color:#20dc95}
 
   /* ── WHATSAPP: subir por encima del nav inferior ── */
   a[href*="wa.me"]{bottom:76px!important}
@@ -1458,6 +1465,8 @@ function saveProfile(){
 }
 function showCancelModal(){ const m=document.getElementById('cancel-modal'); if(m) m.style.display='flex'; }
 function hideCancelModal(){ const m=document.getElementById('cancel-modal'); if(m) m.style.display='none'; }
+function toggleMasMenu(){ const o=document.getElementById('mas-overlay'); if(o) o.style.display=o.style.display==='flex'?'none':'flex'; }
+function closeMasMenu(){ const o=document.getElementById('mas-overlay'); if(o) o.style.display='none'; }
 
 // ── CALENDAR EXPORT ───────────────────────────────────────────────
 const SESSION_EVENT = {
@@ -1963,8 +1972,10 @@ function renderNav(){
       ${n.badge?`<span class="nav-badge">${n.badge}</span>`:''}
       ${currentNav===n.id?'<div class="nav-indicator"></div>':''}
     </button>`).join('');
+  const masIds=['plan','facturas','docs','ayuda'];
   document.querySelectorAll('.m-nav-btn').forEach(btn=>{
-    btn.classList.toggle('active', btn.dataset.nav===currentNav);
+    const nav=btn.dataset.nav;
+    btn.classList.toggle('active', nav==='mas' ? masIds.includes(currentNav) : nav===currentNav);
   });
 }
 function renderTab(){
@@ -2357,6 +2368,20 @@ if(!localStorage.getItem('pop_tour_done') && localStorage.getItem('pop_consent')
   <button class="m-nav-btn" data-nav="mensajes" onclick="navigate('mensajes')"><span class="m-nav-icon">💬</span>Mensajes</button>
   <button class="m-nav-btn" data-nav="ejercicios" onclick="navigate('ejercicios')"><span class="m-nav-icon">🧠</span>Ejercicios</button>
   <button class="m-nav-btn" data-nav="ajustes" onclick="navigate('ajustes')"><span class="m-nav-icon">⚙️</span>Ajustes</button>
+  <button class="m-nav-btn" data-nav="mas" onclick="toggleMasMenu()"><span class="m-nav-icon">⋯</span>Más</button>
+</div>
+
+<div id="mas-overlay" onclick="closeMasMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150">
+  <div onclick="event.stopPropagation()" style="position:absolute;bottom:62px;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 28px;box-shadow:0 -4px 24px rgba(0,0,0,.14)">
+    <div style="text-align:center;margin-bottom:18px"><div style="width:36px;height:4px;background:#e5e7eb;border-radius:2px;display:inline-block"></div></div>
+    <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Más secciones</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button class="mas-item" onclick="navigate('plan');closeMasMenu()">📋 Tu plan</button>
+      <button class="mas-item" onclick="navigate('facturas');closeMasMenu()">🧾 Facturas</button>
+      <button class="mas-item" onclick="navigate('docs');closeMasMenu()">📁 Documentos</button>
+      <button class="mas-item" onclick="navigate('ayuda');closeMasMenu()">💡 Ayuda</button>
+    </div>
+  </div>
 </div>
 </body>
 </html>
