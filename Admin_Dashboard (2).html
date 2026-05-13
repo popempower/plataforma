@@ -2707,7 +2707,7 @@ async function doAltaPsico(){
   // 3. Insertar en psychologists
   const {error:psicoError} = await sbAdmin.from('psychologists').insert({
     id:uid, nombre, apellidos, email,
-    phone:getPhone('np-phone'), num_colegiado:col,
+    phone:getPhone('np-phone'), colegiado:col,
     fecha_nac:g('np-nac')||null,
     tarifa, tarifa_pareja:tarifaPareja, irpf,
     status:'pendiente'
