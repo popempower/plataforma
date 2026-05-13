@@ -116,12 +116,20 @@ input{font-family:inherit}
   /* ── CHAT ── */
   .chat-bubble{max-width:82vw!important}
 
-  /* ── PREVENIR OVERFLOW ── */
+  /* ── SCROLL: permitir vertical, bloquear horizontal ── */
+  [style*="overflow:auto"]{overflow-x:hidden!important;overflow-y:auto!important;height:auto!important}
+  [style*="overflow: auto"]{overflow-x:hidden!important;overflow-y:auto!important;height:auto!important}
+  #tabcontent > div{height:auto!important;min-height:0!important}
+
+  /* ── PREVENIR OVERFLOW HORIZONTAL ── */
   img,iframe,video,table{max-width:100%!important}
   pre{white-space:pre-wrap!important}
-  [style*="overflow:auto"]{overflow-x:hidden!important}
-  [style*="overflow: auto"]{overflow-x:hidden!important}
-  * {max-width:100%;box-sizing:border-box}
+
+  /* ── WHATSAPP: subir por encima del nav inferior ── */
+  a[href*="wa.me"]{bottom:76px!important}
+
+  /* ── CERRAR SESIÓN: botón visible en móvil en topbar ── */
+  #mobile-logout{display:flex!important}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -176,6 +184,7 @@ input{font-family:inherit}
       <div id="notif-btn" onclick="toggleNotifPanel()" style="width:30px;height:30px;border-radius:7px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;user-select:none">
         🔔<div id="notif-dot" style="position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:#20dc95"></div>
       </div>
+      <button id="mobile-logout" onclick="confirmLogout()" style="display:none;width:30px;height:30px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;align-items:center;justify-content:center;cursor:pointer;font-size:14px" title="Cerrar sesión">⎋</button>
     </div>
     <div id="tabcontent"></div>
   </div>
