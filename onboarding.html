@@ -170,13 +170,7 @@ function step0(){
   <label class="field-label">Contraseña</label>
   <div class="input-wrap">
     <span class="input-icon">🔒</span>
-    <input class="field-input has-icon" id="passInput" type="password" placeholder="Mínimo 8 caracteres" value="${S.pass}" oninput="S.pass=this.value;updatePassBar();refreshBtn0()">
-  </div>
-  <div id="passBar" style="display:${S.pass.length?'flex':'none'};gap:4px;align-items:center;margin-top:6px">
-    <div id="pb1" style="flex:1;height:3px;border-radius:2px;background:${S.pass.length>=8?'#20dc95':'#e5e7eb'}"></div>
-    <div id="pb2" style="flex:1;height:3px;border-radius:2px;background:${/[A-Z]/.test(S.pass)?'#20dc95':'#e5e7eb'}"></div>
-    <div id="pb3" style="flex:1;height:3px;border-radius:2px;background:${/\d/.test(S.pass)?'#20dc95':'#e5e7eb'}"></div>
-    <span id="pbLbl" style="font-size:10px;color:#9ca3af;margin-left:6px">${S.pass.length<6?'Débil':S.pass.length<8?'Regular':'Fuerte'}</span>
+    <input class="field-input has-icon" id="passInput" type="password" placeholder="Mínimo 8 caracteres" value="${S.pass}" oninput="S.pass=this.value;refreshBtn0()">
   </div>
 
   <label style="display:flex;gap:10px;align-items:flex-start;margin-top:18px;margin-bottom:22px;cursor:pointer" onclick="S.rgpd=!S.rgpd;refreshChk();refreshBtn0()">
@@ -191,14 +185,6 @@ function step0(){
   <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:16px">¿Ya tienes cuenta? <a href="login.html" style="color:#20dc95;font-weight:600;text-decoration:none">Inicia sesión</a></p>`;
 }
 
-function updatePassBar(){
-  const bar=document.getElementById('passBar'); if(!bar) return;
-  bar.style.display=S.pass.length?'flex':'none';
-  document.getElementById('pb1').style.background=S.pass.length>=8?'#20dc95':'#e5e7eb';
-  document.getElementById('pb2').style.background=/[A-Z]/.test(S.pass)?'#20dc95':'#e5e7eb';
-  document.getElementById('pb3').style.background=/\d/.test(S.pass)?'#20dc95':'#e5e7eb';
-  document.getElementById('pbLbl').textContent=S.pass.length<6?'Débil':S.pass.length<8?'Regular':'Fuerte';
-}
 function refreshChk(){
   const el=document.getElementById('chk'); if(!el) return;
   el.style.borderColor=S.rgpd?'#20dc95':'#d1d5db';
