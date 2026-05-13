@@ -2446,8 +2446,8 @@ function openNotesModal(sesId){
       <div>
         <label class="field-label">Próxima sesión</label>
         <div style="display:flex;gap:8px">
-          <button class="btn-green" style="flex:2;padding:9px;font-size:12px">Programar ahora</button>
-          <button class="btn-gray" style="flex:1;padding:9px;font-size:12px">Después</button>
+          <button class="btn-green" style="flex:2;padding:9px;font-size:12px" onclick="saveNotes(${sesId});navigate('sesiones')">Programar ahora</button>
+          <button class="btn-gray" style="flex:1;padding:9px;font-size:12px" onclick="saveNotes(${sesId})">Después</button>
         </div>
       </div>
     </div>
