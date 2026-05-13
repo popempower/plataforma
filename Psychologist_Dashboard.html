@@ -97,8 +97,21 @@ textarea.field-input{resize:vertical;min-height:80px}
   #content [style*="display:flex"] > *{min-width:0}
   #content [style*="display:grid"] > *{min-width:0}
 
-  /* ── FILAS DE SESIÓN ── */
-  .ses-row{gap:6px!important;padding:10px 12px!important;flex-wrap:wrap!important}
+  /* ── FILAS DE SESIÓN: sin wrap para evitar solapamiento ── */
+  .ses-row{gap:6px!important;padding:10px 12px!important;flex-wrap:nowrap!important}
+  /* Truncar el nombre del paciente en lugar de desbordar */
+  .ses-row [style*="flex:1;min-width:0"] > div:first-child{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  /* Ocultar botón ⋮ en mobile (acciones menos importantes) */
+  .ses-row button[style*="width:28px"]{display:none!important}
+
+  /* ── WHATSAPP: subir encima del nav inferior ── */
+  a[href*="wa.me"]{bottom:76px!important}
+
+  /* ── AGENDA: solo vista día en móvil (semana/mes se desajustan) ── */
+  .tab-pills .tab-pill:nth-child(2),.tab-pills .tab-pill:nth-child(3){display:none!important}
+  /* Ocultar calendario 7 columnas (semana/mes) si ocupa todo el ancho */
+  [style*="grid-template-columns:52px repeat(7"]{overflow-x:auto!important;max-width:100%!important}
+  [style*="grid-template-columns:repeat(7,1fr)"]{overflow-x:auto!important}
 
   /* ── MODALES ── */
   .modal-overlay{align-items:flex-end!important;padding-bottom:0}
@@ -408,7 +421,7 @@ let psychProfile = {
 let currentNav = 'inicio';
 let activeChat  = null;
 let patFilter   = 'todos';
-let agendaView  = 'semana';
+let agendaView  = window.innerWidth <= 768 ? 'dia' : 'semana';
 let notesFilter = null; // patientId or null = all
 let notifs = {s24h:true,msg:true,noPres:true};
 // dispo: cada día = array de horas disponibles (0-23)
