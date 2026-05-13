@@ -94,7 +94,7 @@ function parsePhone(v=''){
 function phoneInputHTML(id,val=''){
   const {pre,num}=parsePhone(val);
   const opts=PHONE_PREFIXES.map(p=>`<option value="${p.c}"${p.c===pre?' selected':''}>${p.l}</option>`).join('');
-  return `<div style="display:flex;gap:6px"><select id="${id}-prefix" autocomplete="off" style="height:42px;border:1.5px solid #e5e7eb;border-radius:9px;background:#fff;font-size:12px;padding:0 6px;color:#111827;cursor:pointer;font-family:inherit" onchange="refreshBtn0()">${opts}</select><input type="tel" id="${id}-num" autocomplete="off" name="whatsapp-phone" style="flex:1;padding:11px 14px;border-radius:9px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:13px;outline:none;color:#111827;background:#fff" placeholder="600 000 000" value="${num}" oninput="refreshBtn0()"/></div>`;
+  return `<div style="display:flex;gap:6px"><select id="${id}-prefix" autocomplete="one-time-code" style="height:42px;border:1.5px solid #e5e7eb;border-radius:9px;background:#fff;font-size:12px;padding:0 6px;color:#111827;cursor:pointer;font-family:inherit" onchange="refreshBtn0()">${opts}</select><input type="tel" id="${id}-num" autocomplete="one-time-code" style="flex:1;padding:11px 14px;border-radius:9px;border:1.5px solid #e5e7eb;font-family:inherit;font-size:13px;outline:none;color:#111827;background:#fff" placeholder="600 000 000" value="${num}" oninput="refreshBtn0()"/></div>`;
 }
 function getPhone(id){
   const pre=document.getElementById(id+'-prefix'), num=document.getElementById(id+'-num');
@@ -203,7 +203,7 @@ function step0(){
   <label class="field-label">Contraseña</label>
   <div class="input-wrap">
     <span class="input-icon">🔒</span>
-    <input class="field-input has-icon" id="passInput" type="password" placeholder="Mínimo 8 caracteres" value="${S.pass}" oninput="S.pass=this.value;refreshBtn0()">
+    <input class="field-input has-icon" id="passInput" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" value="${S.pass}" oninput="S.pass=this.value;refreshBtn0()">
   </div>
 
   <label style="display:flex;gap:10px;align-items:flex-start;margin-top:18px;margin-bottom:22px;cursor:pointer" onclick="S.rgpd=!S.rgpd;refreshChk();refreshBtn0()">
