@@ -54,6 +54,55 @@ button,input,textarea,select{font-family:inherit}
 .cal-mini-cell.other{color:#d1d5db}
 /* WhatsApp flotante */
 #wa-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(37,211,102,.5);z-index:100;animation:wa-bounce 3s ease-in-out infinite;text-decoration:none;border:none}
+/* Mobile nav */
+#mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:62px;background:#fff;border-top:1px solid #e5e7eb;z-index:120;align-items:stretch}
+.m-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;font-size:9px;font-weight:600;color:#9ca3af;padding:4px 0;font-family:inherit;transition:color .15s}
+.m-nav-btn.active{color:#20dc95}
+.m-nav-icon{font-size:18px;line-height:1}
+.mas-item{width:100%;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;font-size:14px;font-weight:600;color:#374151;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px}
+.mas-item:active{background:#f0fdf8;border-color:#20dc95}
+
+@media(max-width:768px){
+  html{overflow-x:hidden!important;height:auto!important}
+  body{overflow-x:hidden!important;overflow-y:auto!important;height:auto!important}
+  #app{height:auto!important;min-height:100vh;flex-direction:column!important;overflow:visible!important}
+  #sidebar{display:none!important}
+  #content{height:auto!important;overflow:visible!important;overflow-x:hidden!important;flex:none!important;min-height:calc(100vh - 50px)}
+  #topbar{padding:0 14px;gap:6px;height:50px}
+  #topbar > div:nth-child(2),#topbar > div:nth-child(3),#topbar > button{display:none!important}
+  #tabcontent{display:block!important;overflow:visible!important;overflow-x:hidden!important;height:auto!important;flex:none!important;padding-bottom:76px!important}
+  #tabcontent > div{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;flex:none!important;padding:16px!important}
+  #mobile-nav{display:flex!important}
+
+  /* Grids → columna única */
+  [style*="grid-template-columns:1fr 280px"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}
+  [style*="max-width:560px"],[style*="max-width:500px"]{max-width:100%!important}
+
+  /* Overflow horizontal */
+  #tabcontent [style*="display:flex"] > *{min-width:0}
+  #tabcontent [style*="display:grid"] > *{min-width:0}
+
+  /* Chat: layout de columna con área de mensajes de altura fija */
+  #tabcontent [style*="flex:1;display:flex;flex-direction:column;overflow:hidden"]{padding:0!important}
+  #chat-msgs{height:360px!important;flex:none!important}
+
+  /* Encuestas: iframe container con altura fija */
+  #tabcontent [style*="flex:1;overflow:hidden"]{height:480px!important;flex:none!important;overflow:hidden!important}
+
+  /* WhatsApp por encima del nav */
+  a#wa-btn{bottom:76px!important}
+
+  /* Modales */
+  .modal-overlay{align-items:flex-end!important;padding-bottom:0}
+  .modal-box{width:calc(100vw - 24px)!important;max-width:none!important;border-radius:20px 20px 0 0!important;max-height:90vh!important}
+  .tour-card{width:calc(100vw - 32px)!important}
+
+  /* Chat bubble */
+  .chat-bubble{max-width:82vw!important}
+}
 /* Tour overlay */
 .tour-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
 .tour-card{background:#fff;border-radius:16px;padding:28px;width:400px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .25s ease;position:relative}
@@ -200,6 +249,12 @@ function renderNav(){
       ${activeTab===n.id?'<div class="nav-indicator"></div>':''}
     </button>
   `).join('');
+  const masIdsBb2=['encuestas','perfil'];
+  document.querySelectorAll('#mobile-nav .m-nav-btn').forEach(btn=>{
+    const nav=btn.dataset.nav;
+    const isActive = nav==='mas' ? masIdsBb2.includes(activeTab) : nav===activeTab;
+    btn.classList.toggle('active',isActive);
+  });
 }
 
 function navigate(tab){ activeTab=tab; ejercOpen=null; rerender(); }
@@ -672,6 +727,29 @@ rerender();
 document.getElementById('topbar-ses').textContent = USER.sesiones_realizadas + ' / ' + USER.sesiones_total + ' sesiones';
 document.getElementById('wa-btn').href = 'https://wa.me/' + WA_NUMBER + '?text=Hola%2C%20soy%20participante%20del%20programa%20y%20necesito%20ayuda.';
 if(USER.encuesta_pre==='pendiente') setTimeout(showWelcomeModal,700);
+
+function toggleMasMenu(){ const o=document.getElementById('mas-overlay'); if(o) o.style.display=o.style.display==='flex'?'none':'flex'; }
+function closeMasMenu(){ const o=document.getElementById('mas-overlay'); if(o) o.style.display='none'; }
 </script>
+
+<div id="mobile-nav">
+  <button class="m-nav-btn" data-nav="inicio" onclick="navigate('inicio')"><span class="m-nav-icon">🏠</span>Inicio</button>
+  <button class="m-nav-btn" data-nav="videollamada" onclick="navigate('videollamada')"><span class="m-nav-icon">🎥</span>Vídeo</button>
+  <button class="m-nav-btn" data-nav="ejercicios" onclick="navigate('ejercicios')"><span class="m-nav-icon">🧠</span>Ejercicios</button>
+  <button class="m-nav-btn" data-nav="chat" onclick="navigate('chat')"><span class="m-nav-icon">💬</span>Chat</button>
+  <button class="m-nav-btn" data-nav="mas" onclick="toggleMasMenu()"><span class="m-nav-icon">⋯</span>Más</button>
+</div>
+
+<div id="mas-overlay" onclick="closeMasMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150">
+  <div onclick="event.stopPropagation()" style="position:absolute;bottom:62px;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 28px;box-shadow:0 -4px 24px rgba(0,0,0,.14)">
+    <div style="text-align:center;margin-bottom:18px"><div style="width:36px;height:4px;background:#e5e7eb;border-radius:2px;display:inline-block"></div></div>
+    <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Más secciones</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="mas-item" onclick="navigate('encuestas');closeMasMenu()">📋 Encuestas</button>
+      <button class="mas-item" onclick="navigate('perfil');closeMasMenu()">👤 Mi perfil</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
