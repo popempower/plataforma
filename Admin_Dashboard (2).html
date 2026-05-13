@@ -2672,30 +2672,67 @@ function openNewPsicoModal(){
   </div>`);
 }
 
-function doAltaPsico(){
+async function doAltaPsico(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
   const nombre=g('np-nombre'),apellidos=g('np-apellidos'),email=g('np-email'),col=g('np-col'),pass=g('np-pass');
   if(!nombre||!apellidos||!email||!col||!pass){showToast('⚠️ Completa los campos obligatorios (*)');return;}
   if(pass.length<8){showToast('⚠️ La contraseña debe tener al menos 8 caracteres');return;}
+
+  const btn=document.querySelector('.modal-box .btn-green');
+  if(btn){btn.disabled=true;btn.textContent='Creando cuenta...';}
+
   const tarifa=parseInt(g('np-tarifa'))||25;
   const tpRaw=parseInt(g('np-tarifa-pareja'));
-  const tarifaPareja=isNaN(tpRaw)?null:tpRaw;
+  const tarifaPareja=isNaN(tpRaw)||g('np-tarifa-pareja')===''?null:tpRaw;
   const irpf=parseFloat(g('np-irpf'))||7;
-  const initials=((nombre[0]||'')+(apellidos[0]||'')).toUpperCase();
-  const newId=Math.max(...PSYCHOLOGISTS.map(x=>x.id))+1;
-  PSYCHOLOGISTS.push({
-    id:newId,name:`${nombre} ${apellidos}`,initials,
-    email,phone:g('np-phone'),ciudad:'',colegiado:col,
-    nacimiento:g('np-nac'),dni:'',tarifa,tarifaPareja,haceParejas:tarifaPareja!==null,
-    irpf,status:'pendiente',patients:0,sesiones_mes:0,
-    alta:new Date().toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}),
-    especialidades:[],idiomas:[],cuenta:'',
-    contrato:{firmado:false,fecha:null},
-    disponibilidad:{lun:'—',mar:'—',mie:'—',jue:'—',vie:'—',sab:'—',dom:'—'},
-    vacaciones:[]
+  const fullName=`${nombre} ${apellidos}`;
+
+  // 1. Crear usuario en Supabase Auth
+  const {data:authData, error:authError} = await sbAdmin.auth.admin.createUser({
+    email, password:pass, email_confirm:true,
+    user_metadata:{ full_name:fullName, role:'psychologist' }
   });
-  closeModal(); rerender();
-  showToast(`✅ ${nombre} ${apellidos} dada/o de alta. Acceso enviado a ${email}`);
+
+  if(authError){
+    if(btn){btn.disabled=false;btn.textContent='Dar de alta y enviar acceso';}
+    showToast('❌ Error: '+(authError.message==='User already registered'?'Este email ya existe en el sistema':authError.message));
+    return;
+  }
+
+  const uid = authData.user.id;
+
+  // 2. Insertar en profiles
+  await sbAdmin.from('profiles').upsert({
+    id:uid, role:'psychologist', full_name:fullName
+  });
+
+  // 3. Insertar en psychologists
+  const {error:psicoError} = await sbAdmin.from('psychologists').insert({
+    id:uid, nombre, apellidos, email,
+    phone:g('np-phone'), num_colegiado:col,
+    fecha_nac:g('np-nac')||null,
+    tarifa, tarifa_pareja:tarifaPareja, irpf,
+    status:'pendiente'
+  });
+
+  if(psicoError){
+    showToast('⚠️ Usuario creado pero error guardando perfil: '+psicoError.message);
+  } else {
+    // Añadir también al array local para que aparezca sin recargar
+    const initials=((nombre[0]||'')+(apellidos[0]||'')).toUpperCase();
+    PSYCHOLOGISTS.push({
+      id:PSYCHOLOGISTS.length+100, name:fullName, initials, email,
+      phone:g('np-phone'), ciudad:'', colegiado:col,
+      tarifa, tarifaPareja, haceParejas:tarifaPareja!==null,
+      irpf, status:'pendiente', patients:0, sesiones_mes:0,
+      especialidades:[], idiomas:[], vacaciones:[],
+      alta:new Date().toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}),
+      contrato:{firmado:false,fecha:null},
+      disponibilidad:{lun:'—',mar:'—',mie:'—',jue:'—',vie:'—',sab:'—',dom:'—'}
+    });
+    closeModal(); rerender();
+    showToast(`✅ ${fullName} dada/o de alta en Supabase. Puede acceder con ${email}`);
+  }
 }
 
 function addVacacion(id){
@@ -3609,6 +3646,7 @@ function confirmLogout(){
 }
 
 const sb = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWtjZ213b2F0ampvdmhhYWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MDMyMjksImV4cCI6MjA5NDE3OTIyOX0.9oSRRh1wwTqbKQP-p57dSkGgL8Ohqt9YiOfMUsAC0cc');
+const sbAdmin = supabase.createClient('https://kfekcgmwoatjjovhaaiq.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWtjZ213b2F0ampvdmhhYWlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYwMzIyOSwiZXhwIjoyMDk0MTc5MjI5fQ.T0CvsA74Nt__e7q6Fjh8yjfyXuggXO7IBaiXAns_5D8');
 
 async function doLogout(){
   localStorage.removeItem('pop_session');
