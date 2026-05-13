@@ -130,10 +130,7 @@ function renderBrand(){
   document.getElementById('brandBody').innerHTML = `
     <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Psicología online</div>
     <div style="font-size:30px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:16px">${b.title}</div>
-    <div style="font-size:14px;color:rgba(255,255,255,.8);line-height:1.7;margin-bottom:32px">${b.body}</div>
-    <div style="display:flex;gap:24px">
-      ${b.stats.map(([v,l])=>`<div><div style="font-size:22px;font-weight:800;color:#fff">${v}</div><div style="font-size:11px;color:rgba(255,255,255,.6)">${l}</div></div>`).join('')}
-    </div>`;
+    <div style="font-size:14px;color:rgba(255,255,255,.8);line-height:1.7">${b.body}</div>`;
 }
 
 // ── SHARED ────────────────────────────────────────────────────────
