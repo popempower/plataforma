@@ -111,7 +111,7 @@ const sb = supabase.createClient(
 // ── STATE ─────────────────────────────────────────────────────────
 const S = {
   step: 0,
-  nombre:'', apellidos:'', email:'', phone:'', pass:'', rgpd:false,
+  nombre:'', apellidos:'', email:'', phone:'', fechaNac:'', pass:'', rgpd:false,
   motivos:[], prevPsych:null, prevDetail:'', disponibilidad:[],
   cat:'individual', planId:'mensual',
   promo:'', promoOk:false, consentChecks:[false,false,false,false,false],
@@ -194,6 +194,9 @@ function step0(){
     <input class="field-input has-icon" type="email" autocomplete="email" placeholder="tu@email.com" value="${S.email}" oninput="S.email=this.value;refreshBtn0()">
   </div>
 
+  <label class="field-label">Fecha de nacimiento</label>
+  <input class="field-input" type="date" autocomplete="off" max="${new Date().toISOString().split('T')[0]}" value="${S.fechaNac}" oninput="S.fechaNac=this.value" style="margin-bottom:0">
+
   <label class="field-label">Teléfono (WhatsApp)</label>
   ${phoneInputHTML('ob-phone', S.phone)}
 
@@ -232,7 +235,7 @@ async function goStep1(){
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Creando cuenta...'; }
   S.signupError = '';
   S.phone = getPhone('ob-phone');
-  const { data, error } = await sb.auth.signUp({ email: S.email, password: S.pass, options: { data: { full_name: S.nombre + ' ' + S.apellidos, nombre: S.nombre, apellidos: S.apellidos, phone: S.phone } } });
+  const { data, error } = await sb.auth.signUp({ email: S.email, password: S.pass, options: { data: { full_name: S.nombre + ' ' + S.apellidos, nombre: S.nombre, apellidos: S.apellidos, phone: S.phone, fecha_nac: S.fechaNac } } });
   if(error){
     S.signupError = error.message.toLowerCase().includes('already')
       ? 'Este email ya tiene una cuenta. <a href="login.html" style="color:#20dc95;font-weight:600">Inicia sesión</a>'
