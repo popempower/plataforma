@@ -148,6 +148,7 @@ textarea.field-input{resize:vertical;min-height:80px}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div id="portal-ui" style="display:flex;height:100vh;overflow:hidden">
@@ -474,7 +475,7 @@ let EXTERNAL_SESSIONS = []; // [{id,patientId,patientName,date,time,duration,mot
 let _extSesId = 1;
 
 // Billing — estado Supabase
-let _bs = {loading:false,loaded:false,psyId:null,tarifa:25,irpf:7,sessions:[],extSes:[],invoice:null};
+let _bs = {loading:false,loaded:false,psyId:null,tarifa:25,irpf:7,nombre:'',apellidos:'',dni:'',ciudad:'',sessions:[],extSes:[],invoice:null};
 let CANCELLED_BILLABLE = []; // sessions cancelled but still billed: [{patient,importe}]
 let psychContract = {signed: false, date: null, signerName: null};
 let _ctSigCanvas=null, _ctSigCtx=null, _ctSigHasData=false, _ctSigLastX=0, _ctSigLastY=0;
@@ -1559,9 +1560,11 @@ async function bsInit(){
   if(_bs.psyId) return true;
   const {data:{user}} = await sb.auth.getUser();
   if(!user) return false;
-  const {data} = await sb.from('psychologists').select('id,tarifa,irpf').eq('id',user.id).single();
+  const {data} = await sb.from('psychologists').select('id,nombre,apellidos,tarifa,irpf,dni,ciudad').eq('id',user.id).single();
   if(!data) return false;
   _bs.psyId=data.id; _bs.tarifa=data.tarifa||25; _bs.irpf=data.irpf||7;
+  _bs.nombre=data.nombre||''; _bs.apellidos=data.apellidos||'';
+  _bs.dni=data.dni||''; _bs.ciudad=data.ciudad||'';
   billingConfig.tarifaSesion=_bs.tarifa; billingConfig.irpf=_bs.irpf;
   return true;
 }
@@ -1609,12 +1612,158 @@ async function bsGenerateDraft(){
   showToast('Borrador generado','success');
 }
 
-async function bsConfirm(){
-  if(!_bs.invoice) return;
-  const {error}=await sb.from('invoices').update({estado:'confirmada',confirmada_at:new Date().toISOString()}).eq('id',_bs.invoice.id);
-  if(error) return showToast('Error: '+error.message,'error');
-  showToast('Factura confirmada. POP Empower la revisará y te pagará por transferencia.','success');
+function bsConfirm(){
+  showModal(`<div class="modal-box" style="width:440px">
+    <div style="padding:16px 22px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;font-size:14px;color:#111827">Emitir factura</div>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9ca3af">✕</button>
+    </div>
+    <div style="padding:18px 22px;display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label class="field-label">Número de factura *</label>
+        <input id="conf-numfac" class="field-input" placeholder="Ej: 13" style="width:100%"/>
+        <div style="font-size:11px;color:#b45309;margin-top:5px;background:#fffbeb;padding:6px 10px;border-radius:6px">⚠ Debe ser correlativo con tus facturas anteriores — obligatorio por Hacienda</div>
+      </div>
+      <div>
+        <label class="field-label">IRPF (%)</label>
+        <input id="conf-irpf" type="number" class="field-input" value="${_bs.irpf}" min="0" max="50" step="0.5" style="width:100%"/>
+      </div>
+    </div>
+    <div style="padding:12px 22px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px">
+      <button onclick="closeModal()" class="btn-gray">Cancelar</button>
+      <button onclick="bsDoConfirm()" class="btn-green">Confirmar y descargar PDF</button>
+    </div>
+  </div>`);
+}
+
+async function bsDoConfirm(){
+  const numFactura=document.getElementById('conf-numfac')?.value?.trim();
+  const irpfVal=parseFloat(document.getElementById('conf-irpf')?.value||_bs.irpf);
+  if(!numFactura){ showToast('Introduce el número de factura','error'); return; }
+  const [mn,yr]=billingConfig.selectedMonth.split(' ');
+  const mes=MONTH_NAME_TO_IDX[mn]+1, anio=parseInt(yr);
+  const patMap={};
+  for(const s of _bs.sessions){
+    const nm=s.patients?`${s.patients.nombre} ${s.patients.apellidos}`:'Desconocido';
+    if(!patMap[nm]) patMap[nm]={tipo:s.estado,count:0};
+    patMap[nm].count++;
+  }
+  const total_ses=_bs.sessions.length+_bs.extSes.length;
+  const bruto=parseFloat((Object.entries(patMap).reduce((a,[,v])=>a+v.count*_bs.tarifa,0)+_bs.extSes.length*_bs.tarifa).toFixed(2));
+  const {data:inv,error}=await sb.from('invoices').upsert(
+    {psychologist_id:_bs.psyId,mes,anio,sesiones:total_ses,importe_bruto:bruto,irpf_pct:irpfVal,tarifa:_bs.tarifa,estado:'confirmada',confirmada_at:new Date().toISOString(),num_factura:numFactura},
+    {onConflict:'psychologist_id,mes,anio'}
+  ).select().single();
+  if(error){ showToast('Error: '+error.message,'error'); return; }
+  const items=[
+    ...Object.entries(patMap).map(([nm,v])=>({patient_name:nm,tipo:v.tipo,importe:parseFloat((v.count*_bs.tarifa).toFixed(2))})),
+    ..._bs.extSes.map(e=>({patient_name:e.patient_name,tipo:'externa',importe:parseFloat((_bs.tarifa).toFixed(2))})),
+  ];
+  await sb.from('invoice_items').delete().eq('invoice_id',inv.id);
+  if(items.length) await sb.from('invoice_items').insert(items.map(i=>({...i,invoice_id:inv.id})));
+  generarFacturaPDF(numFactura,irpfVal,patMap,bruto);
+  closeModal();
+  showToast('✓ Factura confirmada y descargada','success');
   _bs.loaded=false; await bsLoad();
+}
+
+function generarFacturaPDF(numFactura, irpf, patMap, bruto){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const fecha=new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const nombreCompleto=`${_bs.nombre} ${_bs.apellidos}`.trim();
+
+  // Logo — caja verde con texto
+  doc.setFillColor(32,220,149);
+  doc.roundedRect(14,10,22,22,2,2,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(9);
+  doc.text('PO',17,19);
+  doc.text('EM',22,19);
+  doc.text('POW',17,25);
+  doc.text('ER',22,25);
+
+  // Datos psicóloga
+  doc.setTextColor(17,24,39);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  let py=40;
+  doc.text(nombreCompleto,14,py);
+  if(_bs.dni){ py+=6; doc.text(`NIF: ${_bs.dni}`,14,py); }
+  if(_bs.ciudad){ py+=6; doc.text(_bs.ciudad,14,py); }
+
+  // Caja destinatario (POP)
+  doc.setDrawColor(180);
+  doc.rect(110,35,85,28);
+  doc.setFontSize(9);
+  doc.text('PO PSYCHOLOGY, S.L.',113,43);
+  doc.text('CIF: B88350368',113,49);
+  doc.text('C/ Doctor Fleming, 46',113,55);
+  doc.text('28036, Madrid.',113,61);
+
+  // Datos factura
+  doc.setFontSize(11);
+  doc.setFont('helvetica','bold');
+  doc.text(`FACTURA: ${numFactura}`,14,78);
+  doc.setFont('helvetica','normal');
+  doc.text(`FECHA: ${fecha}`,14,86);
+  doc.text('CONCEPTO: Servicio de psicología',14,94);
+
+  // Cabecera tabla
+  doc.setFillColor(240,240,240);
+  doc.rect(14,100,181,8,'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(9);
+  doc.text('Paciente / Nº Sesiones',16,106);
+  doc.text('IMPORTE',130,106);
+  doc.text('TOTAL',170,106);
+
+  // Filas
+  let y=118;
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  for(const [patient,data] of Object.entries(patMap)){
+    doc.setFont('helvetica','bold');
+    doc.text(patient,16,y-5);
+    doc.setFont('helvetica','normal');
+    doc.text(String(data.count),16,y+1);
+    doc.text(`${(data.count*_bs.tarifa).toFixed(2)} €`,130,y+1);
+    doc.text(`${(data.count*_bs.tarifa).toFixed(2)} €`,170,y+1);
+    doc.setDrawColor(220);
+    doc.line(14,y+5,195,y+5);
+    y+=14;
+  }
+  for(const ext of _bs.extSes){
+    doc.setFont('helvetica','bold');
+    doc.text(`${ext.patient_name} (${ext.motivo})`,16,y-5);
+    doc.setFont('helvetica','normal');
+    doc.text('1',16,y+1);
+    doc.text(`${_bs.tarifa.toFixed(2)} €`,130,y+1);
+    doc.text(`${_bs.tarifa.toFixed(2)} €`,170,y+1);
+    doc.setDrawColor(220);
+    doc.line(14,y+5,195,y+5);
+    y+=14;
+  }
+
+  // Totales
+  const irpfAmt=parseFloat((bruto*irpf/100).toFixed(2));
+  const neto=parseFloat((bruto-irpfAmt).toFixed(2));
+  y+=4;
+  doc.setFontSize(10);
+  doc.text('Base Imponible',130,y); doc.text(`${bruto.toFixed(2)} €`,170,y); y+=8;
+  doc.text(`I.R.P.F. ${irpf}%`,130,y); doc.text(`${irpfAmt.toFixed(2)} €`,170,y); y+=8;
+  doc.setFont('helvetica','bold');
+  doc.text('TOTAL',130,y); doc.text(`${neto.toFixed(2)} €`,170,y);
+  doc.setDrawColor(17,24,39);
+  doc.line(128,y+2,195,y+2);
+
+  // Forma de pago
+  y+=14;
+  doc.setFont('helvetica','normal');
+  doc.text('FORMA DE PAGO: TRANSFERENCIA',14,y);
+
+  doc.save(`Factura_${numFactura}_${billingConfig.selectedMonth.replace(' ','_')}.pdf`);
 }
 
 function tabFacturacion(){

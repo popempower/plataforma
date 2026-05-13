@@ -1272,8 +1272,8 @@ function tabFacturacion(){
       ${_adminInvLoading?`<div style="padding:20px;display:flex;align-items:center;gap:10px"><div class="spin"></div><span style="color:#6b7280;font-size:13px">Cargando...</span></div>`:
         !_adminInvLoaded?`<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px">Haz clic en "Liquidación psicólogas" para cargar datos de Supabase.</div>`:
         _adminInvoices.length===0?`<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px">No hay facturas confirmadas pendientes de pago.</div>`:`
-      <div style="display:grid;grid-template-columns:2fr 80px 80px 80px 90px 100px;padding:8px 18px;background:#f9fafb;border-bottom:1px solid #e5e7eb">
-        ${['Psicóloga','Mes','Sesiones','Bruto','Neto',''].map(h=>`<div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase">${h}</div>`).join('')}
+      <div style="display:grid;grid-template-columns:2fr 70px 70px 80px 90px 90px 110px;padding:8px 18px;background:#f9fafb;border-bottom:1px solid #e5e7eb;gap:6px">
+        ${['Psicóloga','Mes','Ses.','Bruto','IRPF','Neto',''].map(h=>`<div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase">${h}</div>`).join('')}
       </div>
       ${_adminInvoices.map(inv=>{
         const psy=inv.psychologists;
@@ -1281,13 +1281,17 @@ function tabFacturacion(){
         const mesNom=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][inv.mes]||'';
         const irpfAmt=parseFloat((inv.importe_bruto*(inv.irpf_pct||7)/100).toFixed(2));
         const neto=parseFloat((inv.importe_bruto-irpfAmt).toFixed(2));
-        return `<div style="display:grid;grid-template-columns:2fr 80px 80px 80px 90px 100px;align-items:center;padding:12px 18px;border-bottom:1px solid #f3f4f6">
-          <div style="font-weight:600;font-size:13px;color:#111827">${nombre}</div>
+        return `<div style="display:grid;grid-template-columns:2fr 70px 70px 80px 90px 90px 110px;align-items:center;padding:12px 18px;border-bottom:1px solid #f3f4f6;gap:6px">
+          <div>
+            <div style="font-weight:600;font-size:13px;color:#111827">${nombre}</div>
+            ${inv.num_factura?`<div style="font-size:11px;color:#9ca3af">Factura nº ${inv.num_factura}</div>`:''}
+          </div>
           <div style="font-size:13px;color:#374151">${mesNom} ${inv.anio}</div>
           <div style="font-size:13px;font-weight:600;color:#374151;text-align:center">${inv.sesiones}</div>
           <div style="font-size:13px;color:#374151">${parseFloat(inv.importe_bruto).toFixed(2)} €</div>
+          <div style="font-size:12px;color:#ef4444">-${irpfAmt.toFixed(2)} €</div>
           <div style="font-size:14px;font-weight:800;color:#065f46">${neto.toFixed(2)} €</div>
-          <button onclick="adminMarkPaid('${inv.id}','${nombre}')" class="btn-green" style="padding:6px 12px;font-size:11px">Marcar pagada</button>
+          <button onclick="adminMarkPaid('${inv.id}','${nombre}')" class="btn-green" style="padding:6px 10px;font-size:11px">✓ Marcar pagada</button>
         </div>`;
       }).join('')}`}
     </div>
