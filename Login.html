@@ -7,7 +7,7 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fafafa;min-height:100vh;display:flex;align-items:center;justify-content:center;font-size:13px}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fafafa;min-height:100vh;display:flex;align-items:center;justify-content:center;font-size:13px;padding:16px 0}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes glow-pulse{0%,100%{box-shadow:0 4px 14px rgba(32,220,149,.45)}50%{box-shadow:0 4px 28px rgba(32,220,149,.85),0 0 0 6px rgba(32,220,149,.15)}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -46,10 +46,14 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fafafa;min
 .demo-badge.paciente{background:#eff6ff;color:#1d4ed8}
 .demo-badge.psico{background:#fdf4ff;color:#7e22ce}
 .demo-badge.empresa{background:#fff7ed;color:#c2410c}
-.demo-email{font-size:12px;color:#374151;font-weight:500}
+.demo-email{font-size:12px;color:#374151;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
 .demo-hint{font-size:11px;color:#6b7280;margin-top:8px}
 .footer{text-align:center;margin-top:20px;font-size:12px;color:#9ca3af}
 .footer a{color:#20dc95;text-decoration:none;font-weight:600}
+@media(max-width:480px){
+  .card{padding:24px 18px}
+  .wrap{padding:16px}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -114,7 +118,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fafafa;min
 
 <!-- Modal olvide contraseña -->
 <div id="forgotOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)">
-  <div style="background:#fff;border-radius:16px;padding:28px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:fadeUp .2s ease">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:min(360px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.15);animation:fadeUp .2s ease">
     <div style="font-weight:700;font-size:15px;color:#111827;margin-bottom:6px">Restablecer contraseña</div>
     <div style="font-size:12px;color:#6b7280;margin-bottom:18px">Te enviaremos un enlace a tu email para que puedas crear una nueva contraseña.</div>
     <label class="field-label">Tu email</label>
