@@ -1661,28 +1661,28 @@ async function bsDoConfirm(){
   ];
   await sb.from('invoice_items').delete().eq('invoice_id',inv.id);
   if(items.length) await sb.from('invoice_items').insert(items.map(i=>({...i,invoice_id:inv.id})));
-  generarFacturaPDF(numFactura,irpfVal,patMap,bruto);
+  await generarFacturaPDF(numFactura,irpfVal,patMap,bruto);
   closeModal();
   showToast('✓ Factura confirmada y descargada','success');
   _bs.loaded=false; await bsLoad();
 }
 
-function generarFacturaPDF(numFactura, irpf, patMap, bruto){
+async function generarFacturaPDF(numFactura, irpf, patMap, bruto){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF();
   const fecha=new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
   const nombreCompleto=`${_bs.nombre} ${_bs.apellidos}`.trim();
 
-  // Logo — caja verde con texto
-  doc.setFillColor(32,220,149);
-  doc.roundedRect(14,10,22,22,2,2,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(9);
-  doc.text('PO',17,19);
-  doc.text('EM',22,19);
-  doc.text('POW',17,25);
-  doc.text('ER',22,25);
+  // Logo real desde servidor
+  try {
+    const resp=await fetch('/uploads/logo.png');
+    const blob=await resp.blob();
+    const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(blob);});
+    doc.addImage(b64,'PNG',14,8,30,30);
+  } catch(e) {
+    doc.setFillColor(32,220,149);
+    doc.roundedRect(14,8,30,30,3,3,'F');
+  }
 
   // Datos psicóloga
   doc.setTextColor(17,24,39);
