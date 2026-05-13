@@ -27,7 +27,7 @@ serve(async (req) => {
   }
 
   // POST — create a new meeting
-  const endDate = new Date(Date.now() + 90 * 60 * 1000).toISOString()
+  const endDate = new Date(Date.now() + 70 * 60 * 1000).toISOString()
   try {
     const res = await fetch('https://api.whereby.dev/v1/meetings', {
       method: 'POST',
