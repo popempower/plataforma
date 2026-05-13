@@ -2628,8 +2628,8 @@ function openNewPsicoModal(){
       <button onclick="closeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9ca3af">✕</button>
     </div>
     <div style="padding:20px 24px;display:flex;flex-direction:column;gap:13px">
-      <div style="font-size:12px;color:#9ca3af;background:#fafafa;border-radius:8px;padding:10px 14px;border:1px solid #e5e7eb">
-        Al dar de alta recibirá un email con acceso a la plataforma para completar su perfil profesional.
+      <div style="font-size:12px;color:#065f46;background:#f0fdf8;border-radius:8px;padding:10px 14px;border:1px solid #d1fae5">
+        ✉️ Recibirá un email automático para que ella misma active su cuenta y ponga su contraseña.
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label class="field-label">Nombre <span style="color:#ef4444">*</span></label><input class="field-input" id="np-nombre" placeholder="Nombre"/></div>
@@ -2642,9 +2642,6 @@ function openNewPsicoModal(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label class="field-label">Nº Colegiado <span style="color:#ef4444">*</span></label><input class="field-input" id="np-col" placeholder="M-00000"/></div>
         <div><label class="field-label">Fecha de nacimiento</label><input class="field-input" id="np-nac" placeholder="DD/MM/AAAA"/></div>
-      </div>
-      <div><label class="field-label">Contraseña temporal <span style="color:#ef4444">*</span></label>
-        <input class="field-input" id="np-pass" type="password" placeholder="Mínimo 8 caracteres"/>
       </div>
       <div style="border-top:1px solid #f3f4f6;padding-top:12px">
         <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Configuración económica</div>
@@ -2674,37 +2671,38 @@ function openNewPsicoModal(){
 
 async function doAltaPsico(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
-  const nombre=g('np-nombre'),apellidos=g('np-apellidos'),email=g('np-email'),col=g('np-col'),pass=g('np-pass');
-  if(!nombre||!apellidos||!email||!col||!pass){showToast('⚠️ Completa los campos obligatorios (*)');return;}
-  if(pass.length<8){showToast('⚠️ La contraseña debe tener al menos 8 caracteres');return;}
+  const nombre=g('np-nombre'),apellidos=g('np-apellidos'),email=g('np-email'),col=g('np-col');
+  if(!nombre||!apellidos||!email||!col){showToast('⚠️ Completa los campos obligatorios (*)');return;}
 
   const btn=document.querySelector('.modal-box .btn-green');
-  if(btn){btn.disabled=true;btn.textContent='Creando cuenta...';}
+  if(btn){btn.disabled=true;btn.textContent='Enviando invitación...';}
 
   const tarifa=parseInt(g('np-tarifa'))||25;
   const tpRaw=parseInt(g('np-tarifa-pareja'));
   const tarifaPareja=isNaN(tpRaw)||g('np-tarifa-pareja')===''?null:tpRaw;
   const irpf=parseFloat(g('np-irpf'))||7;
   const fullName=`${nombre} ${apellidos}`;
+  const redirectTo='https://plataforma-woad.vercel.app/Login.html';
 
-  // 1. Crear usuario en Supabase Auth
-  const {data:authData, error:authError} = await sbAdmin.auth.admin.createUser({
-    email, password:pass, email_confirm:true,
-    user_metadata:{ full_name:fullName, role:'psychologist' }
+  // 1. Enviar invitación — Supabase manda el email automáticamente
+  const {data:inviteData, error:inviteError} = await sbAdmin.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+    data:{ full_name:fullName, role:'psychologist' }
   });
 
-  if(authError){
+  if(inviteError){
     if(btn){btn.disabled=false;btn.textContent='Dar de alta y enviar acceso';}
-    showToast('❌ Error: '+(authError.message==='User already registered'?'Este email ya existe en el sistema':authError.message));
+    const msg = inviteError.message.includes('already been registered')
+      ? 'Este email ya tiene una cuenta en el sistema'
+      : inviteError.message;
+    showToast('❌ Error: '+msg);
     return;
   }
 
-  const uid = authData.user.id;
+  const uid = inviteData.user.id;
 
   // 2. Insertar en profiles
-  await sbAdmin.from('profiles').upsert({
-    id:uid, role:'psychologist', full_name:fullName
-  });
+  await sbAdmin.from('profiles').upsert({ id:uid, role:'psychologist', full_name:fullName });
 
   // 3. Insertar en psychologists
   const {error:psicoError} = await sbAdmin.from('psychologists').insert({
@@ -2716,9 +2714,8 @@ async function doAltaPsico(){
   });
 
   if(psicoError){
-    showToast('⚠️ Usuario creado pero error guardando perfil: '+psicoError.message);
+    showToast('⚠️ Invitación enviada pero error guardando perfil: '+psicoError.message);
   } else {
-    // Añadir también al array local para que aparezca sin recargar
     const initials=((nombre[0]||'')+(apellidos[0]||'')).toUpperCase();
     PSYCHOLOGISTS.push({
       id:PSYCHOLOGISTS.length+100, name:fullName, initials, email,
@@ -2731,7 +2728,7 @@ async function doAltaPsico(){
       disponibilidad:{lun:'—',mar:'—',mie:'—',jue:'—',vie:'—',sab:'—',dom:'—'}
     });
     closeModal(); rerender();
-    showToast(`✅ ${fullName} dada/o de alta en Supabase. Puede acceder con ${email}`);
+    showToast(`✉️ Invitación enviada a ${email} — ${fullName} recibirá el email para activar su cuenta`);
   }
 }
 
