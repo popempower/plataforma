@@ -1717,15 +1717,37 @@ async function enterSession(){
   window._wherebyRoomUrl = null;
   room.innerHTML = renderSessionRoom();
   srTimerStart();
+  await tryConnectPatientSession();
+}
+
+async function tryConnectPatientSession(){
   try {
-    const res = await fetch(PAT_EDGE,{
+    const { data: { session: authSess } } = await sb.auth.getSession();
+    const token = authSess?.access_token || ANON_KEY;
+    const res = await fetch(PAT_EDGE, {
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY}
+      headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+token},
+      body: JSON.stringify({ role:'guest' }),
     });
     const data = await res.json();
-    if(!data.roomUrl) throw new Error(data.message||'Error al crear sala');
-    _patMeetingId = data.meetingId||'';
-    const guestUrl = data.roomUrl + (data.roomUrl.includes('?') ? '&' : '?') + 'leaveButton=off';
+    // Aún no se ha creado la sala (la psicóloga no la ha iniciado)
+    if(data.waiting){
+      const overlay = document.getElementById('sr-loading-overlay');
+      if(overlay) overlay.innerHTML = `
+        <div style="text-align:center;padding:40px;max-width:380px">
+          <div style="width:64px;height:64px;border-radius:50%;background:rgba(32,220,149,.15);display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:16px">⏳</div>
+          <div style="color:#fff;font-size:16px;font-weight:700;margin-bottom:6px">Esperando a tu psicóloga</div>
+          <div style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.5;margin-bottom:20px">${_patState.psychFullName||'Tu psicóloga'} aún no ha iniciado la videollamada.<br>Comprobaremos cada 5 segundos.</div>
+          <button onclick="exitSession()" style="padding:10px 22px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.8);font-weight:600;font-size:13px;cursor:pointer">Salir</button>
+        </div>`;
+      // Reintentar en 5s
+      clearTimeout(window._patWaitTimer);
+      window._patWaitTimer = setTimeout(tryConnectPatientSession, 5000);
+      return;
+    }
+    if(!data.roomUrl) throw new Error(data.error || 'Error al conectar');
+    _patMeetingId = data.meetingId || '';
+    const guestUrl = data.roomUrl + (data.roomUrl.includes('?') ? '&' : '?') + 'leaveButton=off&lang=es';
     window._wherebyRoomUrl = guestUrl;
     const overlay = document.getElementById('sr-loading-overlay');
     const area = document.getElementById('sr-video-area');
@@ -1751,6 +1773,7 @@ async function endPatWherebyRoom(){
 }
 function exitSession(){
   clearInterval(window._srTimer);
+  clearTimeout(window._patWaitTimer);
   // Apagar iframe de Whereby — libera cámara y micrófono del navegador
   const frame=document.getElementById('sr-patient-frame');
   if(frame) frame.src='about:blank';

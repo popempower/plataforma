@@ -3894,13 +3894,16 @@ async function srIniciarSala(){
   const btn=document.getElementById('sr-start-btn');
   if(btn){btn.disabled=true;btn.textContent='Creando sala...';}
   try{
+    const { data: { session: authSess } } = await sb.auth.getSession();
+    const token = authSess?.access_token || SR_ANON;
     const res=await fetch(SR_EDGE,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SR_ANON,'Authorization':'Bearer '+SR_ANON}
+      headers:{'Content-Type':'application/json','apikey':SR_ANON,'Authorization':'Bearer '+token},
+      body: JSON.stringify({ role:'host' }),
     });
     const data=await res.json();
-    if(!data.roomUrl) throw new Error(data.message||'Error al crear sala');
-    _srGuestUrl=data.roomUrl;
+    if(!data.roomUrl) throw new Error(data.error||data.message||'Error al crear sala');
+    _srGuestUrl=data.guestRoomUrl||data.roomUrl;
     _srMeetingId=data.meetingId||'';
     const frame=document.getElementById('sr-whereby-frame');
     const overlay=document.getElementById('sr-waiting-overlay');
