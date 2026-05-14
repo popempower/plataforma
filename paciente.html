@@ -984,13 +984,20 @@ function tabSesiones() {
 }
 
 function tabMensajes() {
-  const msgsHtml = messages.map((m,i)=>{
+  // Si está conectado a Supabase, usar mensajes reales; si no, mock
+  const useReal = _patState.loaded && _patState.psychId;
+  const list = useReal ? _msgs.list : messages;
+  const psyInitialsMsg = _patState.psychInitials || 'EG';
+  const psyNameMsg = _patState.psychFullName || 'Dra. Elena García';
+  const emptyState = useReal && _msgs.loaded && list.length===0;
+
+  const msgsHtml = list.map((m,i)=>{
     const mine=m.from==='patient';
     const showDate=m.date;
-    const showAv=!mine&&(i===0||messages[i-1]?.from!=='psych');
+    const showAv=!mine&&(i===0||list[i-1]?.from!=='psych');
     return `${showDate?`<div style="text-align:center;margin:10px 0"><span style="font-size:11px;color:#9ca3af;background:#f3f4f6;border-radius:10px;padding:3px 10px">${m.date}</span></div>`:''}
     <div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'};margin-top:${showAv?10:2}px">
-      ${showAv?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${av('EG',18,true)}<span style="font-size:11px;color:#6b7280;font-weight:600">Dra. Elena García</span></div>`:''}
+      ${showAv?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${av(psyInitialsMsg,18,true)}<span style="font-size:11px;color:#6b7280;font-weight:600">${psyNameMsg}</span></div>`:''}
       ${m.type==='file'?`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:#f0fdf8;border:1px solid #d1fae5;max-width:260px">
         <div style="width:34px;height:34px;border-radius:7px;background:#d1fae5;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">📄</div>
         <div><div style="font-size:12px;font-weight:600;color:#111827">${m.text}</div><div style="font-size:10px;color:#6b7280">${m.fileSize}</div></div>
@@ -999,17 +1006,19 @@ function tabMensajes() {
     </div>`;
   }).join('');
 
+  const emptyHtml = emptyState ? `<div style="text-align:center;padding:60px 20px;color:#9ca3af"><div style="font-size:40px;margin-bottom:8px">💬</div><div style="font-size:13px;font-weight:600;color:#6b7280">Aún no hay mensajes</div><div style="font-size:12px;margin-top:4px">Escribe el primer mensaje a ${psyNameMsg}</div></div>` : '';
+
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden" class="fadeUp">
     <div style="padding:14px 24px;border-bottom:1px solid #e5e7eb;display:flex;gap:12px;align-items:center;flex-shrink:0">
-      ${av('EG',40,true)}
+      ${av(psyInitialsMsg,40,true)}
       <div>
-        <div style="font-weight:700;font-size:14px;color:#111827">Dra. Elena García</div>
+        <div style="font-weight:700;font-size:14px;color:#111827">${psyNameMsg}</div>
         <div style="font-size:11px;color:#20dc95;font-weight:600">● En línea</div>
       </div>
     </div>
-    <div id="chat-msgs" style="flex:1;overflow:auto;padding:20px 28px;display:flex;flex-direction:column;gap:4px">${msgsHtml}</div>
+    <div id="chat-msgs" style="flex:1;overflow:auto;padding:20px 28px;display:flex;flex-direction:column;gap:4px">${emptyHtml}${msgsHtml}</div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;gap:10px;align-items:center;flex-shrink:0">
-      <input id="chat-input" class="field-input" placeholder="Escribe a Dra. Elena García..." style="flex:1;border-radius:10px" oninput="updateSendBtn()" onkeydown="if(event.key==='Enter')sendMsg()"/>
+      <input id="chat-input" class="field-input" placeholder="Escribe a ${psyNameMsg}..." style="flex:1;border-radius:10px" oninput="updateSendBtn()" onkeydown="if(event.key==='Enter')sendMsg()"/>
       <button id="chat-send" onclick="sendMsg()" style="width:38px;height:38px;border-radius:9px;border:none;background:#e5e7eb;color:#9ca3af;font-size:16px;font-weight:700;transition:all .15s">→</button>
     </div>
   </div>`;
@@ -1671,6 +1680,12 @@ function sendMsg(){
   const i=document.getElementById('chat-input'); if(!i) return;
   const text=i.value.trim(); if(!text) return;
   i.value='';
+  // Si está conectado a Supabase, envía allí; si no, fallback al mock
+  if(_patState.loaded && _patState.psychId){
+    sendMessageReal(text);
+    updateSendBtn();
+    return;
+  }
   const now=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
   messages.push({id:Date.now(),from:'patient',text,time:now});
   rerender();
@@ -2192,6 +2207,65 @@ async function loadPatientState(){
   rerender();
 }
 
+// ── Mensajes desde Supabase ────────────────────────────────────────
+let _msgs = { loaded:false, list:[], pollInterval:null };
+
+async function loadMessages(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  const { data } = await sb.from('messages')
+    .select('id, sender_role, contenido, leido, created_at')
+    .eq('patient_id', user.id)
+    .order('created_at', { ascending: true });
+  _msgs.list = (data||[]).map(m => {
+    const d = new Date(m.created_at);
+    return {
+      id: m.id,
+      from: m.sender_role === 'patient' ? 'patient' : 'psych',
+      text: m.contenido,
+      time: String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+      created_at: m.created_at,
+    };
+  });
+  _msgs.loaded = true;
+  // Re-render solo si estamos en tab mensajes para no afectar otras
+  if(currentNav === 'mensajes') renderTab();
+  // Marcar mensajes de la psicóloga como leídos
+  if(data && data.length){
+    const unread = data.filter(m => m.sender_role==='psychologist' && !m.leido).map(m=>m.id);
+    if(unread.length){
+      sb.from('messages').update({ leido: true }).in('id', unread).then(()=>{});
+    }
+  }
+}
+
+async function sendMessageReal(text){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user || !_patState.psychId){ showToast('Sin psicóloga asignada'); return; }
+  const { data, error } = await sb.from('messages').insert({
+    patient_id: user.id,
+    psychologist_id: _patState.psychId,
+    sender_role: 'patient',
+    contenido: text,
+  }).select('id, sender_role, contenido, created_at').single();
+  if(error){ showToast('Error: '+error.message); return; }
+  const d = new Date(data.created_at);
+  _msgs.list.push({
+    id: data.id, from:'patient', text: data.contenido,
+    time: String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+    created_at: data.created_at,
+  });
+  if(currentNav==='mensajes') renderTab();
+}
+
+function startMessagePolling(){
+  if(_msgs.pollInterval) return;
+  _msgs.pollInterval = setInterval(()=>{ if(currentNav==='mensajes') loadMessages(); }, 10000);
+}
+function stopMessagePolling(){
+  if(_msgs.pollInterval){ clearInterval(_msgs.pollInterval); _msgs.pollInterval=null; }
+}
+
 function applyPatientUI(){
   const av = document.getElementById('sb-user-av');
   const nm = document.getElementById('sb-user-name');
@@ -2259,7 +2333,16 @@ function renderTab(){
   }
 }
 function rerender(){ renderNav(); renderTab(); }
-function navigate(id){ currentNav=id; rerender(); }
+function navigate(id){
+  currentNav=id;
+  if(id==='mensajes' && _patState.loaded && _patState.psychId){
+    loadMessages();
+    startMessagePolling();
+  } else {
+    stopMessagePolling();
+  }
+  rerender();
+}
 
 // ── CHECKLIST ────────────────────────────────────────────────────
 const CHECKLIST_ITEMS = [
