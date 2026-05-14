@@ -3375,7 +3375,6 @@ async function loadPsyProfile(){
   psychProfile.profileComplete = !!data.nombre && !!data.apellidos && (data.especialidades||[]).length>0;
   rerender();
 }
-loadPsyProfile();
 
 // ── CALENDAR EXPORT (PSICÓLOGO) ───────────────────────────────────
 function addToCalendarPsych(type, patName, dateStr, timeStr) {
@@ -4436,6 +4435,7 @@ async function loadPsyPatients(){
   rerender();
 }
 loadPsyPatients();
+loadPsyProfile();
 </script>
 
 <!-- Botón flotante WhatsApp soporte -->
