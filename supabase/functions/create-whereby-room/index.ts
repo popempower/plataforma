@@ -7,6 +7,7 @@ const WHEREBY_KEY  = Deno.env.get('WHEREBY_KEY') || ''
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, DELETE, OPTIONS',
   'Content-Type': 'application/json',
 }
 
@@ -111,12 +112,16 @@ Deno.serve(async (req) => {
     const meetingId = wData.meetingId
 
     // Guardar en BD
-    await sb.from('sessions').update({
+    const { error: updErr } = await sb.from('sessions').update({
       whereby_host_url: hostUrl,
       whereby_guest_url: guestUrl,
       whereby_meeting_id: meetingId,
       status: 'en_curso',
     }).eq('id', session.id)
+    if (updErr) {
+      console.error('Update session failed:', updErr.message)
+      return new Response(JSON.stringify({ error: 'DB update failed: ' + updErr.message }), { status: 500, headers: CORS })
+    }
 
     return new Response(JSON.stringify({
       roomUrl: hostUrl,

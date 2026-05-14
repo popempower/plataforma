@@ -2880,7 +2880,11 @@ async function openNotesModal(sesId){
 }
 
 async function deleteSession(sesId){
-  if(typeof sesId !== 'string' || sesId.length < 8) return;
+  // Si es ID mock (número), usar la función mock
+  if(typeof sesId !== 'string' || sesId.length < 8){
+    deleteSessionMock(sesId);
+    return;
+  }
   // Buscar la sesión para saber su status y patient
   const sess = _psyToday.sessions.find(s => s.id === sesId);
   if(!sess){ showToast('Sesión no encontrada'); return; }
@@ -4120,7 +4124,7 @@ function cancelBillable(sesId){
   showToast(`${s.patient} — cancelada, se incluirá en facturación`,'info');
 }
 
-function deleteSession(sesId){
+function deleteSessionMock(sesId){
   const idx=TODAY_SESSIONS.findIndex(x=>x.id===sesId); if(idx===-1) return;
   const name=TODAY_SESSIONS[idx].patient;
   TODAY_SESSIONS.splice(idx,1);
