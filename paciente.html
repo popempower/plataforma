@@ -2557,6 +2557,9 @@ async function loadMessages(){
     .select('id, sender_role, contenido, leido, created_at')
     .eq('patient_id', user.id)
     .order('created_at', { ascending: true });
+  // Detectar si llegaron mensajes nuevos para evitar re-renders innecesarios
+  const newIds = (data||[]).map(m=>m.id).join(',');
+  const oldIds = _msgs.list.map(m=>m.id).join(',');
   _msgs.list = (data||[]).map(m => {
     const d = new Date(m.created_at);
     return {
@@ -2568,8 +2571,15 @@ async function loadMessages(){
     };
   });
   _msgs.loaded = true;
-  // Re-render solo si estamos en tab mensajes para no afectar otras
-  if(currentNav === 'mensajes') renderTab();
+  // Re-render solo si hay mensajes nuevos Y estamos en mensajes. Preservar draft del input.
+  if(currentNav === 'mensajes' && newIds !== oldIds){
+    const draft = document.getElementById('chat-input')?.value || '';
+    renderTab();
+    setTimeout(()=>{
+      const inp = document.getElementById('chat-input');
+      if(inp && draft){ inp.value = draft; if(typeof updateSendBtn==='function') updateSendBtn(); }
+    }, 20);
+  }
   // Marcar mensajes de la psicóloga como leídos
   if(data && data.length){
     const unread = data.filter(m => m.sender_role==='psychologist' && !m.leido).map(m=>m.id);
