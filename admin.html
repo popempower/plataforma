@@ -266,6 +266,41 @@ function tabInicio(){
       </div>`).join('')}
     </div>
 
+    <!-- ASIGNACIONES PENDIENTES (Supabase real) -->
+    ${(()=>{
+      if(!_asig.loaded && !_asig.loading) return '';
+      if(_asig.loading) return `<div class="card" style="padding:14px 18px;margin-bottom:20px;color:#9ca3af;font-size:12px">Cargando pacientes pendientes de asignar...</div>`;
+      if(!_asig.pending.length) return '';
+      return `<div style="margin-bottom:20px">
+        <div style="font-weight:700;font-size:13px;color:#111827;margin-bottom:10px">
+          💳 Pacientes pagados pendientes de asignar
+          <span style="background:#20dc95;color:#065f46;border-radius:99px;padding:1px 7px;font-size:11px;margin-left:4px;font-weight:700">${_asig.pending.length}</span>
+          <button onclick="loadPendingAssignments()" style="margin-left:8px;padding:2px 9px;border-radius:6px;border:1px solid #d1fae5;background:#f0fdf8;font-size:11px;font-weight:600;cursor:pointer;color:#065f46">↻ Actualizar</button>
+        </div>
+        <div style="background:#fff;border:1px solid #d1fae5;border-left:4px solid #20dc95;border-radius:10px;overflow:hidden">
+          ${_asig.pending.map((p,i)=>{
+            const fechaCompra = new Date(p.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
+            const tipoLbl = p.categoria==='pareja'?'Pareja/Familia':p.categoria==='psiquiatra'?'Psiquiatría':'Individual';
+            const planLbl = p.plan_elegido==='mensual'?'Bono 4 ses':'Sesión suelta';
+            const initials = (p.nombre?.[0]||'')+(p.apellidos?.[0]||'');
+            return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;${i>0?'border-top:1px solid #f3f4f6':''}">
+              <div style="width:36px;height:36px;border-radius:50%;background:#f0fdf8;color:#065f46;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">${initials}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:13px;color:#111827">${p.nombre||''} ${p.apellidos||''}</div>
+                <div style="font-size:11px;color:#6b7280">${p.email||''} · ${p.phone||'—'}</div>
+                <div style="font-size:11px;color:#9ca3af;margin-top:2px">${tipoLbl} · ${planLbl} · Pagó ${fechaCompra}</div>
+              </div>
+              <select id="asig-sel-${p.id}" style="padding:6px 9px;border-radius:7px;border:1px solid #e5e7eb;font-size:12px;color:#374151;background:#fff;max-width:220px">
+                <option value="">— Seleccionar psicóloga —</option>
+                ${_asig.psychs.map(q=>`<option value="${q.id}">${q.nombre} ${q.apellidos||''}</option>`).join('')}
+              </select>
+              <button onclick="assignPsychologistToPatient('${p.id}', document.getElementById('asig-sel-${p.id}').value, '${(p.nombre||'').replace(/'/g,'')}')" class="btn-green" style="font-size:11px;padding:7px 14px;white-space:nowrap;flex-shrink:0">Asignar</button>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    })()}
+
     <!-- Acciones pendientes -->
     ${totalAcciones>0?`
     <div style="margin-bottom:20px">
@@ -3722,7 +3757,11 @@ function renderTab(){
 }
 
 function rerender(){ renderNav(); renderTab(); }
-function navigate(id){ currentNav=id; rerender(); }
+function navigate(id){
+  currentNav=id;
+  if(id==='inicio' && !_asig.loaded && !_asig.loading) loadPendingAssignments();
+  rerender();
+}
 
 function confirmLogout(){
   const el = document.createElement('div');
@@ -3769,6 +3808,37 @@ async function adminMarkPaid(invoiceId, psicoName){
   _adminInvLoaded=false; await loadAdminInvoices();
 }
 
+// ── ASIGNACIONES (pacientes pagados sin psicóloga) ─────────────
+let _asig = { loading:false, loaded:false, pending:[], psychs:[] };
+
+async function loadPendingAssignments(){
+  _asig.loading = true; rerender();
+  const [pendRes, psyRes] = await Promise.all([
+    sbAdmin.from('patients')
+      .select('id, nombre, apellidos, email, phone, categoria, plan_elegido, motivos, disponibilidad, created_at')
+      .eq('status','pagado_sin_asignar')
+      .order('created_at',{ascending:false}),
+    sbAdmin.from('psychologists')
+      .select('id, nombre, apellidos, status')
+      .eq('status','activo')
+      .order('nombre'),
+  ]);
+  _asig.pending = pendRes.data || [];
+  _asig.psychs  = psyRes.data  || [];
+  _asig.loading = false; _asig.loaded = true;
+  rerender();
+}
+
+async function assignPsychologistToPatient(patientId, psyId, patientName){
+  if(!psyId){ showToast('Selecciona una psicóloga','error'); return; }
+  const { error } = await sbAdmin.from('patients')
+    .update({ psychologist_id: psyId, status: 'activo' })
+    .eq('id', patientId);
+  if(error){ showToast('Error: '+error.message,'error'); return; }
+  showToast(`✓ ${patientName} asignada correctamente`,'success');
+  _asig.loaded=false; await loadPendingAssignments();
+}
+
 async function doLogout(){
   localStorage.removeItem('pop_session');
   await sb.auth.signOut();
@@ -3776,6 +3846,7 @@ async function doLogout(){
 }
 
 rerender();
+loadPendingAssignments();
 </script>
 </body>
 </html>
