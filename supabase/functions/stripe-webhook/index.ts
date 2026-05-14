@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
   const sesiones = plan === 'mensual' ? 4 : 1
   const importe = (session.amount_total || 0) / 100
 
-  const { error: cErr } = await sb.from('compras').insert({
+  const { error: cErr } = await sb.from('compras').upsert({
     patient_id: patientId,
     stripe_session_id: session.id,
     stripe_payment_intent: typeof session.payment_intent === 'string' ? session.payment_intent : null,
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     importe,
     estado: 'pagada',
     paid_at: new Date().toISOString(),
-  })
+  }, { onConflict: 'stripe_session_id' })
   if (cErr) return new Response(`Insert compra failed: ${cErr.message}`, { status: 500 })
 
   const { error: uErr } = await sb
