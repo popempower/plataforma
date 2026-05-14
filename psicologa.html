@@ -2840,7 +2840,7 @@ async function openNotesModal(sesId){
       <div>
         <label class="field-label">Estado de la sesión</label>
         <div style="display:flex;gap:8px" id="notes-status-btns">
-          ${['realizada','cancelada','cancelada_cobro'].map(st=>`<button data-status="${st}" onclick="document.querySelectorAll('#notes-status-btns button').forEach(b=>{b.style.borderColor='#e5e7eb';b.style.background='#fff';b.style.color='#6b7280'});this.style.borderColor='#20dc95';this.style.background='#f0fdf8';this.style.color='#065f46'" style="padding:7px 14px;border-radius:8px;border:1.5px solid ${s.status===st?'#20dc95':'#e5e7eb'};background:${s.status===st?'#f0fdf8':'#fff'};color:${s.status===st?'#065f46':'#6b7280'};font-weight:600;font-size:12px;cursor:pointer">${SES_ST[st]?.label||st}</button>`).join('')}
+          ${['realizada','cancelada','cancelada_cobro'].map(st=>`<button data-status="${st}" data-selected="${s.status===st?'1':'0'}" onclick="document.querySelectorAll('#notes-status-btns button').forEach(b=>{b.dataset.selected='0';b.style.borderColor='#e5e7eb';b.style.background='#fff';b.style.color='#6b7280'});this.dataset.selected='1';this.style.borderColor='#20dc95';this.style.background='#f0fdf8';this.style.color='#065f46'" style="padding:7px 14px;border-radius:8px;border:1.5px solid ${s.status===st?'#20dc95':'#e5e7eb'};background:${s.status===st?'#f0fdf8':'#fff'};color:${s.status===st?'#065f46':'#6b7280'};font-weight:600;font-size:12px;cursor:pointer">${SES_ST[st]?.label||st}</button>`).join('')}
         </div>
       </div>
       <div>
@@ -2862,7 +2862,7 @@ function openNotesModalPatient(patId){
 
 async function saveNotes(sesId){
   const text = document.getElementById('notes-text')?.value?.trim() || '';
-  const newStatus = document.querySelector('#notes-status-btns button[style*="20dc95"]')?.dataset.status;
+  const newStatus = document.querySelector('#notes-status-btns button[data-selected="1"]')?.dataset.status;
 
   // Si es sesión real (UUID), persistir en Supabase
   if(typeof sesId === 'string' && sesId.length > 8){
