@@ -1152,7 +1152,8 @@ function tabPacientes(){
           : TODAY_SESSIONS.find(s=>s.patientId===p.id&&(s.status==='programada'||s.status==='en_curso'));
         const almostDone = (p.used||0) >= (p.total||4) - 1;
 
-        return `<div style="display:grid;grid-template-columns:2.2fr 1fr 110px 130px 90px 72px;padding:12px 18px;border-bottom:1px solid #f3f4f6;align-items:center;cursor:pointer;transition:background .1s" onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''" onclick="openPatientModal(${p.id})">
+        const idArg = typeof p.id === 'string' ? `'${p.id}'` : p.id;
+        return `<div style="display:grid;grid-template-columns:2.2fr 1fr 110px 130px 90px 72px;padding:12px 18px;border-bottom:1px solid #f3f4f6;align-items:center;cursor:pointer;transition:background .1s" onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''" onclick="openPatientModal(${idArg})">
 
           <!-- Paciente -->
           <div style="display:flex;align-items:center;gap:10px">
@@ -1192,10 +1193,10 @@ function tabPacientes(){
 
           <!-- Acciones -->
           <div style="display:flex;gap:4px">
-            <button onclick="event.stopPropagation();openChat(${p.id})" title="Enviar mensaje" style="width:30px;height:30px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280" onmouseenter="this.style.borderColor='#20dc95';this.style.color='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb';this.style.color='#6b7280'">
+            <button onclick="event.stopPropagation();openChat(${idArg})" title="Enviar mensaje" style="width:30px;height:30px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280" onmouseenter="this.style.borderColor='#20dc95';this.style.color='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb';this.style.color='#6b7280'">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </button>
-            <button onclick="event.stopPropagation();openPatientModal(${p.id})" title="Ver ficha" style="width:30px;height:30px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280" onmouseenter="this.style.borderColor='#20dc95';this.style.color='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb';this.style.color='#6b7280'">
+            <button onclick="event.stopPropagation();openPatientModal(${idArg})" title="Ver ficha" style="width:30px;height:30px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280" onmouseenter="this.style.borderColor='#20dc95';this.style.color='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb';this.style.color='#6b7280'">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
@@ -2850,7 +2851,23 @@ function saveNotes(sesId){
 }
 
 function openPatientModal(patId){
-  const p=PATIENTS.find(x=>x.id===patId); if(!p) return;
+  // Buscar primero en pacientes reales; si no, fallback al mock
+  let p = (_psyPatients.list||[]).find(x=>x.id===patId);
+  if(p){
+    // Adaptar al formato esperado por la modal (campos opcionales)
+    p = {
+      ...p,
+      phone: p.phone || '—',
+      empresa: '—',
+      sessions: [],
+      objectives: [],
+      docs: [],
+      nota: '',
+    };
+  } else {
+    p = PATIENTS.find(x=>x.id===patId);
+  }
+  if(!p) return;
   let ptab='perfil';
   function renderTab(t){
     if(t==='perfil') return `<div style="display:flex;flex-direction:column;gap:12px">
@@ -2904,7 +2921,7 @@ function openPatientModal(patId){
     <div id="pat-body" style="padding:20px 24px;overflow:auto;max-height:400px">${renderTab('perfil')}</div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;gap:8px;justify-content:space-between">
       <div style="display:flex;gap:8px">
-        <button onclick="openChat(${p.id});closeModal()" class="btn-gray" style="font-size:12px">✉ Mensaje</button>
+        <button onclick="openChat(${typeof p.id==='string'?`'${p.id}'`:p.id});closeModal()" class="btn-gray" style="font-size:12px">✉ Mensaje</button>
         <select class="field-input" style="font-size:12px;padding:6px 10px;width:auto">
           <option>Estado…</option><option>Activo</option><option>Pausa</option><option>Baja</option>
         </select>
