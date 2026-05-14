@@ -154,6 +154,7 @@ input{font-family:inherit}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -1305,23 +1306,116 @@ function tabPlan() {
   </div>`;
 }
 
+async function descargarFacturaPaciente(numFactura){
+  const compra = (_patState.compras||[]).find(c => c.num_factura_paciente === numFactura);
+  if(!compra){ showToast('Factura no encontrada'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const fecha = new Date(compra.paid_at || Date.now()).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
+  const tipoLbl = compra.categoria==='pareja' ? 'Pareja/Familia' : compra.categoria==='psiquiatra' ? 'Psiquiatría' : 'Individual';
+  const planLbl = compra.plan==='mensual' ? `Bono mensual — ${compra.sesiones} sesiones` : 'Sesión suelta';
+  const importe = parseFloat(compra.importe||0).toFixed(2);
+  const nombrePaciente = `${_patState.nombre||''} ${_patState.apellidos||''}`.trim();
+
+  // Logo
+  try {
+    const resp = await fetch('/uploads/logo.png');
+    const blob = await resp.blob();
+    const b64 = await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(blob);});
+    doc.addImage(b64,'PNG',14,10,32,32);
+  } catch(e){
+    doc.setFillColor(32,220,149);
+    doc.roundedRect(14,10,32,32,3,3,'F');
+  }
+
+  doc.setDrawColor(220); doc.line(14,48,195,48);
+
+  // Emisor
+  doc.setTextColor(17,24,39);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('EMISOR',14,57);
+  doc.setFont('helvetica','normal');
+  doc.text('PO PSYCHOLOGY, S.L.',14,64);
+  doc.text('CIF: B88350368',14,69);
+  doc.text('C/ Doctor Fleming, 46 — 28036, Madrid',14,74);
+
+  // Destinatario
+  doc.setFont('helvetica','bold'); doc.text('DESTINATARIO',110,57);
+  doc.setDrawColor(200); doc.rect(110,60,85,30);
+  doc.setFont('helvetica','normal');
+  doc.text(nombrePaciente, 113, 67);
+  if(_patState.email) doc.text(_patState.email, 113, 73);
+
+  doc.setDrawColor(220); doc.line(14,96,195,96);
+
+  // Datos factura
+  doc.setFontSize(11); doc.setFont('helvetica','bold');
+  doc.text(`FACTURA: ${numFactura}`,14,105);
+  doc.setFont('helvetica','normal');
+  doc.text(`FECHA: ${fecha}`,14,113);
+  doc.text('CONCEPTO: Servicios de psicología online',14,121);
+
+  // Cabecera tabla
+  doc.setFillColor(32,220,149); doc.rect(14,127,181,8,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('SERVICIO',16,133);
+  doc.text('TOTAL',172,133);
+  doc.setTextColor(17,24,39);
+
+  // Línea
+  let y = 146;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text(`${tipoLbl} — ${planLbl}`,16,y);
+  doc.text(`${importe} €`,172,y);
+  doc.setDrawColor(220); doc.line(14,y+4,195,y+4);
+
+  // Totales
+  y += 18;
+  doc.setFontSize(10);
+  doc.text('Base imponible',130,y); doc.text(`${importe} €`,172,y); y+=8;
+  doc.text('IVA (exento art. 20.Uno.3 LIVA)',130,y); doc.text('0,00 €',172,y); y+=8;
+  doc.setFont('helvetica','bold');
+  doc.text('TOTAL',130,y); doc.text(`${importe} €`,172,y);
+  doc.setDrawColor(17,24,39); doc.line(128,y+2,195,y+2);
+
+  // Forma de pago
+  y += 14; doc.setFont('helvetica','normal');
+  doc.text('FORMA DE PAGO: Tarjeta — procesado por Stripe',14,y);
+
+  // Nota legal RGPD
+  y += 14;
+  doc.setFontSize(7); doc.setTextColor(100);
+  const nota = 'Responsable: PO PSYCHOLOGY, S.L. · Finalidad: gestión de servicios de psicología online · Legitimación: ejecución de contrato (art. 6.1.b RGPD) · Conservación: durante la relación contractual y plazos legales · Derechos: acceso, rectificación, supresión, oposición y portabilidad en info@popempower.com o ante la AEPD.';
+  doc.text(doc.splitTextToSize(nota, 181), 14, y);
+
+  doc.save(`Factura_${numFactura}.pdf`);
+}
+
 function tabFacturas() {
-  const FACTURAS = [
-    {
-      id:'F-2026-003', fecha:'1 abr 2026', fechaISO:'2026-04-01',
-      concepto:'Bono mensual — 4 sesiones (renovación)',
-      psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847',
-      base:'232,00 €', iva:'Exento (art. 20.Uno.3 LIVA)', total:'232,00 €',
-      metodoPago:'Tarjeta Visa •••• 4242', estado:'Pagado'
-    },
-    {
-      id:'F-2026-002', fecha:'1 mar 2026', fechaISO:'2026-03-01',
-      concepto:'Bono mensual — 4 sesiones (primera compra)',
-      psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847',
-      base:'232,00 €', iva:'Exento (art. 20.Uno.3 LIVA)', total:'232,00 €',
-      metodoPago:'Tarjeta Visa •••• 4242', estado:'Pagado'
-    },
-  ];
+  // Datos reales si están cargados
+  const useReal = _patState.loaded && (_patState.compras||[]).length > 0;
+  const FACTURAS = useReal
+    ? _patState.compras.map(c => {
+        const d = c.paid_at ? new Date(c.paid_at) : new Date();
+        const tipoLbl = c.categoria==='pareja' ? 'Pareja/Familia' : c.categoria==='psiquiatra' ? 'Psiquiatría' : 'Individual';
+        const planLbl = c.plan==='mensual' ? `Bono mensual — ${c.sesiones||4} sesiones` : 'Sesión suelta';
+        const importe = parseFloat(c.importe||0).toFixed(2).replace('.', ',') + ' €';
+        return {
+          id: c.num_factura_paciente || c.id?.slice(0,8) || '—',
+          fecha: d.toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }),
+          fechaISO: d.toISOString().slice(0,10),
+          concepto: `${tipoLbl} · ${planLbl}`,
+          psicologa: _patState.psychFullName || '—',
+          colegiada: '—',
+          base: importe, iva: 'Exento (art. 20.Uno.3 LIVA)', total: importe,
+          metodoPago: 'Tarjeta · Stripe', estado: 'Pagado',
+          _raw: c,
+        };
+      })
+    : [
+        { id:'F-2026-003', fecha:'1 abr 2026', fechaISO:'2026-04-01', concepto:'Bono mensual — 4 sesiones (renovación)', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', base:'232,00 €', iva:'Exento (art. 20.Uno.3 LIVA)', total:'232,00 €', metodoPago:'Tarjeta Visa •••• 4242', estado:'Pagado' },
+        { id:'F-2026-002', fecha:'1 mar 2026', fechaISO:'2026-03-01', concepto:'Bono mensual — 4 sesiones (primera compra)', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', base:'232,00 €', iva:'Exento (art. 20.Uno.3 LIVA)', total:'232,00 €', metodoPago:'Tarjeta Visa •••• 4242', estado:'Pagado' },
+      ];
   const JUSTIFICANTES = [
     { id:'J-2026-004', fecha:'Miérc 30 abr 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'50 min', estado:'Realizada' },
     { id:'J-2026-003', fecha:'Miérc 16 abr 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'52 min', estado:'Realizada' },
@@ -1368,7 +1462,7 @@ function tabFacturas() {
               </div>
               <div style="display:flex;gap:8px;flex-shrink:0">
                 <button onclick="showFacturaModal('${f.id}')" style="padding:8px 12px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:12px;cursor:pointer" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">Ver</button>
-                <button style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1.5px solid #20dc95;background:#fff;color:#065f46;font-weight:600;font-size:12px;cursor:pointer" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">⬇ PDF</button>
+                <button onclick="descargarFacturaPaciente('${f.id}')" style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1.5px solid #20dc95;background:#fff;color:#065f46;font-weight:600;font-size:12px;cursor:pointer" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">⬇ PDF</button>
               </div>
             </div>
             <!-- Detalle colapsado (pill método de pago) -->
@@ -2142,6 +2236,8 @@ let _patState = {
   sesiones: [],
   // Sesiones disponibles (suma de compras pagadas)
   sesionesCompradas: 0,
+  // Lista detallada de compras (para facturas)
+  compras: [],
 };
 
 function _initials(nombre, apellidos){
@@ -2195,12 +2291,14 @@ async function loadPatientState(){
     .order('fecha', {ascending:true});
   _patState.sesiones = sess || [];
 
-  // Sesiones compradas (suma de bonos/compras pagadas)
+  // Sesiones compradas + lista detallada para facturas
   const { data: compras } = await sb.from('compras')
-    .select('sesiones')
+    .select('id, num_factura_paciente, categoria, plan, sesiones, importe, paid_at, estado')
     .eq('patient_id', user.id)
-    .eq('estado','pagada');
+    .eq('estado','pagada')
+    .order('paid_at', { ascending: false });
   _patState.sesionesCompradas = (compras||[]).reduce((a,c)=>a+(c.sesiones||0), 0);
+  _patState.compras = compras || [];
 
   _patState.loading=false; _patState.loaded=true;
   applyPatientUI();
