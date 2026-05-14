@@ -852,9 +852,35 @@ function tabInicio() {
 
 function tabSesiones() {
   const stColors={programada:{bg:'#eff6ff',text:'#1d4ed8',icon:'◷',label:'Programada'},realizada:{bg:'#f0fdf8',text:'#065f46',icon:'✓',label:'Realizada'},cancelada:{bg:'#fef2f2',text:'#b91c1c',icon:'✕',label:'Cancelada'}};
-  const filtered = sesFilter==='todas'?SESSIONS:SESSIONS.filter(s=>s.status===sesFilter);
-  const nextSes = SESSIONS.find(s=>s.status==='programada');
-  const sesDone = SESSIONS.filter(s=>s.status==='realizada').length;
+  // Si hay sesiones reales en Supabase, usarlas; si no, mock
+  const useRealSes = _patState.loaded && _patState.sesiones.length > 0;
+  const psyNameSes = _patState.psychFullName || 'Dra. Elena García';
+
+  const SESSIONS_LOCAL = useRealSes
+    ? _patState.sesiones.map((s, i) => {
+        const d = new Date(s.fecha);
+        const dias = ['Dom','Lun','Mar','Miérc','Juev','Vier','Sáb'];
+        const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        const dateStr = `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
+        const timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+        const statusMap = { 'en_curso':'programada', 'cancelada_cobro':'cancelada' };
+        return {
+          id: s.id || i,
+          date: dateStr,
+          time: timeStr,
+          duration: s.duracion || 50,
+          status: statusMap[s.status] || s.status,
+          notes: null,
+        };
+      })
+    : SESSIONS;
+
+  const filtered = sesFilter==='todas'?SESSIONS_LOCAL:SESSIONS_LOCAL.filter(s=>s.status===sesFilter);
+  const nextSes = SESSIONS_LOCAL.find(s=>s.status==='programada');
+  const sesDone = SESSIONS_LOCAL.filter(s=>s.status==='realizada').length;
+  const BONO_LOCAL_SES = (_patState.loaded && _patState.bonoTotal > 0)
+    ? { used: _patState.bonoUsadas, total: _patState.bonoTotal, expiry: _patState.bonoCaducidad ? new Date(_patState.bonoCaducidad).toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) : '—' }
+    : { ...BONO, expiry: '15 Jul' };
 
   const historial = [...SESSIONS].reverse().map((s,i,arr)=>{
     const done=s.status==='realizada', prog=s.status==='programada';
@@ -873,10 +899,10 @@ function tabSesiones() {
     <!-- Stats row -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
       ${[
-        {l:'Realizadas',   v:sesDone,                       s:'desde el inicio'},
-        {l:'Semanas',      v:Math.ceil(sesDone*1.5)||0,     s:'en proceso'},
-        {l:'Bono',         v:`${BONO.used}/${BONO.total}`,  s:'sesiones usadas'},
-        {l:'Caduca',       v:'15 Jul',                       s:'bono actual'},
+        {l:'Realizadas',   v:sesDone,                              s:'desde el inicio'},
+        {l:'Semanas',      v:Math.ceil(sesDone*1.5)||0,            s:'en proceso'},
+        {l:'Bono',         v:`${BONO_LOCAL_SES.used}/${BONO_LOCAL_SES.total}`, s:'sesiones usadas'},
+        {l:'Caduca',       v:BONO_LOCAL_SES.expiry,                 s:'bono actual'},
       ].map(s=>`<div class="card" style="padding:12px 14px"><div style="font-size:10px;color:#6b7280;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">${s.l}</div><div style="font-size:22px;font-weight:800;color:#111827;line-height:1">${s.v}</div><div style="font-size:10px;color:#9ca3af;margin-top:3px">${s.s}</div></div>`).join('')}
     </div>
 
@@ -889,7 +915,7 @@ function tabSesiones() {
           <div>
             <div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Próxima sesión</div>
             <div style="font-size:20px;font-weight:800;color:#022c22;margin-bottom:3px">${nextSes.date} · ${nextSes.time}</div>
-            <div style="font-size:13px;color:#065f46;opacity:.85">Dra. Elena García · ${nextSes.duration||50} min</div>
+            <div style="font-size:13px;color:#065f46;opacity:.85">${psyNameSes} · ${nextSes.duration||50} min</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex-shrink:0">
             <button onclick="openSessionModal()" class="btn-entrar" style="background:#fff;color:#065f46;border:none;border-radius:9px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">🚀 Conectar</button>
@@ -914,7 +940,7 @@ function tabSesiones() {
                 <div style="width:42px;height:42px;border-radius:10px;background:${st.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${st.icon}</div>
                 <div style="flex:1;min-width:0">
                   <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:2px">${s.date} · ${s.time}</div>
-                  <div style="font-size:12px;color:#6b7280">Dra. Elena García${s.duration?' · '+s.duration+' min':''}</div>
+                  <div style="font-size:12px;color:#6b7280">${psyNameSes}${s.duration?' · '+s.duration+' min':''}</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
                   <span style="background:${st.bg};color:${st.text};border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600">${st.label}</span>
