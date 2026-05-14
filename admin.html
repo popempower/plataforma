@@ -279,7 +279,7 @@ function tabInicio(){
         </div>
         <div style="background:#fff;border:1px solid #d1fae5;border-left:4px solid #20dc95;border-radius:10px;overflow:hidden">
           ${_asig.pending.map((p,i)=>{
-            const fechaCompra = new Date(p.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
+            const fechaCompra = p.updated_at ? new Date(p.updated_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) : '—';
             const tipoLbl = p.categoria==='pareja'?'Pareja/Familia':p.categoria==='psiquiatra'?'Psiquiatría':'Individual';
             const planLbl = p.plan_elegido==='mensual'?'Bono 4 ses':'Sesión suelta';
             const initials = (p.nombre?.[0]||'')+(p.apellidos?.[0]||'');
@@ -3815,9 +3815,9 @@ async function loadPendingAssignments(){
   _asig.loading = true; rerender();
   const [pendRes, psyRes] = await Promise.all([
     sbAdmin.from('patients')
-      .select('id, nombre, apellidos, email, phone, categoria, plan_elegido, motivos, disponibilidad, created_at')
+      .select('id, nombre, apellidos, email, phone, categoria, plan_elegido, motivos, disponibilidad, updated_at')
       .eq('status','pagado_sin_asignar')
-      .order('created_at',{ascending:false}),
+      .order('updated_at',{ascending:false,nullsFirst:false}),
     sbAdmin.from('psychologists')
       .select('id, nombre, apellidos, status')
       .eq('status','activo')
