@@ -585,6 +585,8 @@ function miniCalendar(){
 // ── TAB: INICIO ───────────────────────────────────────────────────
 // Estado: sesiones reales de hoy para la psicóloga logueada
 let _psyToday = { loaded:false, sessions:[] };
+// Estado: pacientes reales asignados a esta psicóloga
+let _psyPatients = { loaded:false, list:[] };
 
 function tabInicio(){
   // Filtrar solo sesiones de HOY (no de toda la semana)
@@ -1072,16 +1074,27 @@ function tabAgenda(){
 let patSearch = '';
 
 function tabPacientes(){
-  const todayPatIds = new Set(TODAY_SESSIONS.filter(s=>s.status==='programada'||s.status==='en_curso').map(s=>s.patientId));
+  // Si tenemos pacientes reales, usarlos; si no, mock
+  const useReal = _psyPatients.loaded;
+  const LIST = useReal ? _psyPatients.list : PATIENTS;
+  // todayPatIds: hoy desde sesiones reales si están, sino del mock
+  const _todayDate = new Date(); _todayDate.setHours(0,0,0,0);
+  const _tomorrow = new Date(_todayDate.getTime() + 86400000);
+  const todayPatIds = useReal
+    ? new Set(_psyToday.sessions.filter(s => {
+        const d = new Date(s.fecha); return d>=_todayDate && d<_tomorrow && (s.status==='programada'||s.status==='en_curso');
+      }).map(s => s.patientId))
+    : new Set(TODAY_SESSIONS.filter(s=>s.status==='programada'||s.status==='en_curso').map(s=>s.patientId));
+
   const q = patSearch.trim().toLowerCase();
-  let filtered = patFilter==='todos' ? PATIENTS : PATIENTS.filter(p=>p.status===patFilter);
-  if(q) filtered = filtered.filter(p=>p.name.toLowerCase().includes(q)||p.email.toLowerCase().includes(q));
+  let filtered = patFilter==='todos' ? LIST : LIST.filter(p=>p.status===patFilter);
+  if(q) filtered = filtered.filter(p=>p.name.toLowerCase().includes(q)||(p.email||'').toLowerCase().includes(q));
 
   const counts = {
-    todos:  PATIENTS.length,
-    activo: PATIENTS.filter(p=>p.status==='activo').length,
-    pausa:  PATIENTS.filter(p=>p.status==='pausa').length,
-    baja:   PATIENTS.filter(p=>p.status==='baja').length,
+    todos:  LIST.length,
+    activo: LIST.filter(p=>p.status==='activo').length,
+    pausa:  LIST.filter(p=>p.status==='pausa').length,
+    baja:   LIST.filter(p=>p.status==='baja').length,
   };
   const dotColor = {activo:'#20dc95',pausa:'#f59e0b',baja:'#ef4444',todos:'#9ca3af'};
 
@@ -1130,10 +1143,14 @@ function tabPacientes(){
           ${q?`<button onclick="patSearch='';rerender()" style="margin-top:10px;background:none;border:none;color:#20dc95;font-size:12px;font-weight:600;cursor:pointer">Limpiar búsqueda</button>`:''}
         </div>` :
       filtered.map(p=>{
-        const st = PAT_ST[p.status];
+        const st = PAT_ST[p.status] || PAT_ST.activo;
         const hasToday = todayPatIds.has(p.id);
-        const sesHoy = TODAY_SESSIONS.find(s=>s.patientId===p.id&&(s.status==='programada'||s.status==='en_curso'));
-        const almostDone = p.used >= p.total - 1;
+        const sesHoy = useReal
+          ? _psyToday.sessions.find(s => {
+              const d = new Date(s.fecha); return d>=_todayDate && d<_tomorrow && s.patientId===p.id && (s.status==='programada'||s.status==='en_curso');
+            })
+          : TODAY_SESSIONS.find(s=>s.patientId===p.id&&(s.status==='programada'||s.status==='en_curso'));
+        const almostDone = (p.used||0) >= (p.total||4) - 1;
 
         return `<div style="display:grid;grid-template-columns:2.2fr 1fr 110px 130px 90px 72px;padding:12px 18px;border-bottom:1px solid #f3f4f6;align-items:center;cursor:pointer;transition:background .1s" onmouseenter="this.style.background='#fafafa'" onmouseleave="this.style.background=''" onclick="openPatientModal(${p.id})">
 
@@ -4349,6 +4366,59 @@ async function loadPsyToday(){
   rerender();
 }
 loadPsyToday();
+
+async function loadPsyPatients(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  // 1. Pacientes asignados
+  const { data: patients } = await sb.from('patients')
+    .select('id, nombre, apellidos, email, phone, status, categoria, plan_elegido, updated_at, created_at')
+    .eq('psychologist_id', user.id);
+  if(!patients){ _psyPatients.loaded=true; rerender(); return; }
+  // 2. Bonos activos en bulk
+  const patIds = patients.map(p=>p.id);
+  let bonosMap = {};
+  if(patIds.length){
+    const { data: bonos } = await sb.from('bonos')
+      .select('patient_id, sesiones_total, sesiones_usadas, fecha_caducidad, activo')
+      .in('patient_id', patIds)
+      .eq('activo', true);
+    (bonos||[]).forEach(b => { bonosMap[b.patient_id] = b; });
+  }
+  // 3. Contar mensajes no leídos
+  let unreadMap = {};
+  for(const p of patients){
+    const { count } = await sb.from('messages')
+      .select('id', { count:'exact', head:true })
+      .eq('patient_id', p.id)
+      .eq('sender_role', 'patient')
+      .eq('leido', false);
+    unreadMap[p.id] = count || 0;
+  }
+  // 4. Mapear al formato esperado
+  _psyPatients.list = patients.map(p => {
+    const b = bonosMap[p.id];
+    const cat = p.categoria==='pareja' ? 'Pareja' : p.categoria==='psiquiatra' ? 'Psiquiatría' : 'Individual';
+    const plan = `${cat} · ${p.plan_elegido==='mensual'?'Bono mensual':'Sesión'}`;
+    return {
+      id: p.id,
+      name: `${p.nombre||''} ${p.apellidos||''}`.trim() || 'Paciente',
+      initials: ((p.nombre?.[0]||'')+(p.apellidos?.[0]||'')).toUpperCase()||'?',
+      email: p.email||'',
+      status: p.status==='pagado_sin_asignar' ? 'pausa' : (p.status==='baja' ? 'baja' : 'activo'),
+      plan,
+      used: b?.sesiones_usadas || 0,
+      total: b?.sesiones_total || (p.plan_elegido==='mensual'?4:1),
+      caducidad: b?.fecha_caducidad ? new Date(b.fecha_caducidad).toLocaleDateString('es-ES',{day:'numeric',month:'short'}) : '—',
+      unread: unreadMap[p.id] || 0,
+      nextSession: '—',
+      alta: new Date(p.created_at || Date.now()).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}),
+    };
+  });
+  _psyPatients.loaded = true;
+  rerender();
+}
+loadPsyPatients();
 </script>
 
 <!-- Botón flotante WhatsApp soporte -->
