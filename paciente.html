@@ -2046,7 +2046,76 @@ function renderNav(){
     btn.classList.toggle('active', nav==='mas' ? masIds.includes(currentNav) : nav===currentNav);
   });
 }
+// ── Estado del paciente en Supabase ─────────────────────────────
+let _patState = { loading:true, loaded:false, status:null, nombre:'', psychName:'', sesiones:0 };
+
+async function loadPatientState(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user){ _patState.loading=false; return; }
+  const { data: pat } = await sb.from('patients')
+    .select('nombre, apellidos, status, psychologist_id, psychologists(nombre, apellidos)')
+    .eq('id', user.id)
+    .maybeSingle();
+  if(pat){
+    _patState.status = pat.status;
+    _patState.nombre = pat.nombre;
+    _patState.psychName = pat.psychologists ? `${pat.psychologists.nombre} ${pat.psychologists.apellidos||''}`.trim() : '';
+  }
+  // Cargar total de sesiones disponibles (sumadas de compras)
+  if(user){
+    const { data: compras } = await sb.from('compras')
+      .select('sesiones')
+      .eq('patient_id', user.id)
+      .eq('estado','pagada');
+    _patState.sesiones = (compras||[]).reduce((a,c)=>a+(c.sesiones||0), 0);
+  }
+  _patState.loading=false; _patState.loaded=true;
+  rerender();
+}
+
+function renderWaitingScreen(){
+  const nombre1 = (_patState.nombre||'').split(' ')[0] || 'Hola';
+  return `<div style="max-width:560px;margin:60px auto;padding:0 24px;animation:fadeUp .4s ease">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:72px;height:72px;border-radius:50%;background:#f0fdf8;color:#20dc95;display:inline-flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:16px">✓</div>
+      <h1 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:8px">¡Bienvenida, ${nombre1}!</h1>
+      <p style="font-size:14px;color:#6b7280;line-height:1.6">Hemos recibido tu pago correctamente.<br>Tu <strong>bono está activo: ${_patState.sesiones} sesion${_patState.sesiones===1?'':'es'}</strong> disponibles.</p>
+    </div>
+    <div style="background:#f0fdf8;border:1px solid #d1fae5;border-radius:14px;padding:22px 24px;margin-bottom:20px">
+      <div style="font-size:13px;font-weight:800;color:#065f46;margin-bottom:14px">¿Qué pasa ahora?</div>
+      ${[
+        ['1','Te llamamos en menos de 24h'],
+        ['2','Hablamos 10 min para conocer mejor tu situación'],
+        ['3','Te asignamos la psicóloga ideal para ti'],
+        ['4','Recibes confirmación por email y ya podrás reservar tu primera cita'],
+      ].map(([n,t])=>`
+        <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-start">
+          <div style="width:24px;height:24px;border-radius:50%;background:#20dc95;color:#065f46;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0">${n}</div>
+          <span style="font-size:13px;color:#065f46;line-height:1.5">${t}</span>
+        </div>`).join('')}
+    </div>
+    <div style="background:#fafafa;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;display:flex;gap:12px;align-items:center;font-size:12px;color:#6b7280">
+      <span style="font-size:20px">📞</span>
+      <span>¿Dudas? Escríbenos a <strong style="color:#111827">info@popempower.com</strong><br>o WhatsApp al <strong style="color:#111827">699 201 600</strong></span>
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <button onclick="loadPatientState()" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;text-decoration:underline">Refrescar estado</button>
+    </div>
+  </div>`;
+}
+
 function renderTab(){
+  // Pantalla de carga inicial mientras consultamos el estado en Supabase
+  if(_patState.loading){
+    document.getElementById('tabcontent').innerHTML = `<div style="text-align:center;padding:80px 20px;color:#9ca3af;font-size:13px">Cargando...</div>`;
+    return;
+  }
+  // Si el paciente pagó pero aún no le hemos asignado psicóloga, vista bloqueante
+  if(_patState.status === 'pagado_sin_asignar'){
+    document.getElementById('tabcontent').innerHTML = renderWaitingScreen();
+    document.getElementById('topbar-title').textContent = 'Bienvenida';
+    return;
+  }
   document.getElementById('tabcontent').innerHTML=TABS_FN[currentNav]();
   document.getElementById('topbar-title').textContent=NAV_ITEMS.find(n=>n.id===currentNav)?.label||'';
   if(currentNav==='mensajes'){
@@ -2409,6 +2478,12 @@ function submitDeleteAccount(){
 window.addEventListener('load', ciInit);
 
 rerender();
+loadPatientState();
+// Mensaje si vuelve de Stripe tras pagar
+if(new URLSearchParams(location.search).get('paid')==='1'){
+  setTimeout(()=>showToast('✓ Pago recibido. Te contactaremos en menos de 24h'), 800);
+  history.replaceState({}, '', location.pathname);
+}
 if(!localStorage.getItem('pop_tour_done') && localStorage.getItem('pop_consent')){ setTimeout(startTour, 600); }
 </script>
 <!-- Botón flotante WhatsApp soporte -->
