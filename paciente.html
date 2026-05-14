@@ -168,9 +168,9 @@ input{font-family:inherit}
       <div style="font-size:11px;color:#065f46;opacity:.7">18:00 · Elena</div>
     </div>
     <div class="sidebar-user">
-      <div class="av" style="width:30px;height:30px;background:#20dc95;font-size:10px;color:#065f46">AM</div>
+      <div class="av" id="sb-user-av" style="width:30px;height:30px;background:#20dc95;font-size:10px;color:#065f46">??</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:12px;color:#111827">Ana Martínez</div>
+        <div id="sb-user-name" style="font-weight:600;font-size:12px;color:#111827">—</div>
         <div style="font-size:11px;color:#9ca3af">Paciente</div>
       </div>
       <button onclick="navigate('ajustes')" title="Ajustes" style="background:none;border:none;color:#9ca3af;font-size:14px;padding:2px 4px;cursor:pointer">⚙</button>
@@ -184,8 +184,8 @@ input{font-family:inherit}
     <div id="topbar">
       <span id="topbar-title" style="flex:1;font-weight:700;font-size:14px;color:#111827"></span>
       <div style="display:flex;gap:8px;align-items:center">
-        <div class="av" style="width:24px;height:24px;background:#20dc95;font-size:8px;color:#065f46">EG</div>
-        <span style="font-size:12px;color:#6b7280">Dra. Elena García</span>
+        <div class="av" id="tb-psy-av" style="width:24px;height:24px;background:#20dc95;font-size:8px;color:#065f46">??</div>
+        <span id="tb-psy-name" style="font-size:12px;color:#6b7280">—</span>
         <div style="width:7px;height:7px;border-radius:50%;background:#20dc95"></div>
       </div>
       <!-- Selector de idioma -->
@@ -705,7 +705,7 @@ function tabInicio() {
 
     <!-- Header -->
     <div style="margin-bottom:18px">
-      <h1 style="font-size:22px;font-weight:800;color:#111827;margin-bottom:3px">${greet()}, Ana ${greetIcon()}</h1>
+      <h1 style="font-size:22px;font-weight:800;color:#111827;margin-bottom:3px">${greet()}, ${_patState.nombre || 'usuaria'} ${greetIcon()}</h1>
       <p style="color:#6b7280">${todayStr()}</p>
     </div>
 
@@ -2047,30 +2047,99 @@ function renderNav(){
   });
 }
 // ── Estado del paciente en Supabase ─────────────────────────────
-let _patState = { loading:true, loaded:false, status:null, nombre:'', psychName:'', sesiones:0 };
+let _patState = {
+  loading:true, loaded:false,
+  status:null,
+  // Perfil
+  id:'', nombre:'', apellidos:'', email:'', initials:'',
+  // Psicóloga asignada
+  psychId:'', psychNombre:'', psychApellidos:'', psychInitials:'', psychFullName:'',
+  // Bono activo
+  bonoTotal:0, bonoUsadas:0, bonoCaducidad:null,
+  // Sesiones cargadas
+  sesiones: [],
+  // Sesiones disponibles (suma de compras pagadas)
+  sesionesCompradas: 0,
+};
+
+function _initials(nombre, apellidos){
+  return ((nombre||'').trim().charAt(0) + (apellidos||'').trim().charAt(0)).toUpperCase() || '?';
+}
 
 async function loadPatientState(){
   const { data: { user } } = await sb.auth.getUser();
-  if(!user){ _patState.loading=false; return; }
+  if(!user){ _patState.loading=false; _patState.loaded=true; rerender(); return; }
+
+  // Perfil + psicóloga asignada
   const { data: pat } = await sb.from('patients')
-    .select('nombre, apellidos, status, psychologist_id, psychologists(nombre, apellidos)')
+    .select('id, nombre, apellidos, email, status, psychologist_id, psychologists(id, nombre, apellidos)')
     .eq('id', user.id)
     .maybeSingle();
+
   if(pat){
+    _patState.id = pat.id;
+    _patState.nombre = pat.nombre || '';
+    _patState.apellidos = pat.apellidos || '';
+    _patState.email = pat.email || user.email || '';
+    _patState.initials = _initials(pat.nombre, pat.apellidos);
     _patState.status = pat.status;
-    _patState.nombre = pat.nombre;
-    _patState.psychName = pat.psychologists ? `${pat.psychologists.nombre} ${pat.psychologists.apellidos||''}`.trim() : '';
+    if(pat.psychologists){
+      _patState.psychId = pat.psychologists.id;
+      _patState.psychNombre = pat.psychologists.nombre || '';
+      _patState.psychApellidos = pat.psychologists.apellidos || '';
+      _patState.psychInitials = _initials(pat.psychologists.nombre, pat.psychologists.apellidos);
+      _patState.psychFullName = `Dra. ${_patState.psychNombre} ${_patState.psychApellidos}`.trim();
+    }
   }
-  // Cargar total de sesiones disponibles (sumadas de compras)
-  if(user){
-    const { data: compras } = await sb.from('compras')
-      .select('sesiones')
-      .eq('patient_id', user.id)
-      .eq('estado','pagada');
-    _patState.sesiones = (compras||[]).reduce((a,c)=>a+(c.sesiones||0), 0);
+
+  // Bono activo
+  const { data: bono } = await sb.from('bonos')
+    .select('sesiones_total, sesiones_usadas, fecha_caducidad, activo')
+    .eq('patient_id', user.id)
+    .eq('activo', true)
+    .order('fecha_compra', {ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(bono){
+    _patState.bonoTotal = bono.sesiones_total || 0;
+    _patState.bonoUsadas = bono.sesiones_usadas || 0;
+    _patState.bonoCaducidad = bono.fecha_caducidad || null;
   }
+
+  // Sesiones del paciente (futuras y pasadas)
+  const { data: sess } = await sb.from('sessions')
+    .select('id, fecha, duracion, status, motivo_cancelacion')
+    .eq('patient_id', user.id)
+    .order('fecha', {ascending:true});
+  _patState.sesiones = sess || [];
+
+  // Sesiones compradas (suma de bonos/compras pagadas)
+  const { data: compras } = await sb.from('compras')
+    .select('sesiones')
+    .eq('patient_id', user.id)
+    .eq('estado','pagada');
+  _patState.sesionesCompradas = (compras||[]).reduce((a,c)=>a+(c.sesiones||0), 0);
+
   _patState.loading=false; _patState.loaded=true;
+  applyPatientUI();
   rerender();
+}
+
+function applyPatientUI(){
+  const av = document.getElementById('sb-user-av');
+  const nm = document.getElementById('sb-user-name');
+  const psyAv = document.getElementById('tb-psy-av');
+  const psyNm = document.getElementById('tb-psy-name');
+  const fullName = `${_patState.nombre} ${_patState.apellidos}`.trim();
+  if(av) av.textContent = _patState.initials || '?';
+  if(nm) nm.textContent = fullName || '—';
+  if(_patState.psychFullName){
+    if(psyAv) psyAv.textContent = _patState.psychInitials || '??';
+    if(psyNm) psyNm.textContent = _patState.psychFullName;
+  } else {
+    if(psyAv) psyAv.textContent = '—';
+    if(psyNm) psyNm.textContent = 'Sin asignar';
+  }
 }
 
 function renderWaitingScreen(){
@@ -2079,7 +2148,7 @@ function renderWaitingScreen(){
     <div style="text-align:center;margin-bottom:28px">
       <div style="width:72px;height:72px;border-radius:50%;background:#f0fdf8;color:#20dc95;display:inline-flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:16px">✓</div>
       <h1 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:8px">¡Bienvenida, ${nombre1}!</h1>
-      <p style="font-size:14px;color:#6b7280;line-height:1.6">Hemos recibido tu pago correctamente.<br>Tu <strong>bono está activo: ${_patState.sesiones} sesion${_patState.sesiones===1?'':'es'}</strong> disponibles.</p>
+      <p style="font-size:14px;color:#6b7280;line-height:1.6">Hemos recibido tu pago correctamente.<br>Tu <strong>bono está activo: ${_patState.sesionesCompradas} sesion${_patState.sesionesCompradas===1?'':'es'}</strong> disponibles.</p>
     </div>
     <div style="background:#f0fdf8;border:1px solid #d1fae5;border-radius:14px;padding:22px 24px;margin-bottom:20px">
       <div style="font-size:13px;font-weight:800;color:#065f46;margin-bottom:14px">¿Qué pasa ahora?</div>
