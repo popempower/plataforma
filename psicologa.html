@@ -583,6 +583,9 @@ function miniCalendar(){
 }
 
 // ── TAB: INICIO ───────────────────────────────────────────────────
+// Estado: sesiones reales de hoy para la psicóloga logueada
+let _psyToday = { loaded:false, sessions:[] };
+
 function tabInicio(){
   // Si hay sesiones reales de Supabase, usarlas; si no, mock
   const SESSIONS_TODAY = (_psyToday.loaded && _psyToday.sessions.length > 0) ? _psyToday.sessions : TODAY_SESSIONS;
@@ -4174,8 +4177,6 @@ function renderTourStep(){
 
 rerender();
 
-// ── Cargar sesiones reales de hoy para esta psicóloga ────────────
-let _psyToday = { loaded:false, sessions:[] };
 async function loadPsyToday(){
   const { data: { user } } = await sb.auth.getUser();
   if(!user) return;
