@@ -496,7 +496,22 @@ function rerender(){
   renderBrand();
 }
 
-rerender();
+// Detectar retorno desde Stripe: redirigir al portal del paciente
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('paid') === '1') {
+    const { data: { user } } = await sb.auth.getUser();
+    if (user) {
+      const { data: pat } = await sb.from('patients').select('nombre,email').eq('id', user.id).single();
+      if (pat) {
+        localStorage.setItem('pop_session', JSON.stringify({ email: pat.email, role: 'paciente', name: pat.nombre, id: user.id }));
+      }
+      window.location.href = 'paciente.html?paid=1';
+      return;
+    }
+  }
+  rerender();
+})();
 </script>
 </body>
 </html>
