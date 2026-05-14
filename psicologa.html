@@ -1125,7 +1125,24 @@ function tabPacientes(){
 
 // ── TAB: MENSAJES ─────────────────────────────────────────────────
 function tabMensajes(){
-  const conv = activeChat ? chatMessages.find(c=>c.patientId===activeChat) : null;
+  // Usar conversaciones reales si están cargadas
+  const useReal = _psyMsgs.loaded;
+  const conversations = useReal ? _psyMsgs.conversations : chatMessages.map(c=>({
+    patientId:c.patientId, patient:c.patient, initials:c.initials,
+    lastText:c.msgs[c.msgs.length-1]?.text||'', lastTime:c.msgs[c.msgs.length-1]?.time||'',
+    unread:0,
+  }));
+
+  // Conversación activa
+  let conv = null;
+  if(useReal && _psyMsgs.activeChat === activeChat){
+    const meta = conversations.find(c=>c.patientId===activeChat);
+    if(meta) conv = { ...meta, msgs: _psyMsgs.messages };
+  } else if(!useReal && activeChat){
+    const c = chatMessages.find(c=>c.patientId===activeChat);
+    if(c) conv = { patientId:c.patientId, patient:c.patient, initials:c.initials, msgs:c.msgs };
+  }
+
   return `<div style="flex:1;display:flex;overflow:hidden" class="fadeUp">
     <!-- List -->
     <div style="width:280px;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;background:#fff;flex-shrink:0">
@@ -1134,19 +1151,20 @@ function tabMensajes(){
         <input class="field-input" placeholder="🔍 Buscar..." style="font-size:12px;padding:7px 11px"/>
       </div>
       <div style="flex:1;overflow:auto">
-        ${chatMessages.map(c=>{
-          const last=c.msgs[c.msgs.length-1];
+        ${conversations.length===0 ? `<div style="padding:24px 14px;text-align:center;color:#9ca3af;font-size:12px">No tienes pacientes asignados aún</div>` : ''}
+        ${conversations.map(c=>{
           const isActive=activeChat===c.patientId;
-          return `<div onclick="openChat(${c.patientId})" style="display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;background:${isActive?'#f0fdf8':'transparent'};transition:background .1s" onmouseenter="if(${!isActive})this.style.background='#fafafa'" onmouseleave="if(${!isActive})this.style.background='${isActive?'#f0fdf8':'transparent'}'">
+          const patIdAttr = typeof c.patientId === 'string' ? `'${c.patientId}'` : c.patientId;
+          return `<div onclick="openChat(${patIdAttr})" style="display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;background:${isActive?'#f0fdf8':'transparent'}">
             ${av(c.initials,36,true)}
             <div style="flex:1;min-width:0">
               <div style="display:flex;justify-content:space-between;margin-bottom:2px">
                 <span style="font-weight:600;font-size:13px;color:#111827">${c.patient}</span>
-                <span style="font-size:10px;color:#9ca3af">${last.time}</span>
+                <span style="font-size:10px;color:#9ca3af">${c.lastTime||''}</span>
               </div>
-              <div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${last.text}</div>
+              <div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.lastText}</div>
             </div>
-            <div class="dot" style="background:#20dc95;margin-left:4px;flex-shrink:0;margin-top:4px"></div>
+            ${c.unread?`<div style="background:#20dc95;color:#065f46;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;align-self:center">${c.unread}</div>`:''}
           </div>`;
         }).join('')}
       </div>
@@ -1159,14 +1177,12 @@ function tabMensajes(){
           <div style="font-weight:700;font-size:14px;color:#111827">${conv.patient}</div>
           <div style="font-size:11px;color:#20dc95;font-weight:600">● En línea</div>
         </div>
-        <button onclick="openPatientModal(${conv.patientId})" class="btn-gray" style="font-size:11px;padding:6px 12px">Ver ficha →</button>
       </div>
       <div id="chat-msgs" style="flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:10px;background:#fafafa">
-        ${conv.msgs.map((m,i)=>{
+        ${conv.msgs.length===0?`<div style="text-align:center;color:#9ca3af;padding:40px 20px;font-size:13px">Aún no hay mensajes. Escribe el primero a ${conv.patient}.</div>`:''}
+        ${conv.msgs.map(m=>{
           const mine=m.from==='psych';
-          const showDate=m.date&&(i===0||conv.msgs[i-1].date!==m.date);
-          return `${showDate?`<div style="text-align:center;margin:4px 0"><span style="font-size:11px;color:#9ca3af;background:#f3f4f6;border-radius:10px;padding:3px 10px">${m.date}</span></div>`:''}
-          <div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'}">
+          return `<div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'}">
             <div style="max-width:70%;padding:9px 13px;border-radius:${mine?'14px 14px 2px 14px':'14px 14px 14px 2px'};background:${mine?'#f0fdf8':'#fff'};border:1px solid ${mine?'#d1fae5':'#e5e7eb'};font-size:13px;line-height:1.5;color:#111827">${m.text}</div>
             <span style="font-size:10px;color:#9ca3af;margin-top:2px">${m.time}</span>
           </div>`;
@@ -2965,16 +2981,125 @@ function showModal(html){
 function closeModal(){ document.getElementById('active-modal')?.remove(); }
 
 // ── ACTIONS ───────────────────────────────────────────────────────
-function openChat(patId){ activeChat=patId; navigate('mensajes'); }
-function sendChatMsg(){
+function openChat(patId){
+  activeChat=patId;
+  // Si es UUID real de Supabase, carga mensajes
+  if(typeof patId === 'string' && patId.length > 8) loadPsyChatWith(patId);
+  navigate('mensajes');
+}
+async function sendChatMsg(){
   const i=document.getElementById('chat-input'); if(!i) return;
   const text=i.value.trim(); if(!text) return;
   i.value='';
+  // Si activeChat es UUID real → enviar a Supabase
+  if(typeof activeChat === 'string' && activeChat.length > 8){
+    await sendPsyMessage(activeChat, text);
+    return;
+  }
   const now=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
   const conv=chatMessages.find(c=>c.patientId===activeChat);
   if(conv) conv.msgs.push({from:'psych',text,time:now});
   rerender();
   setTimeout(()=>{const c=document.getElementById('chat-msgs');if(c)c.scrollTop=c.scrollHeight;},50);
+}
+
+// ── Chat real con Supabase ────────────────────────────────────────
+let _psyMsgs = { loaded:false, psyId:null, conversations:[], activeChat:null, messages:[], pollInterval:null };
+
+async function loadPsyConversations(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  _psyMsgs.psyId = user.id;
+  // Cargar pacientes asignados
+  const { data: patients } = await sb.from('patients')
+    .select('id, nombre, apellidos')
+    .eq('psychologist_id', user.id);
+  if(!patients) return;
+  // Para cada paciente, último mensaje
+  const convos = await Promise.all(patients.map(async p => {
+    const { data: msgs } = await sb.from('messages')
+      .select('id, sender_role, contenido, leido, created_at')
+      .eq('patient_id', p.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const last = (msgs||[])[0];
+    const unread = await sb.from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('patient_id', p.id)
+      .eq('sender_role', 'patient')
+      .eq('leido', false);
+    return {
+      patientId: p.id,
+      patient: `${p.nombre||''} ${p.apellidos||''}`.trim(),
+      initials: ((p.nombre?.[0]||'')+(p.apellidos?.[0]||'')).toUpperCase() || '?',
+      lastText: last?.contenido || '(sin mensajes)',
+      lastTime: last ? new Date(last.created_at).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}) : '',
+      lastAt: last?.created_at || null,
+      unread: unread.count || 0,
+    };
+  }));
+  // Ordenar por último mensaje
+  convos.sort((a,b)=>{
+    if(!a.lastAt) return 1; if(!b.lastAt) return -1;
+    return new Date(b.lastAt) - new Date(a.lastAt);
+  });
+  _psyMsgs.conversations = convos;
+  _psyMsgs.loaded = true;
+  rerender();
+}
+
+async function loadPsyChatWith(patientId){
+  _psyMsgs.activeChat = patientId;
+  const { data } = await sb.from('messages')
+    .select('id, sender_role, contenido, leido, created_at')
+    .eq('patient_id', patientId)
+    .order('created_at', { ascending: true });
+  _psyMsgs.messages = (data||[]).map(m => {
+    const d = new Date(m.created_at);
+    return {
+      id: m.id,
+      from: m.sender_role === 'psychologist' ? 'psych' : 'patient',
+      text: m.contenido,
+      time: String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+    };
+  });
+  // Marcar mensajes del paciente como leídos
+  const unreadIds = (data||[]).filter(m=>m.sender_role==='patient' && !m.leido).map(m=>m.id);
+  if(unreadIds.length){
+    await sb.from('messages').update({ leido: true }).in('id', unreadIds);
+  }
+  if(currentNav==='mensajes') rerender();
+  setTimeout(()=>{const c=document.getElementById('chat-msgs');if(c)c.scrollTop=c.scrollHeight;},80);
+}
+
+async function sendPsyMessage(patientId, text){
+  if(!_psyMsgs.psyId) return;
+  const { data, error } = await sb.from('messages').insert({
+    patient_id: patientId,
+    psychologist_id: _psyMsgs.psyId,
+    sender_role: 'psychologist',
+    contenido: text,
+  }).select('id, sender_role, contenido, created_at').single();
+  if(error){ alert('Error: '+error.message); return; }
+  const d = new Date(data.created_at);
+  _psyMsgs.messages.push({
+    id: data.id, from:'psych', text: data.contenido,
+    time: String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+  });
+  rerender();
+  setTimeout(()=>{const c=document.getElementById('chat-msgs');if(c)c.scrollTop=c.scrollHeight;},50);
+}
+
+function startPsyMsgPolling(){
+  if(_psyMsgs.pollInterval) return;
+  _psyMsgs.pollInterval = setInterval(()=>{
+    if(currentNav!=='mensajes') return;
+    if(_psyMsgs.activeChat) loadPsyChatWith(_psyMsgs.activeChat);
+    loadPsyConversations();
+  }, 10000);
+}
+function stopPsyMsgPolling(){
+  if(_psyMsgs.pollInterval){ clearInterval(_psyMsgs.pollInterval); _psyMsgs.pollInterval=null; }
 }
 function openMonthDayModal(dayNum, dateStr, sessions){
   const MONTH_LABEL='Abril';
@@ -3947,6 +4072,12 @@ function rerender(){ renderNav(); renderTab(); }
 function navigate(id){
   currentNav=id; closeMasMenu();
   if(id==='facturacion' && !_bs.loaded && !_bs.loading) bsLoad();
+  if(id==='mensajes'){
+    loadPsyConversations();
+    startPsyMsgPolling();
+  } else {
+    stopPsyMsgPolling();
+  }
   rerender();
 }
 function toggleMasMenu(){ const o=document.getElementById('mas-overlay'); if(o) o.style.display=o.style.display==='flex'?'none':'flex'; }
