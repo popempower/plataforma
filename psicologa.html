@@ -587,6 +587,8 @@ function miniCalendar(){
 let _psyToday = { loaded:false, sessions:[] };
 // Estado: pacientes reales asignados a esta psicóloga
 let _psyPatients = { loaded:false, list:[] };
+// Estado: notas clínicas agrupadas por patient_id
+let _psyNotes = { loaded:false, byPatient:{} };
 
 function tabInicio(){
   // Filtrar solo sesiones de HOY (no de toda la semana)
@@ -711,7 +713,7 @@ function tabInicio(){
               const isCan=s.status==='cancelada'||s.status==='cancelada_cobro';
               const idArg = typeof s.id === 'string' ? `'${s.id}'` : s.id;
               const patientArg = (s.patient||'').replace(/'/g,'');
-              return `<div class="ses-row" style="background:${active?'#fffbeb':isCan?'#fff7ed':'transparent'}" onclick="${!isProg&&!isCan&&typeof s.id!=='string'?`openNotesModal(${s.id})`:''}">
+              return `<div class="ses-row" style="background:${active?'#fffbeb':isCan?'#fff7ed':'transparent'}" onclick="${!isProg&&!isCan?`openNotesModal(${idArg})`:''}">
                 <div style="width:40px;font-size:12px;font-weight:700;color:${active?'#f59e0b':'#6b7280'};flex-shrink:0">${s.time}</div>
                 <div class="dot" style="background:${st.dot};flex-shrink:0"></div>
                 ${av(s.initials,28,active)}
@@ -722,7 +724,7 @@ function tabInicio(){
                 <span style="background:${st.bg};color:${st.color};border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0">${active?'● En curso':st.label}</span>
                 <div style="display:flex;gap:5px;flex-shrink:0">
                   ${(active||isProg)?`<button onclick="event.stopPropagation();enterSession('${patientArg}','${s.initials}', ${idArg})" style="background:${active?'#f59e0b':'#20dc95'};color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">Entrar →</button>`:''}
-                  ${s.status==='realizada'?`<button onclick="event.stopPropagation();openNotesModal(${s.id})" style="background:${s.notes?'#f0fdf8':'#f3f4f6'};color:${s.notes?'#065f46':'#6b7280'};border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">${s.notes?'✓ Notas':'+ Notas'}</button>`:''}
+                  ${s.status==='realizada'?`<button onclick="event.stopPropagation();openNotesModal(${idArg})" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">+ Notas</button>`:''}
                   ${!isCan?`<button onclick="event.stopPropagation();openSesActions(${s.id})" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:6px;width:28px;height:28px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Acciones">⋮</button>`:''}
                 </div>
               </div>`;
@@ -1286,12 +1288,16 @@ function tabMensajes(){
 
 // ── TAB: NOTAS / HISTORIAL CLÍNICO ───────────────────────────────
 function tabNotas(){
-  const activePatients = PATIENTS.filter(p=>p.status==='activo'||p.status==='pausa');
-  const selectedPat = notesFilter ? PATIENTS.find(p=>p.id===notesFilter) : null;
+  // Si hay pacientes reales, usarlos; si no, mock
+  const useReal = _psyPatients.loaded;
+  const ALL_PATS = useReal ? _psyPatients.list : PATIENTS;
+  const activePatients = ALL_PATS.filter(p=>p.status==='activo'||p.status==='pausa');
+  const selectedPat = notesFilter ? ALL_PATS.find(p=>p.id===notesFilter) : null;
 
   function renderPatientHistory(p){
-    const notes = CLINICAL_NOTES[p.id]||[];
-    const st=PAT_ST[p.status];
+    const notes = useReal ? (_psyNotes.byPatient[p.id]||[]) : (CLINICAL_NOTES[p.id]||[]);
+    const idArg = typeof p.id === 'string' ? `'${p.id}'` : p.id;
+    const st=PAT_ST[p.status] || PAT_ST.activo;
     return `<div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
       <div style="padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px;background:#fafafa">
         ${av(p.initials,38,p.status==='activo')}
@@ -1300,7 +1306,7 @@ function tabNotas(){
           <div style="font-size:11px;color:#9ca3af;margin-top:2px">${p.plan} · ${p.used}/${p.total} sesiones · Alta: ${p.alta}</div>
         </div>
         <span style="background:${st.bg};color:${st.color};border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600">${st.label}</span>
-        <button onclick="openAddNoteModal(${p.id})" style="background:#20dc95;color:#065f46;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">+ Añadir nota</button>
+        <button onclick="openAddNoteModal(${idArg})" style="background:#20dc95;color:#065f46;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">+ Añadir nota</button>
       </div>
       ${notes.length===0?`<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px">Sin notas clínicas todavía</div>`:''}
       ${notes.map((n,i)=>{
@@ -1310,7 +1316,7 @@ function tabNotas(){
             <span style="font-size:12px;font-weight:700;color:#111827">Sesión ${n.sesNum}</span>
             <span style="font-size:11px;color:#9ca3af">· ${n.date}</span>
             <span style="background:${sst.bg};color:${sst.color};border-radius:5px;padding:1px 8px;font-size:10px;font-weight:600">${sst.label}</span>
-            <button onclick="openEditNoteModal(${p.id},${i})" style="margin-left:auto;background:none;border:1px solid #e5e7eb;border-radius:6px;padding:3px 10px;font-size:11px;color:#6b7280;cursor:pointer">Editar</button>
+            <button onclick="openEditNoteModal(${idArg},${i})" style="margin-left:auto;background:none;border:1px solid #e5e7eb;border-radius:6px;padding:3px 10px;font-size:11px;color:#6b7280;cursor:pointer">Editar</button>
           </div>
           <p style="font-size:13px;color:#374151;line-height:1.65;white-space:pre-wrap">${n.text}</p>
         </div>`;
@@ -1318,7 +1324,7 @@ function tabNotas(){
     </div>`;
   }
 
-  const patientsToShow = notesFilter ? [PATIENTS.find(p=>p.id===notesFilter)].filter(Boolean) : activePatients;
+  const patientsToShow = notesFilter ? [ALL_PATS.find(p=>p.id===notesFilter)].filter(Boolean) : activePatients;
 
   return `<div style="flex:1;overflow:auto;padding:22px 26px" class="fadeUp">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
@@ -1327,11 +1333,11 @@ function tabNotas(){
         <p style="font-size:12px;color:#9ca3af;margin-top:2px">Notas privadas por sesión. Solo tú puedes verlas.</p>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <select class="field-input" style="width:220px;font-size:12px;padding:7px 11px" onchange="notesFilter=this.value?parseInt(this.value):null;rerender()">
+        <select class="field-input" style="width:220px;font-size:12px;padding:7px 11px" onchange="notesFilter=this.value||null;if(notesFilter&&!isNaN(notesFilter))notesFilter=parseInt(notesFilter);rerender()">
           <option value="">Todos los pacientes</option>
           ${activePatients.map(p=>`<option value="${p.id}" ${notesFilter===p.id?'selected':''}>${p.name}</option>`).join('')}
         </select>
-        ${notesFilter?`<button onclick="openAddNoteModal(${notesFilter})" class="btn-green" style="padding:8px 16px;font-size:12px">+ Añadir nota</button>`:''}
+        ${notesFilter?`<button onclick="openAddNoteModal(${typeof notesFilter==='string'?`'${notesFilter}'`:notesFilter})" class="btn-green" style="padding:8px 16px;font-size:12px">+ Añadir nota</button>`:''}
       </div>
     </div>
     ${patientsToShow.map(p=>renderPatientHistory(p)).join('')}
@@ -2804,8 +2810,26 @@ function contractSign(){
 }
 
 // ── MODALS ────────────────────────────────────────────────────────
-function openNotesModal(sesId){
-  const s=TODAY_SESSIONS.find(x=>x.id===sesId); if(!s) return;
+async function openNotesModal(sesId){
+  // Buscar en sesiones reales o mock
+  let s = _psyToday.sessions.find(x => x.id===sesId);
+  let isReal = !!s;
+  if(!s) s = TODAY_SESSIONS.find(x=>x.id===sesId);
+  if(!s) return;
+  const idArg = typeof sesId === 'string' ? `'${sesId}'` : sesId;
+
+  // Si la sesión es real (UUID), cargar nota existente de Supabase
+  let existingNote = '';
+  if(isReal){
+    const { data } = await sb.from('clinical_notes')
+      .select('contenido')
+      .eq('session_id', sesId)
+      .maybeSingle();
+    if(data?.contenido) existingNote = data.contenido;
+  } else {
+    existingNote = s.notes || '';
+  }
+
   showModal(`<div class="modal-box" style="width:500px">
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
       <div><div style="font-weight:700;font-size:15px;color:#111827">Notas de sesión</div>
@@ -2815,25 +2839,18 @@ function openNotesModal(sesId){
     <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px">
       <div>
         <label class="field-label">Estado de la sesión</label>
-        <div style="display:flex;gap:8px">
-          ${['realizada','cancelada','cancelada_cobro'].map(st=>`<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.borderColor='#e5e7eb';b.style.background='#fff';b.style.color='#6b7280'});this.style.borderColor='#20dc95';this.style.background='#f0fdf8';this.style.color='#065f46'" style="padding:7px 14px;border-radius:8px;border:1.5px solid ${s.status===st?'#20dc95':'#e5e7eb'};background:${s.status===st?'#f0fdf8':'#fff'};color:${s.status===st?'#065f46':'#6b7280'};font-weight:600;font-size:12px;cursor:pointer">${SES_ST[st]?.label||st}</button>`).join('')}
+        <div style="display:flex;gap:8px" id="notes-status-btns">
+          ${['realizada','cancelada','cancelada_cobro'].map(st=>`<button data-status="${st}" onclick="document.querySelectorAll('#notes-status-btns button').forEach(b=>{b.style.borderColor='#e5e7eb';b.style.background='#fff';b.style.color='#6b7280'});this.style.borderColor='#20dc95';this.style.background='#f0fdf8';this.style.color='#065f46'" style="padding:7px 14px;border-radius:8px;border:1.5px solid ${s.status===st?'#20dc95':'#e5e7eb'};background:${s.status===st?'#f0fdf8':'#fff'};color:${s.status===st?'#065f46':'#6b7280'};font-weight:600;font-size:12px;cursor:pointer">${SES_ST[st]?.label||st}</button>`).join('')}
         </div>
       </div>
       <div>
         <label class="field-label">Notas privadas (solo tú las ves)</label>
-        <textarea class="field-input" id="notes-text" placeholder="Observaciones, evolución, próximos objetivos..." style="min-height:110px">${s.notes||''}</textarea>
-      </div>
-      <div>
-        <label class="field-label">Próxima sesión</label>
-        <div style="display:flex;gap:8px">
-          <button class="btn-green" style="flex:2;padding:9px;font-size:12px" onclick="saveNotes(${sesId});navigate('sesiones')">Programar ahora</button>
-          <button class="btn-gray" style="flex:1;padding:9px;font-size:12px" onclick="saveNotes(${sesId})">Después</button>
-        </div>
+        <textarea class="field-input" id="notes-text" placeholder="Observaciones, evolución, próximos objetivos..." style="min-height:110px">${existingNote}</textarea>
       </div>
     </div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px">
       <button onclick="closeModal()" class="btn-gray">Cancelar</button>
-      <button onclick="saveNotes(${sesId})" class="btn-green">Guardar y cerrar</button>
+      <button onclick="saveNotes(${idArg})" class="btn-green">Guardar y cerrar</button>
     </div>
   </div>`);
 }
@@ -2843,10 +2860,46 @@ function openNotesModalPatient(patId){
   if(s) openNotesModal(s.id);
 }
 
-function saveNotes(sesId){
-  const text=document.getElementById('notes-text')?.value;
-  const s=TODAY_SESSIONS.find(x=>x.id===sesId);
-  if(s&&text) s.notes=text;
+async function saveNotes(sesId){
+  const text = document.getElementById('notes-text')?.value?.trim() || '';
+  const newStatus = document.querySelector('#notes-status-btns button[style*="20dc95"]')?.dataset.status;
+
+  // Si es sesión real (UUID), persistir en Supabase
+  if(typeof sesId === 'string' && sesId.length > 8){
+    const sess = _psyToday.sessions.find(x => x.id===sesId);
+    if(!sess){ closeModal(); return; }
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user){ closeModal(); return; }
+    // 1. Actualizar estado de la sesión si cambió
+    if(newStatus && newStatus !== sess.status){
+      await sb.from('sessions').update({ status: newStatus }).eq('id', sesId);
+    }
+    // 2. Upsert nota clínica
+    if(text){
+      // Buscar si ya existe
+      const { data: existing } = await sb.from('clinical_notes')
+        .select('id')
+        .eq('session_id', sesId)
+        .maybeSingle();
+      if(existing){
+        await sb.from('clinical_notes').update({ contenido: text, updated_at: new Date().toISOString() }).eq('id', existing.id);
+      } else {
+        await sb.from('clinical_notes').insert({
+          patient_id: sess.patientId,
+          psychologist_id: user.id,
+          session_id: sesId,
+          contenido: text,
+        });
+      }
+    }
+    showToast('✓ Notas guardadas');
+    _psyToday.loaded = false; await loadPsyToday();
+    closeModal();
+    return;
+  }
+  // Mock fallback
+  const s = TODAY_SESSIONS.find(x=>x.id===sesId);
+  if(s && text) s.notes = text;
   closeModal(); rerender();
 }
 
@@ -2982,9 +3035,12 @@ function openNewSesModal(){
 }
 
 function openAddNoteModal(patId){
-  const p=PATIENTS.find(x=>x.id===patId); if(!p) return;
-  const notes=CLINICAL_NOTES[patId]||[];
+  const useReal = typeof patId === 'string' && patId.length > 8;
+  const p = useReal ? _psyPatients.list.find(x=>x.id===patId) : PATIENTS.find(x=>x.id===patId);
+  if(!p) return;
+  const notes = useReal ? (_psyNotes.byPatient[patId]||[]) : (CLINICAL_NOTES[patId]||[]);
   const sesNum=(notes.length+1);
+  const idArg = useReal ? `'${patId}'` : patId;
   showModal(`<div class="modal-box" style="width:540px">
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
       <div>
@@ -3011,15 +3067,18 @@ function openAddNoteModal(patId){
     </div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px">
       <button onclick="closeModal()" class="btn-gray">Cancelar</button>
-      <button onclick="saveNewNote(${patId},${sesNum})" class="btn-green">Guardar nota</button>
+      <button onclick="saveNewNote(${idArg},${sesNum})" class="btn-green">Guardar nota</button>
     </div>
   </div>`);
 }
 
 function openEditNoteModal(patId,noteIdx){
-  const p=PATIENTS.find(x=>x.id===patId); if(!p) return;
-  const notes=CLINICAL_NOTES[patId]||[];
-  const n=notes[noteIdx]; if(!n) return;
+  const useReal = typeof patId === 'string' && patId.length > 8;
+  const p = useReal ? _psyPatients.list.find(x=>x.id===patId) : PATIENTS.find(x=>x.id===patId);
+  if(!p) return;
+  const notes = useReal ? (_psyNotes.byPatient[patId]||[]) : (CLINICAL_NOTES[patId]||[]);
+  const n = notes[noteIdx]; if(!n) return;
+  const idArg = useReal ? `'${patId}'` : patId;
   showModal(`<div class="modal-box" style="width:540px">
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
       <div>
@@ -3044,16 +3103,33 @@ function openEditNoteModal(patId,noteIdx){
     </div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px">
       <button onclick="closeModal()" class="btn-gray">Cancelar</button>
-      <button onclick="saveEditNote(${patId},${noteIdx})" class="btn-green">Guardar cambios</button>
+      <button onclick="saveEditNote(${idArg},${noteIdx})" class="btn-green">Guardar cambios</button>
     </div>
   </div>`);
 }
 
-function saveNewNote(patId,sesNum){
+async function saveNewNote(patId,sesNum){
   const text=document.getElementById('note-text')?.value?.trim();
-  const date=document.getElementById('note-date')?.value;
   const status=document.getElementById('note-status')?.value||'realizada';
   if(!text){alert('Escribe una nota antes de guardar.');return;}
+  // Si es paciente real (UUID), persistir en Supabase
+  if(typeof patId === 'string' && patId.length > 8){
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user){ closeModal(); return; }
+    const { error } = await sb.from('clinical_notes').insert({
+      patient_id: patId,
+      psychologist_id: user.id,
+      contenido: text,
+      tags: [status],
+    });
+    if(error){ showToast('Error: '+error.message); return; }
+    showToast('✓ Nota guardada');
+    _psyNotes.loaded = false; await loadPsyNotes();
+    closeModal();
+    return;
+  }
+  // Mock fallback
+  const date=document.getElementById('note-date')?.value;
   if(!CLINICAL_NOTES[patId]) CLINICAL_NOTES[patId]=[];
   const d=new Date(date);
   const formatted=d.toLocaleDateString('es',{day:'numeric',month:'short',year:'numeric'}).replace('.','');
@@ -3061,10 +3137,24 @@ function saveNewNote(patId,sesNum){
   closeModal(); rerender();
 }
 
-function saveEditNote(patId,noteIdx){
+async function saveEditNote(patId,noteIdx){
   const text=document.getElementById('note-text')?.value?.trim();
   const status=document.getElementById('note-status')?.value||'realizada';
   if(!text){alert('La nota no puede estar vacía.');return;}
+  // Si es paciente real (UUID), persistir en Supabase
+  if(typeof patId === 'string' && patId.length > 8){
+    const note = _psyNotes.byPatient[patId]?.[noteIdx];
+    if(!note?.id){ closeModal(); return; }
+    const { error } = await sb.from('clinical_notes')
+      .update({ contenido: text, tags: [status], updated_at: new Date().toISOString() })
+      .eq('id', note.id);
+    if(error){ showToast('Error: '+error.message); return; }
+    showToast('✓ Nota actualizada');
+    _psyNotes.loaded = false; await loadPsyNotes();
+    closeModal();
+    return;
+  }
+  // Mock fallback
   CLINICAL_NOTES[patId][noteIdx].text=text;
   CLINICAL_NOTES[patId][noteIdx].status=status;
   closeModal(); rerender();
@@ -4436,6 +4526,35 @@ async function loadPsyPatients(){
 }
 loadPsyPatients();
 loadPsyProfile();
+
+async function loadPsyNotes(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  const { data } = await sb.from('clinical_notes')
+    .select('id, patient_id, contenido, tags, created_at')
+    .eq('psychologist_id', user.id)
+    .order('created_at', { ascending: false });
+  const map = {};
+  (data||[]).forEach((n, i) => {
+    if(!map[n.patient_id]) map[n.patient_id] = [];
+    const d = new Date(n.created_at);
+    map[n.patient_id].push({
+      id: n.id,
+      sesNum: 0, // se calcula después
+      date: d.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}),
+      status: (n.tags||[])[0] || 'realizada',
+      text: n.contenido,
+    });
+  });
+  // Asignar sesNum descendente
+  Object.keys(map).forEach(pid => {
+    map[pid].forEach((n, i) => { n.sesNum = map[pid].length - i; });
+  });
+  _psyNotes.byPatient = map;
+  _psyNotes.loaded = true;
+  rerender();
+}
+loadPsyNotes();
 </script>
 
 <!-- Botón flotante WhatsApp soporte -->
