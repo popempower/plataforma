@@ -1351,32 +1351,39 @@ async function descargarFacturaPaciente(numFactura){
   // Datos factura
   doc.setFontSize(11); doc.setFont('helvetica','bold');
   doc.text(`FACTURA: ${numFactura}`,14,105);
-  doc.setFont('helvetica','normal');
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
   doc.text(`FECHA: ${fecha}`,14,113);
-  doc.text('CONCEPTO: Servicios de psicología online',14,121);
+  doc.text('CONCEPTO: Servicios de psicología online',14,120);
+
+  // Psicóloga
+  if(_patState.psychFullName){
+    let texto = `Profesional: ${_patState.psychFullName}`;
+    if(_patState.psychColegiado) texto += ` · Nº colegiada: ${_patState.psychColegiado}`;
+    doc.text(texto, 14, 127);
+  }
 
   // Cabecera tabla
-  doc.setFillColor(32,220,149); doc.rect(14,127,181,8,'F');
+  doc.setFillColor(32,220,149); doc.rect(14,134,181,8,'F');
   doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-  doc.text('SERVICIO',16,133);
-  doc.text('TOTAL',172,133);
+  doc.text('SERVICIO',16,140);
+  doc.text('TOTAL',180,140,{align:'right'});
   doc.setTextColor(17,24,39);
 
   // Línea
-  let y = 146;
+  let y = 153;
   doc.setFont('helvetica','normal'); doc.setFontSize(10);
   doc.text(`${tipoLbl} — ${planLbl}`,16,y);
-  doc.text(`${importe} €`,172,y);
+  doc.text(`${importe} €`,180,y,{align:'right'});
   doc.setDrawColor(220); doc.line(14,y+4,195,y+4);
 
-  // Totales
+  // Totales (con más espacio entre etiqueta y valor)
   y += 18;
   doc.setFontSize(10);
-  doc.text('Base imponible',130,y); doc.text(`${importe} €`,172,y); y+=8;
-  doc.text('IVA (exento art. 20.Uno.3 LIVA)',130,y); doc.text('0,00 €',172,y); y+=8;
+  doc.text('Base imponible',105,y); doc.text(`${importe} €`,180,y,{align:'right'}); y+=8;
+  doc.text('IVA exento (art. 20.Uno.3 LIVA)',105,y); doc.text('0,00 €',180,y,{align:'right'}); y+=8;
   doc.setFont('helvetica','bold');
-  doc.text('TOTAL',130,y); doc.text(`${importe} €`,172,y);
-  doc.setDrawColor(17,24,39); doc.line(128,y+2,195,y+2);
+  doc.text('TOTAL',105,y); doc.text(`${importe} €`,180,y,{align:'right'});
+  doc.setDrawColor(17,24,39); doc.line(103,y+2,195,y+2);
 
   // Forma de pago
   y += 14; doc.setFont('helvetica','normal');
@@ -1406,7 +1413,7 @@ function tabFacturas() {
           fechaISO: d.toISOString().slice(0,10),
           concepto: `${tipoLbl} · ${planLbl}`,
           psicologa: _patState.psychFullName || '—',
-          colegiada: '—',
+          colegiada: _patState.psychColegiado || '—',
           base: importe, iva: 'Exento (art. 20.Uno.3 LIVA)', total: importe,
           metodoPago: 'Tarjeta · Stripe', estado: 'Pagado',
           _raw: c,
@@ -1511,27 +1518,35 @@ function tabFacturas() {
 }
 
 function showFacturaModal(id) {
-  const FACTURAS_DATA = {
-    'F-2026-003': {
-      id:'F-2026-003', fecha:'1 de abril de 2026', fechaVencimiento:'1 de abril de 2026',
-      concepto:'Bono mensual — 4 sesiones de psicología online (renovación)',
-      psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847',
-      paciente:'Ana Martínez López', metodoPago:'Tarjeta Visa •••• 4242',
-      base:'232,00 €', tipoIVA:'Exento art. 20.Uno.3 LIVA', cuotaIVA:'0,00 €', total:'232,00 €',
-      emisor:'PO Psychology S.L.', nifEmisor:'B-XXXXXXXX',
-      domicilioEmisor:'Calle Mayor 45, 2ºA · 28013 Madrid'
-    },
-    'F-2026-002': {
-      id:'F-2026-002', fecha:'1 de marzo de 2026', fechaVencimiento:'1 de marzo de 2026',
-      concepto:'Bono mensual — 4 sesiones de psicología online (primera compra)',
-      psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847',
-      paciente:'Ana Martínez López', metodoPago:'Tarjeta Visa •••• 4242',
-      base:'232,00 €', tipoIVA:'Exento art. 20.Uno.3 LIVA', cuotaIVA:'0,00 €', total:'232,00 €',
-      emisor:'PO Psychology S.L.', nifEmisor:'B-XXXXXXXX',
-      domicilioEmisor:'Calle Mayor 45, 2ºA · 28013 Madrid'
-    }
-  };
-  const f = FACTURAS_DATA[id];
+  // Buscar primero en compras reales
+  const compra = (_patState.compras||[]).find(c => c.num_factura_paciente === id);
+  let f;
+  if(compra){
+    const d = new Date(compra.paid_at || Date.now());
+    const tipoLbl = compra.categoria==='pareja' ? 'Pareja/Familia' : compra.categoria==='psiquiatra' ? 'Psiquiatría' : 'Individual';
+    const planLbl = compra.plan==='mensual' ? `Bono mensual — ${compra.sesiones||4} sesiones` : 'Sesión suelta';
+    const importe = parseFloat(compra.importe||0).toFixed(2).replace('.', ',') + ' €';
+    f = {
+      id: compra.num_factura_paciente,
+      fecha: d.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' }),
+      fechaVencimiento: d.toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' }),
+      concepto: `${tipoLbl} — ${planLbl}`,
+      psicologa: _patState.psychFullName || '—',
+      colegiada: _patState.psychColegiado || '—',
+      paciente: `${_patState.nombre||''} ${_patState.apellidos||''}`.trim() || '—',
+      metodoPago: 'Tarjeta — procesado por Stripe',
+      base: importe, tipoIVA: 'Exento art. 20.Uno.3 LIVA', cuotaIVA: '0,00 €', total: importe,
+      emisor: 'PO PSYCHOLOGY, S.L.', nifEmisor: 'B88350368',
+      domicilioEmisor: 'C/ Doctor Fleming, 46 · 28036 Madrid'
+    };
+  } else {
+    // Fallback al mock (datos antiguos)
+    const FACTURAS_DATA = {
+      'F-2026-003': { id:'F-2026-003', fecha:'1 de abril de 2026', fechaVencimiento:'1 de abril de 2026', concepto:'Bono mensual — 4 sesiones', psicologa:'Dra. Elena García', colegiada:'M-12847', paciente:'Ana Martínez', metodoPago:'Tarjeta', base:'232,00 €', tipoIVA:'Exento art. 20.Uno.3 LIVA', cuotaIVA:'0,00 €', total:'232,00 €', emisor:'PO PSYCHOLOGY, S.L.', nifEmisor:'B88350368', domicilioEmisor:'C/ Doctor Fleming, 46 · 28036 Madrid' },
+      'F-2026-002': { id:'F-2026-002', fecha:'1 de marzo de 2026', fechaVencimiento:'1 de marzo de 2026', concepto:'Bono mensual — 4 sesiones', psicologa:'Dra. Elena García', colegiada:'M-12847', paciente:'Ana Martínez', metodoPago:'Tarjeta', base:'232,00 €', tipoIVA:'Exento art. 20.Uno.3 LIVA', cuotaIVA:'0,00 €', total:'232,00 €', emisor:'PO PSYCHOLOGY, S.L.', nifEmisor:'B88350368', domicilioEmisor:'C/ Doctor Fleming, 46 · 28036 Madrid' },
+    };
+    f = FACTURAS_DATA[id];
+  }
   if(!f) return;
 
   const existing = document.getElementById('factura-modal-overlay');
@@ -1616,7 +1631,7 @@ function showFacturaModal(id) {
         <!-- Botones -->
         <div style="display:flex;gap:10px">
           <button onclick="document.getElementById('factura-modal-overlay').remove()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-weight:600;font-size:13px;cursor:pointer">Cerrar</button>
-          <button style="flex:2;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#20dc95,#059669);color:#fff;font-weight:700;font-size:13px;cursor:pointer">⬇ Descargar PDF</button>
+          <button onclick="descargarFacturaPaciente('${f.id}')" style="flex:2;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#20dc95,#059669);color:#fff;font-weight:700;font-size:13px;cursor:pointer">⬇ Descargar PDF</button>
         </div>
       </div>
     </div>`;
@@ -2229,7 +2244,7 @@ let _patState = {
   // Perfil
   id:'', nombre:'', apellidos:'', email:'', initials:'',
   // Psicóloga asignada
-  psychId:'', psychNombre:'', psychApellidos:'', psychInitials:'', psychFullName:'',
+  psychId:'', psychNombre:'', psychApellidos:'', psychInitials:'', psychFullName:'', psychColegiado:'',
   // Bono activo
   bonoTotal:0, bonoUsadas:0, bonoCaducidad:null,
   // Sesiones cargadas
@@ -2250,7 +2265,7 @@ async function loadPatientState(){
 
   // Perfil + psicóloga asignada
   const { data: pat } = await sb.from('patients')
-    .select('id, nombre, apellidos, email, status, psychologist_id, psychologists(id, nombre, apellidos)')
+    .select('id, nombre, apellidos, email, status, psychologist_id, psychologists(id, nombre, apellidos, colegiado)')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -2267,6 +2282,7 @@ async function loadPatientState(){
       _patState.psychApellidos = pat.psychologists.apellidos || '';
       _patState.psychInitials = _initials(pat.psychologists.nombre, pat.psychologists.apellidos);
       _patState.psychFullName = `Dra. ${_patState.psychNombre} ${_patState.psychApellidos}`.trim();
+      _patState.psychColegiado = pat.psychologists.colegiado || '';
     }
   }
 
