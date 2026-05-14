@@ -151,7 +151,12 @@ textarea.field-input{resize:vertical;min-height:80px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-<div id="portal-ui" style="display:flex;height:100vh;overflow:hidden">
+<div id="app-loading" style="position:fixed;inset:0;background:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px">
+  <div style="width:42px;height:42px;border:3px solid #e5e7eb;border-top-color:#20dc95;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="font-size:13px;color:#9ca3af;font-weight:500">Cargando...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<div id="portal-ui" style="display:flex;height:100vh;overflow:hidden;visibility:hidden">
   <div id="sidebar">
     <div style="display:flex;align-items:center;gap:8px;padding:4px 8px;margin-bottom:28px">
       <img src="uploads/logo.png" style="height:36px;width:auto;border-radius:6px">
@@ -1087,7 +1092,6 @@ function tabAgenda(){
         </div>
         <button onclick="openNewSesModal()" class="btn-green" style="padding:8px 14px;font-size:12px">+ Nueva sesión</button>
         <button onclick="showExternalSessionModal()" style="padding:8px 14px;font-size:12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;font-weight:600;color:#374151;font-family:inherit" onmouseenter="this.style.borderColor='#0284c7';this.style.color='#0c4a6e'" onmouseleave="this.style.borderColor='#e5e7eb';this.style.color='#374151'">↗ Sesión externa</button>
-        <button class="btn-green" onclick="openNewSesModal()" style="padding:8px 16px;font-size:12px">+ Nueva sesión</button>
       </div>
     </div>
     ${agendaView==='dia'?dayView():agendaView==='semana'?weekView():monthView()}
@@ -4629,7 +4633,6 @@ async function loadPsyToday(){
   _psyToday.loaded = true;
   rerender();
 }
-loadPsyToday();
 
 async function loadPsyPatients(){
   const { data: { user } } = await sb.auth.getUser();
@@ -4682,9 +4685,20 @@ async function loadPsyPatients(){
   _psyPatients.loaded = true;
   rerender();
 }
-loadPsyPatients();
-loadPsyProfile();
-loadPsyConversations();
+// Esperar a que carguen los datos críticos antes de mostrar el portal
+(async () => {
+  await Promise.all([
+    loadPsyToday(),
+    loadPsyPatients(),
+    loadPsyProfile(),
+    loadPsyConversations(),
+    loadPsyNotes(),
+  ]);
+  const loader = document.getElementById('app-loading');
+  const ui = document.getElementById('portal-ui');
+  if(ui) ui.style.visibility = 'visible';
+  if(loader){ loader.style.opacity='0'; loader.style.transition='opacity .25s'; setTimeout(()=>loader.remove(), 280); }
+})();
 
 async function loadPsyNotes(){
   const { data: { user } } = await sb.auth.getUser();
@@ -4713,7 +4727,6 @@ async function loadPsyNotes(){
   _psyNotes.loaded = true;
   rerender();
 }
-loadPsyNotes();
 </script>
 
 <!-- Botón flotante WhatsApp soporte -->
