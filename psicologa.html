@@ -4391,6 +4391,8 @@ function navigate(id){
   } else {
     stopPsyMsgPolling();
   }
+  const wa = document.getElementById('wa-float');
+  if(wa) wa.style.display = (id==='mensajes' ? 'none' : 'flex');
   rerender();
 }
 function toggleMasMenu(){ const o=document.getElementById('mas-overlay'); if(o) o.style.display=o.style.display==='flex'?'none':'flex'; }
@@ -4607,7 +4609,7 @@ loadPsyNotes();
 </script>
 
 <!-- Botón flotante WhatsApp soporte -->
-<a href="https://wa.me/34699201600?text=Hola%2C%20soy%20psic%C3%B3loga%20de%20POP%20Empower%20y%20necesito%20ayuda%20con%20la%20plataforma" target="_blank" rel="noopener"
+<a href="https://wa.me/34699201600?text=Hola%2C%20soy%20psic%C3%B3loga%20de%20POP%20Empower%20y%20necesito%20ayuda%20con%20la%20plataforma" target="_blank" rel="noopener" id="wa-float"
   title="Soporte por WhatsApp"
   style="position:fixed;bottom:24px;right:24px;z-index:9000;width:52px;height:52px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.5);text-decoration:none;transition:transform .2s,box-shadow .2s"
   onmouseenter="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 24px rgba(37,211,102,.65)'"
