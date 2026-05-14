@@ -587,8 +587,15 @@ function miniCalendar(){
 let _psyToday = { loaded:false, sessions:[] };
 
 function tabInicio(){
-  // Si hay sesiones reales de Supabase, usarlas; si no, mock
-  const SESSIONS_TODAY = (_psyToday.loaded && _psyToday.sessions.length > 0) ? _psyToday.sessions : TODAY_SESSIONS;
+  // Filtrar solo sesiones de HOY (no de toda la semana)
+  const _today = new Date(); _today.setHours(0,0,0,0);
+  const _tomorrow = new Date(_today.getTime() + 86400000);
+  const SESSIONS_TODAY = (_psyToday.loaded && _psyToday.sessions.length > 0)
+    ? _psyToday.sessions.filter(s => {
+        const d = new Date(s.fecha);
+        return d >= _today && d < _tomorrow;
+      })
+    : TODAY_SESSIONS;
   const done=SESSIONS_TODAY.filter(s=>s.status==='realizada').length;
   const pend=SESSIONS_TODAY.filter(s=>s.status==='programada').length;
   const live=SESSIONS_TODAY.find(s=>s.status==='en_curso');
