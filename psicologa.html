@@ -2325,8 +2325,9 @@ function tabAjustes(){
     <div style="flex:1;overflow:auto;padding:20px 22px">
       <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">Cambiar contraseña</div>
       <div style="max-width:360px;display:flex;flex-direction:column;gap:11px;margin-bottom:16px">
-        ${['Contraseña actual','Nueva contraseña','Confirmar nueva contraseña'].map(l=>`<div><label class="field-label">${l}</label><input class="field-input" type="password" placeholder="••••••••"/></div>`).join('')}
-        <button style="background:#f3f4f6;color:#374151;border:none;border-radius:8px;padding:9px 18px;font-weight:600;font-size:12px;cursor:pointer;width:fit-content">Cambiar contraseña</button>
+        <div><label class="field-label">Nueva contraseña</label><input id="psy-newpass" class="field-input" type="password" placeholder="Mínimo 8 caracteres"/></div>
+        <div><label class="field-label">Confirmar nueva contraseña</label><input id="psy-confpass" class="field-input" type="password" placeholder="Repite la contraseña"/></div>
+        <button onclick="saveAjustesSection('seguridad')" class="btn-green" style="padding:9px 18px;font-size:12px;width:fit-content">Cambiar contraseña</button>
       </div>
       <div style="height:1px;background:#f3f4f6;margin:20px 0"></div>
       <div style="font-size:11px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Zona peligrosa</div>
@@ -3223,7 +3224,7 @@ function profileCompletion(){
   return Math.round(((filled + hasEsp) / (PROFILE_REQUIRED.length + 1)) * 100);
 }
 
-function saveProfileComplete(){
+async function saveProfileComplete(){
   // Sync any focused input that may not have fired onchange yet
   document.querySelectorAll('.field-input[data-pf]').forEach(el => {
     psychProfile[el.dataset.pf] = el.value;
@@ -3237,15 +3238,36 @@ function saveProfileComplete(){
 
   if(missing.length > 0 || !hasEsp){
     const labels = [...missing.map(r=>r.label), ...(!hasEsp?['Al menos 1 especialidad']:[])];
-    // Highlight missing fields
     missing.forEach(r => {
       const el = document.querySelector(`.field-input[data-pf="${r.key}"]`);
       if(el){ el.style.borderColor='#ef4444'; el.addEventListener('input',()=>el.style.borderColor='',{once:true}); }
     });
     showToast('Faltan campos obligatorios: ' + labels.join(', '));
-    // Scroll to top of form
     document.querySelector('#content').scrollTo({top:0,behavior:'smooth'});
     return;
+  }
+
+  // Guardar en Supabase
+  const { data: { user } } = await sb.auth.getUser();
+  if(user){
+    const especialidades = ESPECIALIDAD_KEYS.filter(k => psychProfile[k]);
+    const idiomas = ['espanol','ingles','frances','catalan','aleman','italiano']
+      .filter(k => psychProfile[k]).map(k => `${k}:${psychProfile[k]}`);
+    const update = {
+      nombre: psychProfile.nombre,
+      apellidos: psychProfile.apellidos,
+      phone: psychProfile.telefono,
+      ciudad: psychProfile.ciudad,
+      provincia: psychProfile.provincia,
+      fecha_nac: psychProfile.fechaNac || null,
+      dni: psychProfile.dni,
+      colegiado: psychProfile.numColegiado,
+      cuenta_bancaria: psychProfile.numCuenta,
+      whereby_room: psychProfile.wherebyRoom || null,
+      especialidades, idiomas,
+    };
+    const { error } = await sb.from('psychologists').update(update).eq('id', user.id);
+    if(error){ showToast('Error: '+error.message); return; }
   }
 
   psychProfile.profileComplete = true;
@@ -3254,15 +3276,65 @@ function saveProfileComplete(){
     setTimeout(()=>{ btn.textContent='Guardar cambios'; btn.style.background='#20dc95'; btn.style.color='#065f46'; }, 2000); }
   rerender();
 }
-function saveAjustesSection(section){
+async function saveAjustesSection(section){
   const labels={
     idiomas:'Idiomas',
     especialidades:'Especialidades',
     disponibilidad:'Disponibilidad',
     notificaciones:'Notificaciones',
+    seguridad:'Seguridad',
   };
+  // Persistir idiomas / especialidades / whereby_room en BD
+  const { data: { user } } = await sb.auth.getUser();
+  if(user && (section==='idiomas' || section==='especialidades' || section==='disponibilidad')){
+    const especialidades = ESPECIALIDAD_KEYS.filter(k => psychProfile[k]);
+    const idiomas = ['espanol','ingles','frances','catalan','aleman','italiano']
+      .filter(k => psychProfile[k]).map(k => `${k}:${psychProfile[k]}`);
+    const update = { especialidades, idiomas, whereby_room: psychProfile.wherebyRoom || null };
+    const { error } = await sb.from('psychologists').update(update).eq('id', user.id);
+    if(error){ showToast('Error: '+error.message); return; }
+  }
+  if(section==='seguridad'){
+    const newPass = document.getElementById('psy-newpass')?.value;
+    const confPass = document.getElementById('psy-confpass')?.value;
+    if(!newPass || newPass.length < 8){ showToast('La contraseña debe tener al menos 8 caracteres'); return; }
+    if(newPass !== confPass){ showToast('Las contraseñas no coinciden'); return; }
+    const { error } = await sb.auth.updateUser({ password: newPass });
+    if(error){ showToast('Error: '+error.message); return; }
+    document.getElementById('psy-newpass').value=''; document.getElementById('psy-confpass').value='';
+  }
   showToast(`${labels[section]||section} guardado correctamente ✓`);
 }
+
+// ── Cargar perfil real de Supabase al iniciar ─────────────────────
+async function loadPsyProfile(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  const { data } = await sb.from('psychologists').select('*').eq('id', user.id).maybeSingle();
+  if(!data) return;
+  // Campos directos
+  psychProfile.nombre = data.nombre || '';
+  psychProfile.apellidos = data.apellidos || '';
+  psychProfile.email = data.email || user.email || '';
+  psychProfile.telefono = data.phone || '';
+  psychProfile.ciudad = data.ciudad || '';
+  psychProfile.provincia = data.provincia || '';
+  psychProfile.fechaNac = data.fecha_nac || '';
+  psychProfile.dni = data.dni || '';
+  psychProfile.numColegiado = data.colegiado || '';
+  psychProfile.numCuenta = data.cuenta_bancaria || '';
+  psychProfile.wherebyRoom = data.whereby_room || '';
+  // Especialidades (array de strings)
+  (data.especialidades||[]).forEach(k => { if(k in psychProfile) psychProfile[k] = true; });
+  // Idiomas (array "espanol:Nativo")
+  (data.idiomas||[]).forEach(it => {
+    const [k,v] = it.split(':');
+    if(k in psychProfile) psychProfile[k] = v||'Nativo';
+  });
+  psychProfile.profileComplete = !!data.nombre && !!data.apellidos && (data.especialidades||[]).length>0;
+  rerender();
+}
+loadPsyProfile();
 
 // ── CALENDAR EXPORT (PSICÓLOGO) ───────────────────────────────────
 function addToCalendarPsych(type, patName, dateStr, timeStr) {
