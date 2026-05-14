@@ -584,9 +584,11 @@ function miniCalendar(){
 
 // ── TAB: INICIO ───────────────────────────────────────────────────
 function tabInicio(){
-  const done=TODAY_SESSIONS.filter(s=>s.status==='realizada').length;
-  const pend=TODAY_SESSIONS.filter(s=>s.status==='programada').length;
-  const live=TODAY_SESSIONS.find(s=>s.status==='en_curso');
+  // Si hay sesiones reales de Supabase, usarlas; si no, mock
+  const SESSIONS_TODAY = (_psyToday.loaded && _psyToday.sessions.length > 0) ? _psyToday.sessions : TODAY_SESSIONS;
+  const done=SESSIONS_TODAY.filter(s=>s.status==='realizada').length;
+  const pend=SESSIONS_TODAY.filter(s=>s.status==='programada').length;
+  const live=SESSIONS_TODAY.find(s=>s.status==='en_curso');
   const pct = profileCompletion();
   const profileBanner = !psychProfile.profileComplete ? `
     <div style="background:linear-gradient(135deg,#f0fdf8,#dcfce7);border:1.5px solid #20dc95;border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px">
@@ -690,12 +692,14 @@ function tabInicio(){
 
           <!-- Filas de sesión -->
           <div>
-            ${TODAY_SESSIONS.map(s=>{
-              const st=SES_ST[s.status];
+            ${SESSIONS_TODAY.map(s=>{
+              const st=SES_ST[s.status]||SES_ST.programada;
               const active=s.status==='en_curso';
               const isProg=s.status==='programada';
               const isCan=s.status==='cancelada'||s.status==='cancelada_cobro';
-              return `<div class="ses-row" style="background:${active?'#fffbeb':isCan?'#fff7ed':'transparent'}" onclick="${!isProg&&!isCan?`openNotesModal(${s.id})`:''}">
+              const idArg = typeof s.id === 'string' ? `'${s.id}'` : s.id;
+              const patientArg = (s.patient||'').replace(/'/g,'');
+              return `<div class="ses-row" style="background:${active?'#fffbeb':isCan?'#fff7ed':'transparent'}" onclick="${!isProg&&!isCan&&typeof s.id!=='string'?`openNotesModal(${s.id})`:''}">
                 <div style="width:40px;font-size:12px;font-weight:700;color:${active?'#f59e0b':'#6b7280'};flex-shrink:0">${s.time}</div>
                 <div class="dot" style="background:${st.dot};flex-shrink:0"></div>
                 ${av(s.initials,28,active)}
@@ -705,7 +709,7 @@ function tabInicio(){
                 </div>
                 <span style="background:${st.bg};color:${st.color};border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0">${active?'● En curso':st.label}</span>
                 <div style="display:flex;gap:5px;flex-shrink:0">
-                  ${active?`<button onclick="event.stopPropagation();enterSession('${s.patient}','${s.initials}')" style="background:#f59e0b;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">Entrar →</button>`:''}
+                  ${(active||isProg)?`<button onclick="event.stopPropagation();enterSession('${patientArg}','${s.initials}', ${idArg})" style="background:${active?'#f59e0b':'#20dc95'};color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">Entrar →</button>`:''}
                   ${s.status==='realizada'?`<button onclick="event.stopPropagation();openNotesModal(${s.id})" style="background:${s.notes?'#f0fdf8':'#f3f4f6'};color:${s.notes?'#065f46':'#6b7280'};border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">${s.notes?'✓ Notas':'+ Notas'}</button>`:''}
                   ${!isCan?`<button onclick="event.stopPropagation();openSesActions(${s.id})" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:6px;width:28px;height:28px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Acciones">⋮</button>`:''}
                 </div>
@@ -3263,9 +3267,10 @@ let srState = {
   noteText:'', patientName:'', patientInitials:''
 };
 
-function enterSession(patName, patInitials){
+function enterSession(patName, patInitials, sessionId){
   srState.patientName=patName||'Ana Martínez';
   srState.patientInitials=patInitials||'AM';
+  srState.sessionId = sessionId || null;
   srState.secs=0;
   document.getElementById('portal-ui').style.display='none';
   document.getElementById('session-room').style.display='flex';
@@ -3899,7 +3904,7 @@ async function srIniciarSala(){
     const res=await fetch(SR_EDGE,{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SR_ANON,'Authorization':'Bearer '+token},
-      body: JSON.stringify({ role:'host' }),
+      body: JSON.stringify({ role:'host', sessionId: srState.sessionId || null }),
     });
     const data=await res.json();
     if(!data.roomUrl) throw new Error(data.error||data.message||'Error al crear sala');
@@ -4168,6 +4173,39 @@ function renderTourStep(){
 }
 
 rerender();
+
+// ── Cargar sesiones reales de hoy para esta psicóloga ────────────
+let _psyToday = { loaded:false, sessions:[] };
+async function loadPsyToday(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+  const endNext = new Date(); endNext.setDate(endNext.getDate()+7); endNext.setHours(23,59,59,999);
+  const { data } = await sb.from('sessions')
+    .select('id, fecha, duracion, status, whereby_host_url, patient_id, patients(nombre, apellidos)')
+    .eq('psychologist_id', user.id)
+    .gte('fecha', startOfDay.toISOString())
+    .lte('fecha', endNext.toISOString())
+    .order('fecha', { ascending: true });
+  _psyToday.sessions = (data||[]).map(s => {
+    const d = new Date(s.fecha);
+    const initials = ((s.patients?.nombre?.[0]||'')+(s.patients?.apellidos?.[0]||'')).toUpperCase() || '?';
+    return {
+      id: s.id,
+      patientId: s.patient_id,
+      time: String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+      patient: `${s.patients?.nombre||''} ${s.patients?.apellidos||''}`.trim() || 'Paciente',
+      initials,
+      duration: s.duracion || 50,
+      status: s.status,
+      has_room: !!s.whereby_host_url,
+      fecha: s.fecha,
+    };
+  });
+  _psyToday.loaded = true;
+  rerender();
+}
+loadPsyToday();
 </script>
 
 <!-- Botón flotante WhatsApp soporte -->
