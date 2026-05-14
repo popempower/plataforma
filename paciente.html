@@ -697,8 +697,49 @@ function toggleEjerc(id) {
   }, 60);
 }
 
+// ── Helpers para usar datos reales de Supabase ────────────────────
+function _fmtSessionDate(ts){
+  const d = new Date(ts);
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const hora = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  return {
+    long: `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]} · ${hora} h`,
+    relative: (()=>{
+      const today = new Date(); today.setHours(0,0,0,0);
+      const that = new Date(d); that.setHours(0,0,0,0);
+      const diff = Math.round((that - today) / 86400000);
+      if(diff===0) return 'Hoy';
+      if(diff===1) return 'Mañana';
+      if(diff>1 && diff<7) return 'En ' + diff + ' días';
+      if(diff===-1) return 'Ayer';
+      return '';
+    })(),
+    hora,
+    time: hora,
+  };
+}
+function _patNextSession(){
+  const now = Date.now();
+  const future = (_patState.sesiones||[]).filter(s=>new Date(s.fecha).getTime() >= now && s.status==='programada');
+  if(!future.length) return null;
+  const s = future[0];
+  const fmt = _fmtSessionDate(s.fecha);
+  return { id:s.id, dateLong: fmt.long, time: fmt.hora, duration: s.duracion||50, relative: fmt.relative };
+}
+
 // ── TABS ─────────────────────────────────────────────────────────
 function tabInicio() {
+  // Datos reales si están cargados, mock si no
+  const useReal = _patState.loaded && _patState.bonoTotal > 0;
+  const BONO_LOCAL = useReal
+    ? { used: _patState.bonoUsadas, total: _patState.bonoTotal, expiry: _patState.bonoCaducidad ? new Date(_patState.bonoCaducidad).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—' }
+    : BONO;
+  const nextSesReal = _patNextSession();
+  const lastSesReal = (_patState.sesiones||[]).filter(s=>s.status==='realizada').slice(-1)[0] || null;
+  const psyName = _patState.psychFullName || 'Dra. Elena García';
+  const psyInitials = _patState.psychInitials || 'EG';
+
   const lastSes = SESSIONS.find(s=>s.status==='realizada');
   const psychMsgs = messages.filter(m=>m.from==='psych').slice(-2);
   return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
@@ -718,8 +759,8 @@ function tabInicio() {
           <div style="width:44px;height:44px;border-radius:10px;background:#f0fdf8;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📅</div>
           <div>
             <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Próxima sesión</div>
-            <div style="font-size:16px;font-weight:800;color:#111827;margin-bottom:4px">Miércoles, 23 Abr · 18:00 h</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">${badge('✓ Confirmada','green')} ${badge('50 min','gray')} ${badge('Mañana','blue')}</div>
+            <div style="font-size:16px;font-weight:800;color:#111827;margin-bottom:4px">${nextSesReal ? nextSesReal.dateLong : 'No tienes sesiones programadas'}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${nextSesReal ? `${badge('✓ Confirmada','green')} ${badge((nextSesReal.duration||50)+' min','gray')} ${nextSesReal.relative?badge(nextSesReal.relative,'blue'):''}` : badge('Reserva con tu psicóloga','gray')}</div>
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0">
@@ -739,8 +780,8 @@ function tabInicio() {
         <!-- Stats 3 cols -->
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
           ${[
-            {l:'Sesiones restantes',v:BONO.total-BONO.used,s:'de tu bono'},
-            {l:'Sesiones realizadas',v:BONO.used,s:'desde el inicio'},
+            {l:'Sesiones restantes',v:BONO_LOCAL.total-BONO_LOCAL.used,s:'de tu bono'},
+            {l:'Sesiones realizadas',v:BONO_LOCAL.used,s:'desde el inicio'},
             {l:'Días activa',v:'51',s:'desde tu alta'},
           ].map(s=>`<div class="card" style="cursor:pointer;padding:14px 16px" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'" onclick="navigate('sesiones')">
             <div style="font-size:10px;color:#6b7280;font-weight:500;margin-bottom:5px">${s.l}</div>
@@ -756,14 +797,14 @@ function tabInicio() {
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
               <div>
                 <div style="font-weight:700;font-size:13px;color:#111827">Estado del bono</div>
-                <div style="font-size:11px;color:#9ca3af">Caduca ${BONO.expiry}</div>
+                <div style="font-size:11px;color:#9ca3af">Caduca ${BONO_LOCAL.expiry}</div>
               </div>
-              <span style="font-size:18px;font-weight:800;color:#111827">${BONO.used}<span style="font-size:12px;font-weight:400;color:#9ca3af">/${BONO.total}</span></span>
+              <span style="font-size:18px;font-weight:800;color:#111827">${BONO_LOCAL.used}<span style="font-size:12px;font-weight:400;color:#9ca3af">/${BONO_LOCAL.total}</span></span>
             </div>
-            <div style="display:flex;gap:3px;margin-bottom:6px">${bonoDots()}</div>
+            <div style="display:flex;gap:3px;margin-bottom:6px">${(()=>{ let h=''; for(let i=0;i<BONO_LOCAL.total;i++){ h+=`<div style="flex:1;height:6px;border-radius:3px;background:${i<BONO_LOCAL.used?'#20dc95':'#e5e7eb'}"></div>`;} return h; })()}</div>
             <div style="display:flex;justify-content:space-between">
-              <span style="font-size:10px;color:#6b7280">${BONO.used} usadas</span>
-              <span style="font-size:10px;color:#065f46;font-weight:600">${BONO.total-BONO.used} restantes</span>
+              <span style="font-size:10px;color:#6b7280">${BONO_LOCAL.used} usadas</span>
+              <span style="font-size:10px;color:#065f46;font-weight:600">${BONO_LOCAL.total-BONO_LOCAL.used} restantes</span>
             </div>
           </div>
           <!-- Mensajes -->
@@ -773,9 +814,9 @@ function tabInicio() {
               <button onclick="navigate('mensajes')" style="font-size:11px;color:#20dc95;background:none;border:none;font-weight:600">Ver →</button>
             </div>
             ${psychMsgs.slice(0,1).map(m=>`<div style="display:flex;gap:8px;align-items:flex-start">
-              ${av('EG',24,true)}
+              ${av(psyInitials,24,true)}
               <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:11px;color:#111827;margin-bottom:2px">Dra. Elena García</div>
+                <div style="font-weight:600;font-size:11px;color:#111827;margin-bottom:2px">${psyName}</div>
                 <div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.type==='file'?'📄 '+m.text:m.text}</div>
                 <div style="font-size:10px;color:#9ca3af;margin-top:3px">${m.time}</div>
               </div>
@@ -790,10 +831,10 @@ function tabInicio() {
           <div class="card" style="padding:14px 16px">
             <div style="font-weight:700;font-size:13px;color:#111827;margin-bottom:12px">Psicólogo asociado</div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-              ${av('EG',38,true)}
+              ${av(psyInitials,38,true)}
               <div>
-                <div style="font-weight:600;font-size:12px;color:#111827">Dra. Elena García</div>
-                <div style="font-size:11px;color:#9ca3af">Desde 01-03-2026</div>
+                <div style="font-weight:600;font-size:12px;color:#111827">${psyName}</div>
+                <div style="font-size:11px;color:#9ca3af">Asignación reciente</div>
               </div>
             </div>
             <button onclick="showPsychChangeModal()" style="display:block;width:100%;padding:8px;border-radius:8px;border:1.5px solid #20dc95;background:#fff;color:#065f46;font-weight:700;font-size:11px;text-align:center;text-transform:uppercase;letter-spacing:.04em" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">Solicitar cambio</button>
