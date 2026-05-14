@@ -408,7 +408,7 @@ const NAV_ITEMS = [
   {id:'inicio',        label:'Inicio'},
   {id:'agenda',        label:'Agenda'},
   {id:'pacientes',     label:'Pacientes'},
-  {id:'mensajes',      label:'Mensajes',badge:6},
+  {id:'mensajes',      label:'Mensajes'},
   {id:'notas',         label:'Notas clínicas'},
   {id:'facturacion',   label:'Facturación'},
   {id:'estadisticas',  label:'Estadísticas'},
@@ -2855,11 +2855,27 @@ async function openNotesModal(sesId){
         <textarea class="field-input" id="notes-text" placeholder="Observaciones, evolución, próximos objetivos..." style="min-height:110px">${existingNote}</textarea>
       </div>
     </div>
-    <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px">
-      <button onclick="closeModal()" class="btn-gray">Cancelar</button>
-      <button onclick="saveNotes(${idArg})" class="btn-green">Guardar y cerrar</button>
+    <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;gap:8px">
+      ${isReal?`<button onclick="deleteSession(${idArg})" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">🗑 Eliminar sesión</button>`:'<span></span>'}
+      <div style="display:flex;gap:8px">
+        <button onclick="closeModal()" class="btn-gray">Cancelar</button>
+        <button onclick="saveNotes(${idArg})" class="btn-green">Guardar y cerrar</button>
+      </div>
     </div>
   </div>`);
+}
+
+async function deleteSession(sesId){
+  if(typeof sesId !== 'string' || sesId.length < 8){ closeModal(); return; }
+  if(!confirm('¿Eliminar esta sesión? Esta acción no se puede deshacer.')) return;
+  // Borrar notas clínicas asociadas primero
+  await sb.from('clinical_notes').delete().eq('session_id', sesId);
+  // Borrar sesión
+  const { error } = await sb.from('sessions').delete().eq('id', sesId);
+  if(error){ showToast('Error: '+error.message); return; }
+  showToast('✓ Sesión eliminada');
+  closeModal();
+  _psyToday.loaded=false; await loadPsyToday();
 }
 
 function openNotesModalPatient(patId){
@@ -2914,12 +2930,24 @@ function openPatientModal(patId){
   // Buscar primero en pacientes reales; si no, fallback al mock
   let p = (_psyPatients.list||[]).find(x=>x.id===patId);
   if(p){
-    // Adaptar al formato esperado por la modal (campos opcionales)
+    // Sesiones reales del paciente (de _psyToday.sessions filtradas)
+    const realSessions = (_psyToday.sessions||[])
+      .filter(s => s.patientId === patId)
+      .map(s => {
+        const d = new Date(s.fecha);
+        const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        return {
+          d: `${d.getDate()} ${meses[d.getMonth()]}`,
+          t: s.time,
+          s: s.status,
+        };
+      });
+    // Adaptar al formato esperado por la modal
     p = {
       ...p,
       phone: p.phone || '—',
       empresa: '—',
-      sessions: [],
+      sessions: realSessions,
       objectives: [],
       docs: [],
       nota: '',
@@ -4178,6 +4206,9 @@ async function saveExternalSession(){
 const TABS={inicio:tabInicio,agenda:tabAgenda,pacientes:tabPacientes,mensajes:tabMensajes,notas:tabNotas,facturacion:tabFacturacion,estadisticas:tabEstadisticas,ajustes:tabAjustes,ayuda:tabAyuda};
 
 function renderNav(){
+  // Calcular mensajes no leídos en tiempo real
+  const totalUnread = (_psyPatients.list||[]).reduce((a,p)=>a+(p.unread||0),0);
+  NAV_ITEMS.forEach(n => { if(n.id==='mensajes') n.badge = totalUnread > 0 ? totalUnread : undefined; });
   document.getElementById('nav').innerHTML=NAV_ITEMS.map(n=>`
     <button class="nav-btn ${currentNav===n.id?'active':''}" onclick="navigate('${n.id}')">
       <span class="nav-icon">${NAV_SVG[n.id]||''}</span>${n.label}
