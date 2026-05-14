@@ -738,6 +738,7 @@ function tabInicio(){
                 <div style="display:flex;gap:5px;flex-shrink:0">
                   ${(active||isProg)?`<button onclick="event.stopPropagation();enterSession('${patientArg}','${s.initials}', ${idArg})" style="background:${active?'#f59e0b':'#20dc95'};color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">Entrar →</button>`:''}
                   ${s.status==='realizada'?`<button onclick="event.stopPropagation();openNotesModal(${idArg})" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">+ Notas</button>`:''}
+                  ${typeof s.id==='string'?`<button onclick="event.stopPropagation();deleteSession(${idArg})" title="Eliminar" style="background:#fff;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer">🗑</button>`:''}
                   ${!isCan?`<button onclick="event.stopPropagation();openSesActions(${s.id})" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:6px;width:28px;height:28px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Acciones">⋮</button>`:''}
                 </div>
               </div>`;
@@ -2879,16 +2880,37 @@ async function openNotesModal(sesId){
 }
 
 async function deleteSession(sesId){
-  if(typeof sesId !== 'string' || sesId.length < 8){ closeModal(); return; }
-  if(!confirm('¿Eliminar esta sesión? Esta acción no se puede deshacer.')) return;
-  // Borrar notas clínicas asociadas primero
+  if(typeof sesId !== 'string' || sesId.length < 8) return;
+  // Buscar la sesión para saber su status y patient
+  const sess = _psyToday.sessions.find(s => s.id === sesId);
+  if(!sess){ showToast('Sesión no encontrada'); return; }
+  const isRealizada = sess.status === 'realizada';
+  const msg = isRealizada
+    ? '¿Eliminar esta sesión realizada?\n\nLa sesión se devolverá al bono del paciente (queda como disponible). Esta acción no se puede deshacer.'
+    : '¿Eliminar esta sesión?\n\nEsta acción no se puede deshacer.';
+  if(!confirm(msg)) return;
+  // Borrar notas clínicas asociadas
   await sb.from('clinical_notes').delete().eq('session_id', sesId);
   // Borrar sesión
   const { error } = await sb.from('sessions').delete().eq('id', sesId);
   if(error){ showToast('Error: '+error.message); return; }
-  showToast('✓ Sesión eliminada');
+  // Si era realizada, devolver al bono
+  if(isRealizada && sess.patientId){
+    const { data: bono } = await sb.from('bonos')
+      .select('id, sesiones_usadas')
+      .eq('patient_id', sess.patientId)
+      .eq('activo', true)
+      .order('fecha_compra', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if(bono && bono.sesiones_usadas > 0){
+      await sb.from('bonos').update({ sesiones_usadas: bono.sesiones_usadas - 1 }).eq('id', bono.id);
+    }
+  }
+  showToast(isRealizada ? '✓ Sesión eliminada y devuelta al bono' : '✓ Sesión eliminada');
   closeModal();
   _psyToday.loaded=false; await loadPsyToday();
+  if(_psyPatients.loaded){ _psyPatients.loaded=false; await loadPsyPatients(); }
 }
 
 function openNotesModalPatient(patId){
@@ -2950,6 +2972,7 @@ function openPatientModal(patId){
         const d = new Date(s.fecha);
         const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
         return {
+          id: s.id,
           d: `${d.getDate()} ${meses[d.getMonth()]}`,
           t: s.time,
           s: s.status,
@@ -2981,10 +3004,18 @@ function openPatientModal(patId){
         <p style="font-size:12px;color:#374151;line-height:1.6">${p.nota}</p>
       </div>`:''}
     </div>`;
-    if(t==='sesiones') return `<div>${p.sessions.map(s=>{const st=SES_ST[s.s]||SES_ST.programada;return`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6">
-      <span style="font-size:13px;color:#111827">${s.d} · ${s.t}</span>
-      <span style="background:${st.bg};color:${st.color};border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">${st.label}</span>
-    </div>`;}).join('')}</div>`;
+    if(t==='sesiones'){
+      if(p.sessions.length===0) return `<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px">Sin sesiones</div>`;
+      return `<div>${p.sessions.map(s=>{
+        const st=SES_ST[s.s]||SES_ST.programada;
+        const idArg = typeof s.id === 'string' ? `'${s.id}'` : s.id;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6;gap:10px">
+          <span style="font-size:13px;color:#111827;flex:1">${s.d} · ${s.t}</span>
+          <span style="background:${st.bg};color:${st.color};border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">${st.label}</span>
+          ${s.id?`<button onclick="deleteSession(${idArg})" title="Eliminar sesión" style="background:#fff;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer">🗑</button>`:''}
+        </div>`;
+      }).join('')}</div>`;
+    }
     if(t==='documentos') return p.docs.length
       ?`<div style="display:flex;flex-direction:column;gap:8px">
         ${p.docs.map(f=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafafa;border-radius:8px;border:1px solid #e5e7eb">
