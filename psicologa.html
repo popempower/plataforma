@@ -785,31 +785,54 @@ function tabInicio(){
 
 // ── TAB: AGENDA ───────────────────────────────────────────────────
 function tabAgenda(){
-  // Base date: Tuesday April 22, 2026
-  const BASE = new Date(2026, 3, 22);
+  // Si tenemos datos reales, base = HOY; si no, mock = 22 abril 2026
+  const useReal = _psyToday.loaded && _psyToday.sessions.length > 0;
+  const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+  const BASE = useReal ? TODAY : new Date(2026, 3, 22);
   const curDate = new Date(BASE); curDate.setDate(BASE.getDate() + agendaOffset);
 
   // Monday of current week
   const dow = curDate.getDay(); // 0=Sun
   const mondayOff = dow === 0 ? -6 : 1 - dow;
   const weekStart = new Date(curDate); weekStart.setDate(curDate.getDate() + mondayOff);
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+7);
 
   const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const MONTHS_ES_CAP = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-  // Is current week the base week?
-  const isBaseWeek = weekStart.getFullYear()===2026 && weekStart.getMonth()===3 && weekStart.getDate()===20;
-  const isBaseDay  = curDate.getFullYear()===2026 && curDate.getMonth()===3 && curDate.getDate()===22;
+  // Agrupar sesiones reales por dayOffset desde el lunes de esta semana
+  const EVT_REAL = {};
+  if(useReal){
+    _psyToday.sessions.forEach(s => {
+      const d = new Date(s.fecha);
+      if(d < weekStart || d >= weekEnd) return;
+      const offsetFromMonday = Math.floor((d - weekStart) / 86400000);
+      if(!EVT_REAL[offsetFromMonday]) EVT_REAL[offsetFromMonday] = [];
+      EVT_REAL[offsetFromMonday].push({
+        time: s.time,
+        pat: s.patient,
+        ini: s.initials,
+        s: s.status,
+        id: s.id,
+      });
+    });
+  }
 
-  // Events only for base week
+  // Si es semana base (mock), usar EVT_BASE; si tenemos datos reales, usar EVT_REAL
+  const isBaseWeek = !useReal && weekStart.getFullYear()===2026 && weekStart.getMonth()===3 && weekStart.getDate()===20;
+  const isBaseDay  = !useReal && curDate.getFullYear()===2026 && curDate.getMonth()===3 && curDate.getDate()===22;
+  // Hoy real: si estamos en la semana actual real
+  const isTodayWeek = curDate >= TODAY && curDate < new Date(TODAY.getTime() + 7*86400000) && curDate.getDay() === TODAY.getDay();
+
+  // Events only for base week (mock fallback)
   const EVT_BASE = {
     0:[{time:'10:00',pat:'Ana Martínez',ini:'AM',s:'programada'},{time:'16:00',pat:'Carlos Ruiz',ini:'CR',s:'programada'}],
     2:[{time:'09:00',pat:'Carlos Ruiz',ini:'CR',s:'realizada'},{time:'10:30',pat:'Laura Sánchez',ini:'LS',s:'realizada'},{time:'12:00',pat:'Miguel Torres',ini:'MT',s:'en_curso'},{time:'16:00',pat:'Ana Martínez',ini:'AM',s:'programada'},{time:'17:30',pat:'Sofía Delgado',ini:'SD',s:'programada'},{time:'19:00',pat:'Javier Morales',ini:'JM',s:'programada'}],
     3:[{time:'11:00',pat:'Laura Sánchez',ini:'LS',s:'programada'},{time:'17:00',pat:'Sofía Delgado',ini:'SD',s:'programada'}],
     4:[{time:'10:00',pat:'Isabel Fernández',ini:'IF',s:'programada'},{time:'12:00',pat:'Javier Morales',ini:'JM',s:'programada'}],
   };
-  const EVT = isBaseWeek ? EVT_BASE : {};
+  const EVT = useReal ? EVT_REAL : (isBaseWeek ? EVT_BASE : {});
 
   const HOURS=['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
   const t2top=t=>{const[h,m]=t.split(':').map(Number);return(h-9)*40+(m/60)*40;};
@@ -820,18 +843,27 @@ function tabAgenda(){
     return `${DAYS_ES[d.getDay()]} ${d.getDate()}`;
   });
   const todayIdx = Array.from({length:7},(_,i)=>{
-    const d=new Date(weekStart); d.setDate(weekStart.getDate()+i);
+    const d=new Date(weekStart); d.setDate(weekStart.getDate()+i); d.setHours(0,0,0,0);
+    if(useReal) return d.getTime() === TODAY.getTime();
     return d.getFullYear()===2026&&d.getMonth()===3&&d.getDate()===22;
   }).indexOf(true); // -1 if today not in this week
 
   // Day label for day view
   const curDayName = DAYS_ES[curDate.getDay()];
   const curDayFull = `${curDayName} ${curDate.getDate()} de ${MONTHS_ES[curDate.getMonth()]} ${curDate.getFullYear()}`;
-  const isToday = curDate.getFullYear()===2026&&curDate.getMonth()===3&&curDate.getDate()===22;
+  const curDateOnly = new Date(curDate); curDateOnly.setHours(0,0,0,0);
+  const isToday = useReal ? curDateOnly.getTime() === TODAY.getTime() : (curDate.getFullYear()===2026&&curDate.getMonth()===3&&curDate.getDate()===22);
 
-  // Day index in base week for day view events
-  const dayInBaseWeek = isBaseDay ? 2 : -1; // Tuesday = index 2
-  const dayEvts = isBaseDay ? (EVT_BASE[2]||[]) : [];
+  // Eventos del día actual
+  let dayEvts;
+  if(useReal){
+    dayEvts = _psyToday.sessions.filter(s => {
+      const d = new Date(s.fecha); d.setHours(0,0,0,0);
+      return d.getTime() === curDateOnly.getTime();
+    }).map(s => ({ time: s.time, pat: s.patient, ini: s.initials, s: s.status, id: s.id }));
+  } else {
+    dayEvts = isBaseDay ? (EVT_BASE[2]||[]) : [];
+  }
 
   const navBtn = (delta, label) => `<button onclick="agendaNav(${delta})" style="background:none;border:1px solid #e5e7eb;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;color:#6b7280;display:flex;align-items:center;justify-content:center" onmouseenter="this.style.borderColor='#20dc95'" onmouseleave="this.style.borderColor='#e5e7eb'">${label}</button>`;
 
@@ -886,7 +918,7 @@ function tabAgenda(){
           ${navBtn(7,'›')}
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          ${!isBaseWeek?`<button onclick="agendaOffset=0;rerender()" style="font-size:11px;color:#065f46;background:#f0fdf8;border:none;border-radius:6px;padding:4px 10px;font-weight:600;cursor:pointer">Ir a hoy</button>`:'<span style="font-size:12px;color:#20dc95;font-weight:600">● Semana actual</span>'}
+          ${(()=>{ const isCurWeek = useReal ? (TODAY >= weekStart && TODAY < weekEnd) : isBaseWeek; return isCurWeek?'<span style="font-size:12px;color:#20dc95;font-weight:600">● Semana actual</span>':`<button onclick="agendaOffset=0;rerender()" style="font-size:11px;color:#065f46;background:#f0fdf8;border:none;border-radius:6px;padding:4px 10px;font-weight:600;cursor:pointer">Ir a hoy</button>`; })()}
         </div>
       </div>
       <div style="display:grid;grid-template-columns:52px repeat(7,1fr);border-bottom:1px solid #e5e7eb;background:#fafafa">
@@ -954,21 +986,40 @@ function tabAgenda(){
     </div>`;
   }
   // Month navigation — calculate displayed month from offset
-  const dispMonth = new Date(2026, 3 + Math.round(agendaOffset/30), 1);
-  const isBaseMonth = dispMonth.getFullYear()===2026 && dispMonth.getMonth()===3;
+  const monthBase = useReal ? new Date(TODAY.getFullYear(), TODAY.getMonth(), 1) : new Date(2026, 3, 1);
+  const dispMonth = new Date(monthBase.getFullYear(), monthBase.getMonth() + Math.round(agendaOffset/30), 1);
+  const isBaseMonth = !useReal && dispMonth.getFullYear()===2026 && dispMonth.getMonth()===3;
+  const isCurrentRealMonth = useReal && dispMonth.getFullYear()===TODAY.getFullYear() && dispMonth.getMonth()===TODAY.getMonth();
   const firstDayOfMonth = new Date(dispMonth.getFullYear(), dispMonth.getMonth(), 1).getDay();
   const monthOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
   const daysInDispMonth = new Date(dispMonth.getFullYear(), dispMonth.getMonth()+1, 0).getDate();
 
+  // Construir MONTH_EVENTS_REAL desde sesiones reales del mes mostrado
+  const MONTH_EVENTS_REAL = {};
+  const MONTH_DETAILS_REAL = {};
+  if(useReal){
+    _psyToday.sessions.forEach(s => {
+      const d = new Date(s.fecha);
+      if(d.getFullYear() !== dispMonth.getFullYear() || d.getMonth() !== dispMonth.getMonth()) return;
+      const day = String(d.getDate());
+      if(!MONTH_EVENTS_REAL[day]) MONTH_EVENTS_REAL[day] = [];
+      if(!MONTH_DETAILS_REAL[day]) MONTH_DETAILS_REAL[day] = [];
+      MONTH_EVENTS_REAL[day].push(s.status);
+      MONTH_DETAILS_REAL[day].push({ pat: s.patient, time: s.time });
+    });
+  }
+
   let monthCells = '';
   for(let i=0;i<monthOffset;i++) monthCells+=`<div style="min-height:70px;background:#fafafa;border-right:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6"></div>`;
   for(let d=1;d<=daysInDispMonth;d++){
-    const isThisToday = dispMonth.getFullYear()===2026&&dispMonth.getMonth()===3&&d===22;
-    const evs = isBaseMonth ? (MONTH_EVENTS[String(d)]||[]) : [];
-    const sesDetail = isBaseMonth ? MONTH_SESSIONS_DETAIL[String(d)] : null;
+    const isThisToday = useReal
+      ? (dispMonth.getFullYear()===TODAY.getFullYear() && dispMonth.getMonth()===TODAY.getMonth() && d===TODAY.getDate())
+      : (dispMonth.getFullYear()===2026&&dispMonth.getMonth()===3&&d===22);
+    const evs = useReal ? (MONTH_EVENTS_REAL[String(d)]||[]) : (isBaseMonth ? (MONTH_EVENTS[String(d)]||[]) : []);
+    const sesDetail = useReal ? MONTH_DETAILS_REAL[String(d)] : (isBaseMonth ? MONTH_SESSIONS_DETAIL[String(d)] : null);
     const hasProg = evs.some(s=>s==='programada'||s==='en_curso');
     const btnId='cal-month-'+d;
-    const dateStr='202604'+String(d).padStart(2,'0');
+    const dateStr=`${dispMonth.getFullYear()}${String(dispMonth.getMonth()+1).padStart(2,'0')}${String(d).padStart(2,'0')}`;
     monthCells+=`<div id="${btnId}" style="min-height:70px;padding:4px 6px;border-right:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;background:${isThisToday?'#f0fdf8':'#fff'};cursor:${evs.length?'pointer':'default'};vertical-align:top" onclick="${hasProg&&sesDetail?`openMonthDayModal('${d}','${dateStr}',${JSON.stringify(sesDetail).replace(/"/g,"'")})`:evs.length?`agendaView='dia';rerender()`:''}">
       <div style="font-size:11px;font-weight:${isThisToday?800:500};color:${isThisToday?'#fff':'#374151'};width:20px;height:20px;border-radius:50%;background:${isThisToday?'#20dc95':'transparent'};display:flex;align-items:center;justify-content:center;margin-bottom:3px">${d}</div>
       ${evs.slice(0,3).map(s=>`<div style="font-size:9px;font-weight:600;color:${STATUS_COLOR[s]||'#9ca3af'};background:${STATUS_COLOR[s]||'#9ca3af'}18;border-radius:3px;padding:1px 5px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${SES_ST[s]?.label||s}</div>`).join('')}
@@ -4180,8 +4231,8 @@ rerender();
 async function loadPsyToday(){
   const { data: { user } } = await sb.auth.getUser();
   if(!user) return;
-  const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
-  const endNext = new Date(); endNext.setDate(endNext.getDate()+7); endNext.setHours(23,59,59,999);
+  const startOfDay = new Date(); startOfDay.setDate(startOfDay.getDate()-30); startOfDay.setHours(0,0,0,0);
+  const endNext = new Date(); endNext.setDate(endNext.getDate()+90); endNext.setHours(23,59,59,999);
   // 1. Cargar sesiones
   const { data: sess, error: sErr } = await sb.from('sessions')
     .select('id, fecha, duracion, status, whereby_host_url, patient_id')
