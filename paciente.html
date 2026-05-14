@@ -1306,6 +1306,112 @@ function tabPlan() {
   </div>`;
 }
 
+async function descargarJustificantePDF(idJust, sessionId){
+  const ses = sessionId ? (_patState.sesiones||[]).find(s => s.id === sessionId) : null;
+  if(!ses){ showToast('Sesión no encontrada'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const d = new Date(ses.fecha);
+  const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const fechaLarga = `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+  const hora = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const hoy = new Date().toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
+  const nombrePaciente = `${_patState.nombre||''} ${_patState.apellidos||''}`.trim();
+  const psy = _patState.psychFullName || '—';
+  const colegiada = _patState.psychColegiado || '—';
+
+  // Logo
+  try {
+    const resp = await fetch('/uploads/logo.png');
+    const blob = await resp.blob();
+    const b64 = await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(blob);});
+    doc.addImage(b64,'PNG',14,10,32,32);
+  } catch(e){
+    doc.setFillColor(32,220,149);
+    doc.roundedRect(14,10,32,32,3,3,'F');
+  }
+
+  // Cabecera derecha
+  doc.setTextColor(17,24,39);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('PO PSYCHOLOGY, S.L.',195,16,{align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text('CIF: B88350368',195,22,{align:'right'});
+  doc.text('C/ Doctor Fleming, 46 — 28036 Madrid',195,27,{align:'right'});
+  doc.text('info@popempower.com',195,32,{align:'right'});
+
+  doc.setDrawColor(220); doc.line(14,48,195,48);
+
+  // Título
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('JUSTIFICANTE DE ASISTENCIA',105,60,{align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(120);
+  doc.text(`Documento nº ${idJust}`,105,67,{align:'center'});
+  doc.setTextColor(17,24,39);
+
+  // Cuerpo
+  let y = 85;
+  doc.setFontSize(11);
+  const cuerpo = [
+    `Por la presente, PO PSYCHOLOGY, S.L., entidad legalmente constituida y prestadora de servicios sanitarios de psicología online a través de la plataforma POP Empower,`,
+    ``,
+    `CERTIFICA QUE:`,
+    ``,
+    `D./Dña. ${nombrePaciente}, en calidad de paciente, ha asistido a una sesión individual de psicoterapia online con el/la profesional ${psy} (Nº Colegiado/a: ${colegiada}).`,
+    ``,
+    `Datos de la sesión:`,
+  ];
+  cuerpo.forEach(line => {
+    if(line === 'CERTIFICA QUE:'){ doc.setFont('helvetica','bold'); doc.text(line,14,y); doc.setFont('helvetica','normal'); }
+    else if(line === 'Datos de la sesión:'){ doc.setFont('helvetica','bold'); doc.text(line,14,y); doc.setFont('helvetica','normal'); }
+    else if(line){
+      const lines = doc.splitTextToSize(line, 181);
+      doc.text(lines,14,y);
+      y += (lines.length - 1) * 6;
+    }
+    y += 7;
+  });
+
+  // Datos en tabla
+  y += 2;
+  doc.setFontSize(10);
+  const datos = [
+    ['Fecha', `${dias[d.getDay()]}, ${fechaLarga}`],
+    ['Hora', hora],
+    ['Duración', `${ses.duracion||50} minutos`],
+    ['Modalidad', 'Videollamada (online)'],
+    ['Tipo', 'Sesión individual de psicología'],
+  ];
+  datos.forEach(([k,v]) => {
+    doc.setFont('helvetica','bold'); doc.text(k+':', 22, y);
+    doc.setFont('helvetica','normal'); doc.text(v, 65, y);
+    y += 7;
+  });
+
+  // Nota
+  y += 10;
+  doc.setFontSize(10);
+  const nota = 'El presente documento se expide a petición de la persona interesada, para los fines administrativos que estime oportunos, incluido su uso para el reembolso de gastos en su entidad aseguradora médica privada.';
+  doc.text(doc.splitTextToSize(nota,181), 14, y);
+  y += 28;
+
+  // Pie con fecha
+  doc.text(`Emitido en Madrid, a ${hoy}.`, 14, y);
+  y += 14;
+  doc.setFont('helvetica','bold');
+  doc.text('PO PSYCHOLOGY, S.L.', 14, y);
+  doc.setFont('helvetica','normal');
+  doc.text(psy + ` · Nº Colegiado/a: ${colegiada}`, 14, y+6);
+
+  // Nota legal pequeña al pie
+  doc.setFontSize(7); doc.setTextColor(120);
+  const legal = 'Documento emitido por PO PSYCHOLOGY, S.L. con CIF B88350368. Responsable del tratamiento de datos: PO PSYCHOLOGY, S.L. Más información sobre protección de datos en info@popempower.com.';
+  doc.text(doc.splitTextToSize(legal, 181), 14, 285);
+
+  doc.save(`Justificante_${idJust}.pdf`);
+}
+
 async function descargarFacturaPaciente(numFactura){
   const compra = (_patState.compras||[]).find(c => c.num_factura_paciente === numFactura);
   if(!compra){ showToast('Factura no encontrada'); return; }
@@ -1423,12 +1529,33 @@ function tabFacturas() {
         { id:'F-2026-003', fecha:'1 abr 2026', fechaISO:'2026-04-01', concepto:'Bono mensual — 4 sesiones (renovación)', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', base:'232,00 €', iva:'Exento (art. 20.Uno.3 LIVA)', total:'232,00 €', metodoPago:'Tarjeta Visa •••• 4242', estado:'Pagado' },
         { id:'F-2026-002', fecha:'1 mar 2026', fechaISO:'2026-03-01', concepto:'Bono mensual — 4 sesiones (primera compra)', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', base:'232,00 €', iva:'Exento (art. 20.Uno.3 LIVA)', total:'232,00 €', metodoPago:'Tarjeta Visa •••• 4242', estado:'Pagado' },
       ];
-  const JUSTIFICANTES = [
-    { id:'J-2026-004', fecha:'Miérc 30 abr 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'50 min', estado:'Realizada' },
-    { id:'J-2026-003', fecha:'Miérc 16 abr 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'52 min', estado:'Realizada' },
-    { id:'J-2026-002', fecha:'Miérc 2 abr 2026',  hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'55 min', estado:'Realizada' },
-    { id:'J-2026-001', fecha:'Miérc 19 mar 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'50 min', estado:'Realizada' },
-  ];
+  // Justificantes: sesiones realizadas reales de Supabase
+  const sesionesRealizadas = (_patState.sesiones||[]).filter(s => s.status === 'realizada');
+  const useRealJust = _patState.loaded && sesionesRealizadas.length > 0;
+  const JUSTIFICANTES = useRealJust
+    ? sesionesRealizadas.map((s, i) => {
+        const d = new Date(s.fecha);
+        const dias = ['Dom','Lun','Mar','Miérc','Juev','Vier','Sáb'];
+        const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+        const yr = String(d.getFullYear());
+        const idJust = `J-${yr}-${String(i+1).padStart(3,'0')}`;
+        return {
+          id: idJust,
+          sessionId: s.id,
+          fecha: `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]} ${yr}`,
+          hora: String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+          psicologa: _patState.psychFullName || '—',
+          colegiada: _patState.psychColegiado || '—',
+          duracion: `${s.duracion||50} min`,
+          estado: 'Realizada',
+        };
+      })
+    : [
+        { id:'J-2026-004', sessionId:null, fecha:'Miérc 30 abr 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'50 min', estado:'Realizada' },
+        { id:'J-2026-003', sessionId:null, fecha:'Miérc 16 abr 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'52 min', estado:'Realizada' },
+        { id:'J-2026-002', sessionId:null, fecha:'Miérc 2 abr 2026',  hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'55 min', estado:'Realizada' },
+        { id:'J-2026-001', sessionId:null, fecha:'Miérc 19 mar 2026', hora:'18:00', psicologa:'Dra. Elena García Ruiz', colegiada:'M-12847', duracion:'50 min', estado:'Realizada' },
+      ];
 
   return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
 
@@ -1501,7 +1628,7 @@ function tabFacturas() {
               <div style="font-size:11px;color:#9ca3af">${j.id} · ${j.psicologa} · Colegiada nº ${j.colegiada} · ${j.duracion}</div>
             </div>
             <span class="badge green" style="font-size:10px;margin-right:8px">✓ ${j.estado}</span>
-            <button style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1.5px solid #20dc95;background:#fff;color:#065f46;font-weight:600;font-size:12px;cursor:pointer;flex-shrink:0" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">⬇ PDF</button>
+            <button onclick="descargarJustificantePDF('${j.id}','${j.sessionId||''}')" style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1.5px solid #20dc95;background:#fff;color:#065f46;font-weight:600;font-size:12px;cursor:pointer;flex-shrink:0" onmouseenter="this.style.background='#f0fdf8'" onmouseleave="this.style.background='#fff'">⬇ PDF</button>
           </div>
         `).join('')}
       </div>
