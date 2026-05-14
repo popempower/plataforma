@@ -594,11 +594,18 @@ function tabInicio(){
   // Filtrar solo sesiones de HOY (no de toda la semana)
   const _today = new Date(); _today.setHours(0,0,0,0);
   const _tomorrow = new Date(_today.getTime() + 86400000);
+  const _statusOrder = { 'en_curso':0, 'programada':1, 'realizada':2, 'cancelada_cobro':3, 'cancelada':4 };
   const SESSIONS_TODAY = (_psyToday.loaded && _psyToday.sessions.length > 0)
-    ? _psyToday.sessions.filter(s => {
-        const d = new Date(s.fecha);
-        return d >= _today && d < _tomorrow;
-      })
+    ? _psyToday.sessions
+        .filter(s => {
+          const d = new Date(s.fecha);
+          return d >= _today && d < _tomorrow;
+        })
+        .sort((a,b) => {
+          const ord = (_statusOrder[a.status]??9) - (_statusOrder[b.status]??9);
+          if(ord !== 0) return ord;
+          return a.time.localeCompare(b.time);
+        })
     : TODAY_SESSIONS;
   const done=SESSIONS_TODAY.filter(s=>s.status==='realizada').length;
   const pend=SESSIONS_TODAY.filter(s=>s.status==='programada').length;
