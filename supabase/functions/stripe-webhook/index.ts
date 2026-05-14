@@ -1,15 +1,30 @@
-// @ts-ignore - Deno deploy import
-import Stripe from "npm:stripe@14.21.0"
 import { createClient } from "npm:@supabase/supabase-js@2.39.3"
 
-const STRIPE_SECRET = Deno.env.get('STRIPE_SECRET_KEY') || ''
 const WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-const stripe = new Stripe(STRIPE_SECRET, { apiVersion: '2024-11-20.acacia' })
-const cryptoProvider = Stripe.createSubtleCryptoProvider()
 const sb = createClient(SUPABASE_URL, SERVICE_KEY)
+
+// Verificar firma del webhook de Stripe usando Web Crypto API
+async function verifyStripeSignature(body: string, sigHeader: string, secret: string): Promise<boolean> {
+  const parts = Object.fromEntries(sigHeader.split(',').map(p => p.split('=')))
+  const t = parts.t
+  const v1 = parts.v1
+  if (!t || !v1) return false
+
+  const signedPayload = `${t}.${body}`
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload))
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return expected === v1
+}
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 })
@@ -18,20 +33,17 @@ Deno.serve(async (req) => {
   if (!signature) return new Response('Missing signature', { status: 400 })
 
   const body = await req.text()
-  let event: Stripe.Event
-  try {
-    event = await stripe.webhooks.constructEventAsync(
-      body, signature, WEBHOOK_SECRET, undefined, cryptoProvider
-    )
-  } catch (e) {
-    return new Response(`Webhook signature failed: ${(e as Error).message}`, { status: 400 })
-  }
+
+  const valid = await verifyStripeSignature(body, signature, WEBHOOK_SECRET)
+  if (!valid) return new Response('Invalid signature', { status: 400 })
+
+  const event = JSON.parse(body)
 
   if (event.type !== 'checkout.session.completed') {
     return new Response(JSON.stringify({ ignored: event.type }), { status: 200 })
   }
 
-  const session = event.data.object as Stripe.Checkout.Session
+  const session = event.data.object
   const patientId = session.client_reference_id
   if (!patientId) return new Response('Missing client_reference_id', { status: 400 })
 
@@ -44,8 +56,8 @@ Deno.serve(async (req) => {
     return new Response(`Patient not found: ${pErr?.message}`, { status: 404 })
   }
 
-  const categoria = patient.categoria as string
-  const plan = patient.plan_elegido as string
+  const categoria = patient.categoria
+  const plan = patient.plan_elegido
   const sesiones = plan === 'mensual' ? 4 : 1
   const importe = (session.amount_total || 0) / 100
 
