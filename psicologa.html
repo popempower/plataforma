@@ -531,17 +531,18 @@ function dispoToggleHour(hour){
 
 // ── MINI CALENDAR ─────────────────────────────────────────────────
 function miniCalendar(){
-  const now=new Date(2026,3,22); // April 22 2026 (month 0-indexed)
+  const now=new Date();
   let calYear=now.getFullYear(), calMonth=now.getMonth();
-  const sessionDates={
-    '2026-4-22':['en_curso','programada','programada','programada'],
-    '2026-4-20':['programada','programada'],
-    '2026-4-23':['programada','programada'],
-    '2026-4-24':['programada','programada'],
-    '2026-4-15':['realizada','realizada'],
-    '2026-4-16':['realizada'],
-    '2026-4-8':['realizada','cancelada'],
-  };
+  // Construir sessionDates desde Supabase si está cargado
+  const sessionDates = {};
+  if(_psyToday.loaded){
+    _psyToday.sessions.forEach(s => {
+      const d = new Date(s.fecha);
+      const key = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+      if(!sessionDates[key]) sessionDates[key] = [];
+      sessionDates[key].push(s.status);
+    });
+  }
   function getDot(key){
     const ses=sessionDates[key]; if(!ses) return '';
     const color = ses.includes('en_curso')?'#f59e0b':ses.includes('programada')?'#20dc95':ses.includes('realizada')?'#3b82f6':'#ef4444';
@@ -554,7 +555,7 @@ function miniCalendar(){
   let cells='';
   for(let i=0;i<offset;i++) cells+=`<div></div>`;
   for(let d=1;d<=daysInMonth;d++){
-    const isToday=d===22&&calMonth===3&&calYear===2026;
+    const isToday=d===now.getDate()&&calMonth===now.getMonth()&&calYear===now.getFullYear();
     const key=`${calYear}-${calMonth+1}-${d}`;
     const hasSes=!!sessionDates[key];
     cells+=`<div style="text-align:center;cursor:${hasSes?'pointer':'default'};padding:1px 0" ${hasSes?`onclick="navigate('agenda')"`:''}> 
@@ -627,7 +628,8 @@ function tabInicio(){
       <button onclick="navigate('ajustes')" style="background:#20dc95;color:#065f46;border:none;border-radius:8px;padding:8px 16px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0">Completar perfil →</button>
     </div>` : '';
 
-  const pendingBlock = PENDING_PATIENTS.length ? `
+  // PENDING_PATIENTS es mock — ahora la asignación viene del admin. Ocultar.
+  const pendingBlock = false ? `
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:18px">
       <div style="padding:12px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:8px">
@@ -651,7 +653,7 @@ function tabInicio(){
         </div>`).join('')}
     </div>` : '';
 
-  const hoyDate = new Date('2026-04-22');
+  const hoyDate = new Date(); hoyDate.setHours(0,0,0,0);
   const ausActiva = ausencias.find(a=>new Date(a.desde)<=hoyDate&&new Date(a.hasta)>=hoyDate);
   const ausFutura = !ausActiva && ausencias.filter(a=>new Date(a.desde)>hoyDate).sort((a,b)=>a.desde.localeCompare(b.desde))[0];
   const tipos={vacaciones:'🏖️ Vacaciones',baja:'🤒 Baja',formacion:'📚 Formación',otro:'📌 Ausencia'};
@@ -673,8 +675,12 @@ function tabInicio(){
       <button onclick="navigate('ajustes')" style="background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0">Ver →</button>
     </div>` : '';
 
-  const activeCount = PATIENTS.filter(p=>p.status==='activo').length;
-  const unreadCount = 6;
+  const activeCount = _psyPatients.loaded
+    ? _psyPatients.list.filter(p=>p.status==='activo').length
+    : PATIENTS.filter(p=>p.status==='activo').length;
+  const unreadCount = _psyPatients.loaded
+    ? (_psyPatients.list||[]).reduce((a,p)=>a+(p.unread||0),0)
+    : 0;
 
   return `<div style="flex:1;overflow:auto;padding:20px 28px" class="fadeUp">
     <div style="max-width:980px;margin:0 auto">
@@ -691,7 +697,7 @@ function tabInicio(){
           <div style="padding:14px 20px;border-bottom:1px solid #e5e7eb">
             <div style="display:flex;justify-content:space-between;align-items:flex-start">
               <div>
-                <div style="font-weight:700;font-size:14px;color:#111827">Agenda de hoy — Martes 22 Abr</div>
+                <div style="font-weight:700;font-size:14px;color:#111827">Agenda de hoy — ${(()=>{const d=new Date();const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];return `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;})()}</div>
                 <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
                   <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#065f46;background:#f0fdf8;border-radius:6px;padding:3px 8px">
                     <div style="width:6px;height:6px;border-radius:50%;background:#20dc95"></div>
@@ -767,16 +773,23 @@ function tabInicio(){
               <span style="font-weight:700;font-size:12px;color:#111827">Mensajes recientes</span>
               <button onclick="navigate('mensajes')" style="font-size:11px;color:#20dc95;background:none;border:none;cursor:pointer;font-weight:600">Ver todos →</button>
             </div>
-            ${chatMessages.slice(0,3).map(c=>`<div class="pat-row" onclick="openChat(${c.patientId})" style="padding:8px 12px">
-              ${av(c.initials,24,true)}
-              <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:11px;color:#111827;display:flex;justify-content:space-between">
-                  ${c.patient}<span style="font-size:10px;color:#9ca3af;font-weight:400">${c.msgs[c.msgs.length-1].time}</span>
-                </div>
-                <div style="font-size:10px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.msgs[c.msgs.length-1].text}</div>
-              </div>
-              <div class="dot" style="background:#20dc95;margin-left:4px;flex-shrink:0"></div>
-            </div>`).join('')}
+            ${(()=>{
+              const convs = _psyMsgs.loaded ? _psyMsgs.conversations.filter(c=>c.lastAt).slice(0,3) : chatMessages.slice(0,3).map(c=>({patientId:c.patientId,patient:c.patient,initials:c.initials,lastText:c.msgs[c.msgs.length-1]?.text||'',lastTime:c.msgs[c.msgs.length-1]?.time||'',unread:0}));
+              if(convs.length === 0) return `<div style="padding:18px;text-align:center;font-size:11px;color:#9ca3af">Sin mensajes</div>`;
+              return convs.map(c=>{
+                const idArg = typeof c.patientId === 'string' ? `'${c.patientId}'` : c.patientId;
+                return `<div class="pat-row" onclick="openChat(${idArg})" style="padding:8px 12px;cursor:pointer">
+                  ${av(c.initials,24,true)}
+                  <div style="flex:1;min-width:0">
+                    <div style="font-weight:600;font-size:11px;color:#111827;display:flex;justify-content:space-between">
+                      ${c.patient}<span style="font-size:10px;color:#9ca3af;font-weight:400">${c.lastTime||''}</span>
+                    </div>
+                    <div style="font-size:10px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.lastText||''}</div>
+                  </div>
+                  ${c.unread?`<div class="dot" style="background:#20dc95;margin-left:4px;flex-shrink:0"></div>`:''}
+                </div>`;
+              }).join('');
+            })()}
           </div>
 
           <!-- Ayuda rápida -->
@@ -4232,8 +4245,17 @@ function renderTab(){
   const _DAYS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const _MONTHS= ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const _dateStr = `${_DAYS[_now.getDay()]} ${_now.getDate()} de ${_MONTHS[_now.getMonth()]}`;
-  document.getElementById('topbar-title').textContent=`${_greet}, Elena ${_icon}`;
-  document.getElementById('topbar-sub').textContent=`${_dateStr} · ${TODAY_SESSIONS.filter(s=>s.status==='realizada').length} sesiones realizadas · ${TODAY_SESSIONS.filter(s=>s.status==='programada').length} pendientes`;
+  const _firstName = (psychProfile.nombre || 'Elena').split(' ')[0];
+  document.getElementById('topbar-title').textContent=`${_greet}, ${_firstName} ${_icon}`;
+  // Contar sesiones reales de hoy si están cargadas
+  const _todayMid = new Date(_now); _todayMid.setHours(0,0,0,0);
+  const _tomMid = new Date(_todayMid.getTime()+86400000);
+  const _todaySes = _psyToday.loaded
+    ? _psyToday.sessions.filter(s => { const d = new Date(s.fecha); return d>=_todayMid && d<_tomMid; })
+    : TODAY_SESSIONS;
+  const _done = _todaySes.filter(s=>s.status==='realizada').length;
+  const _pend = _todaySes.filter(s=>s.status==='programada' || s.status==='en_curso').length;
+  document.getElementById('topbar-sub').textContent=`${_dateStr} · ${_done} sesión${_done===1?'':'es'} realizada${_done===1?'':'s'} · ${_pend} pendiente${_pend===1?'':'s'}`;
   if(currentNav==='mensajes'&&activeChat){
     setTimeout(()=>{const c=document.getElementById('chat-msgs');if(c)c.scrollTop=c.scrollHeight;},50);
   }
@@ -4620,6 +4642,7 @@ async function loadPsyPatients(){
 }
 loadPsyPatients();
 loadPsyProfile();
+loadPsyConversations();
 
 async function loadPsyNotes(){
   const { data: { user } } = await sb.auth.getUser();
