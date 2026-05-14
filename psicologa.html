@@ -1268,7 +1268,6 @@ function tabMensajes(){
         ${av(conv.initials,38,true)}
         <div style="flex:1">
           <div style="font-weight:700;font-size:14px;color:#111827">${conv.patient}</div>
-          <div style="font-size:11px;color:#20dc95;font-weight:600">● En línea</div>
         </div>
       </div>
       <div id="chat-msgs" style="flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:10px;background:#fafafa">
@@ -3293,6 +3292,8 @@ async function loadPsyChatWith(patientId){
     .select('id, sender_role, contenido, leido, created_at')
     .eq('patient_id', patientId)
     .order('created_at', { ascending: true });
+  const newIds = (data||[]).map(m=>m.id).join(',');
+  const oldIds = _psyMsgs.messages.map(m=>m.id).join(',');
   _psyMsgs.messages = (data||[]).map(m => {
     const d = new Date(m.created_at);
     return {
@@ -3306,6 +3307,17 @@ async function loadPsyChatWith(patientId){
   const unreadIds = (data||[]).filter(m=>m.sender_role==='patient' && !m.leido).map(m=>m.id);
   if(unreadIds.length){
     await sb.from('messages').update({ leido: true }).in('id', unreadIds);
+  }
+  // Solo re-render si hay nuevos. Preservar draft del input.
+  if(currentNav==='mensajes' && newIds !== oldIds){
+    const draft = document.getElementById('chat-input')?.value || '';
+    rerender();
+    setTimeout(()=>{
+      const inp = document.getElementById('chat-input');
+      if(inp && draft) inp.value = draft;
+      const c=document.getElementById('chat-msgs'); if(c) c.scrollTop=c.scrollHeight;
+    }, 30);
+    return;
   }
   if(currentNav==='mensajes') rerender();
   setTimeout(()=>{const c=document.getElementById('chat-msgs');if(c)c.scrollTop=c.scrollHeight;},80);
