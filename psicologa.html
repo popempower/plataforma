@@ -3157,6 +3157,9 @@ function enterSession(patName, patInitials){
 
 function exitSession(){
   if(srState.timerInterval) clearInterval(srState.timerInterval);
+  // Apagar iframe de Whereby — libera cámara y micrófono del navegador
+  const frame=document.getElementById('sr-whereby-frame');
+  if(frame) frame.src='about:blank';
   srEndWherebyRoom();
   document.getElementById('session-room').style.display='none';
   document.getElementById('portal-ui').style.display='flex';

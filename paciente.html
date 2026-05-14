@@ -1567,6 +1567,10 @@ async function endPatWherebyRoom(){
 }
 function exitSession(){
   clearInterval(window._srTimer);
+  // Apagar iframe de Whereby — libera cámara y micrófono del navegador
+  const frame=document.getElementById('sr-patient-frame');
+  if(frame) frame.src='about:blank';
+  window._wherebyRoomUrl=null;
   endPatWherebyRoom();
   document.getElementById('session-room').classList.remove('active');
   document.getElementById('app').style.display='flex';
