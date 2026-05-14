@@ -4182,20 +4182,32 @@ async function loadPsyToday(){
   if(!user) return;
   const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
   const endNext = new Date(); endNext.setDate(endNext.getDate()+7); endNext.setHours(23,59,59,999);
-  const { data } = await sb.from('sessions')
-    .select('id, fecha, duracion, status, whereby_host_url, patient_id, patients(nombre, apellidos)')
+  // 1. Cargar sesiones
+  const { data: sess, error: sErr } = await sb.from('sessions')
+    .select('id, fecha, duracion, status, whereby_host_url, patient_id')
     .eq('psychologist_id', user.id)
     .gte('fecha', startOfDay.toISOString())
     .lte('fecha', endNext.toISOString())
     .order('fecha', { ascending: true });
-  _psyToday.sessions = (data||[]).map(s => {
+  if(sErr){ console.error('sessions:', sErr); _psyToday.loaded=true; rerender(); return; }
+  // 2. Cargar pacientes en bulk
+  const patIds = [...new Set((sess||[]).map(s=>s.patient_id).filter(Boolean))];
+  let patMap = {};
+  if(patIds.length){
+    const { data: pats } = await sb.from('patients')
+      .select('id, nombre, apellidos')
+      .in('id', patIds);
+    (pats||[]).forEach(p => { patMap[p.id] = p; });
+  }
+  _psyToday.sessions = (sess||[]).map(s => {
     const d = new Date(s.fecha);
-    const initials = ((s.patients?.nombre?.[0]||'')+(s.patients?.apellidos?.[0]||'')).toUpperCase() || '?';
+    const p = patMap[s.patient_id] || {};
+    const initials = ((p.nombre?.[0]||'')+(p.apellidos?.[0]||'')).toUpperCase() || '?';
     return {
       id: s.id,
       patientId: s.patient_id,
       time: String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
-      patient: `${s.patients?.nombre||''} ${s.patients?.apellidos||''}`.trim() || 'Paciente',
+      patient: `${p.nombre||''} ${p.apellidos||''}`.trim() || 'Paciente',
       initials,
       duration: s.duracion || 50,
       status: s.status,
