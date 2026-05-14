@@ -2912,9 +2912,14 @@ async function deleteSession(sesId){
     }
   }
   showToast(isRealizada ? '✓ Sesión eliminada y devuelta al bono' : '✓ Sesión eliminada');
-  closeModal();
+  const wasModalOpen = _currentModalPatient;
   _psyToday.loaded=false; await loadPsyToday();
   if(_psyPatients.loaded){ _psyPatients.loaded=false; await loadPsyPatients(); }
+  // Si había un modal de paciente abierto, reabrirlo con los datos actualizados
+  if(wasModalOpen){
+    closeModal();
+    openPatientModal(wasModalOpen);
+  }
 }
 
 function openNotesModalPatient(patId){
@@ -2965,7 +2970,9 @@ async function saveNotes(sesId){
   closeModal(); rerender();
 }
 
+let _currentModalPatient = null;
 function openPatientModal(patId){
+  _currentModalPatient = patId;
   // Buscar primero en pacientes reales; si no, fallback al mock
   let p = (_psyPatients.list||[]).find(x=>x.id===patId);
   if(p){
@@ -3292,7 +3299,7 @@ function showModal(html){
   el.addEventListener('click',e=>{if(e.target===el)closeModal();});
   document.getElementById('modals').appendChild(el);
 }
-function closeModal(){ document.getElementById('active-modal')?.remove(); }
+function closeModal(){ document.getElementById('active-modal')?.remove(); _currentModalPatient=null; }
 
 // ── ACTIONS ───────────────────────────────────────────────────────
 function openChat(patId){
