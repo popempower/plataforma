@@ -805,7 +805,7 @@ function tabInicio() {
             <div style="display:flex;gap:3px;margin-bottom:6px">${(()=>{ let h=''; for(let i=0;i<BONO_LOCAL.total;i++){ h+=`<div style="flex:1;height:6px;border-radius:3px;background:${i<BONO_LOCAL.used?'#20dc95':'#e5e7eb'}"></div>`;} return h; })()}</div>
             ${(()=>{
               const realizadas = (_patState.sesiones||[]).filter(s=>s.status==='realizada').length;
-              const programadas = (_patState.sesiones||[]).filter(s=>s.status==='programada').length;
+              const programadas = (_patState.sesiones||[]).filter(s=>s.status==='programada' || s.status==='en_curso').length;
               return `<div style="display:flex;justify-content:space-between">
                 <span style="font-size:10px;color:#065f46;font-weight:600">${realizadas} realizada${realizadas===1?'':'s'}</span>
                 <span style="font-size:10px;color:#6b7280">${programadas} programada${programadas===1?'':'s'}</span>
@@ -2246,24 +2246,38 @@ function showToast(msg, type='success'){
 // ── REAGENDAR → CHAT ─────────────────────────────────────────────
 function goReschedule(sesRef){
   navigate('mensajes');
-  // Pre-rellena el input del chat con un mensaje sugerido
-  setTimeout(()=>{
+  // Reintentar hasta que el input esté disponible (puede que el chat aún esté cargando)
+  let tries = 0;
+  const tryFill = () => {
+    tries++;
     const input = document.getElementById('chat-input');
-    if(input && !input.value){
+    if(input){
       const psyFirst = (_patState.psychNombre || 'Elena').split(' ')[0];
       let ref;
       if(sesRef && sesRef.date && sesRef.time){
         ref = `mi sesión del ${sesRef.date} a las ${sesRef.time}`;
       } else {
-        const nextS = SESSIONS.find(s=>s.status==='programada');
-        ref = nextS ? `mi sesión del ${nextS.date} a las ${nextS.time}` : 'mi próxima sesión';
+        const nextS = (_patState.sesiones||[]).find(s=>s.status==='programada');
+        if(nextS){
+          const d = new Date(nextS.fecha);
+          const dias = ['Dom','Lun','Mar','Miérc','Juev','Vier','Sáb'];
+          const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+          const dateStr = `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
+          const timeStr = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+          ref = `mi sesión del ${dateStr} a las ${timeStr}`;
+        } else {
+          ref = 'mi próxima sesión';
+        }
       }
       input.value = `Hola ${psyFirst}, necesito reagendar ${ref}. ¿Tendrías disponibilidad en otro momento?`;
-      updateSendBtn();
+      if(typeof updateSendBtn === 'function') updateSendBtn();
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
+    } else if(tries < 10){
+      setTimeout(tryFill, 100);
     }
-  }, 80);
+  };
+  setTimeout(tryFill, 80);
 }
 
 // ── CAMBIO DE PSICÓLOGO MODAL ─────────────────────────────────────
