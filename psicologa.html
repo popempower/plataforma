@@ -1071,6 +1071,7 @@ function tabAgenda(){
         <div class="tab-pills">
           ${[['dia','Día'],['semana','Semana'],['mes','Mes']].map(([v,l])=>`<button class="tab-pill ${agendaView===v?'active':''}" onclick="agendaView='${v}';rerender()">${l}</button>`).join('')}
         </div>
+        <button onclick="openNewSesModal()" class="btn-green" style="padding:8px 14px;font-size:12px">+ Nueva sesión</button>
         <button onclick="showExternalSessionModal()" style="padding:8px 14px;font-size:12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;font-weight:600;color:#374151;font-family:inherit" onmouseenter="this.style.borderColor='#0284c7';this.style.color='#0c4a6e'" onmouseleave="this.style.borderColor='#e5e7eb';this.style.color='#374151'">↗ Sesión externa</button>
         <button class="btn-green" onclick="openNewSesModal()" style="padding:8px 16px;font-size:12px">+ Nueva sesión</button>
       </div>
@@ -3013,7 +3014,13 @@ function openPatientModal(patId){
   },0);
 }
 
-function openNewSesModal(){
+function openNewSesModal(prefilledDate, prefilledTime){
+  // Pacientes reales si están cargados; si no, mock
+  const useReal = _psyPatients.loaded;
+  const ALL_PATS = useReal ? _psyPatients.list.filter(p=>p.status==='activo') : PATIENTS.filter(p=>p.status==='activo');
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  const defaultDate = prefilledDate || tomorrow.toISOString().slice(0,10);
+  const defaultTime = prefilledTime || '18:00';
   showModal(`<div class="modal-box" style="width:440px">
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
       <div style="font-weight:700;font-size:15px;color:#111827">Nueva sesión</div>
@@ -3021,24 +3028,59 @@ function openNewSesModal(){
     </div>
     <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px">
       <div><label class="field-label">Paciente</label>
-        <select class="field-input">${PATIENTS.filter(p=>p.status==='activo').map(p=>`<option>${p.name}</option>`).join('')}</select>
+        <select id="ns-patient" class="field-input">
+          ${ALL_PATS.length===0?'<option value="">Sin pacientes asignados</option>':''}
+          ${ALL_PATS.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}
+        </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><label class="field-label">Fecha</label><input class="field-input" type="date" value="2026-04-23"/></div>
-        <div><label class="field-label">Hora</label><input class="field-input" type="time" value="16:00"/></div>
+        <div><label class="field-label">Fecha</label><input id="ns-fecha" class="field-input" type="date" value="${defaultDate}"/></div>
+        <div><label class="field-label">Hora</label><input id="ns-hora" class="field-input" type="time" value="${defaultTime}"/></div>
       </div>
       <div><label class="field-label">Duración</label>
-        <div style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:13px;color:#6b7280;background:#fafafa">50 minutos (fijo)</div>
-      </div>
-      <div><label class="field-label">Notas previas (opcional)</label>
-        <textarea class="field-input" placeholder="Objetivos de la sesión..." style="min-height:70px"></textarea>
+        <select id="ns-duracion" class="field-input">
+          <option value="50" selected>50 minutos</option>
+          <option value="30">30 minutos</option>
+          <option value="60">60 minutos</option>
+          <option value="90">90 minutos</option>
+        </select>
       </div>
     </div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px">
       <button onclick="closeModal()" class="btn-gray">Cancelar</button>
-      <button onclick="closeModal()" class="btn-green">Programar sesión</button>
+      <button onclick="createNewSession()" class="btn-green">Programar sesión</button>
     </div>
   </div>`);
+}
+
+async function createNewSession(){
+  const patientId = document.getElementById('ns-patient')?.value;
+  const fecha = document.getElementById('ns-fecha')?.value;
+  const hora = document.getElementById('ns-hora')?.value;
+  const duracion = parseInt(document.getElementById('ns-duracion')?.value || '50');
+  if(!patientId){ showToast('Selecciona un paciente'); return; }
+  if(!fecha || !hora){ showToast('Fecha y hora obligatorias'); return; }
+
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user){ showToast('Sesión expirada'); return; }
+
+  // Construir timestamptz combinando fecha + hora en zona local
+  const [h, m] = hora.split(':').map(Number);
+  const dt = new Date(fecha + 'T00:00:00');
+  dt.setHours(h, m, 0, 0);
+
+  const { error } = await sb.from('sessions').insert({
+    patient_id: patientId,
+    psychologist_id: user.id,
+    fecha: dt.toISOString(),
+    duracion,
+    status: 'programada',
+  });
+  if(error){ showToast('Error: '+error.message); return; }
+
+  showToast('✓ Sesión programada');
+  closeModal();
+  _psyToday.loaded = false; await loadPsyToday();
 }
 
 function openAddNoteModal(patId){
