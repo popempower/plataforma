@@ -2691,6 +2691,9 @@ function navigate(id){
   } else {
     stopMessagePolling();
   }
+  // Ocultar WhatsApp en la tab Mensajes (no estorba el botón Enviar)
+  const wa = document.getElementById('wa-float');
+  if(wa) wa.style.display = (id==='mensajes' ? 'none' : 'flex');
   rerender();
 }
 
@@ -3156,7 +3159,7 @@ if(!localStorage.getItem('pop_tour_done')){
 }
 </script>
 <!-- Botón flotante WhatsApp soporte -->
-<a href="https://wa.me/34699201600?text=Hola%2C%20necesito%20ayuda%20con%20la%20plataforma%20POP%20Empower%20%F0%9F%99%8F" target="_blank" rel="noopener"
+<a href="https://wa.me/34699201600?text=Hola%2C%20necesito%20ayuda%20con%20la%20plataforma%20POP%20Empower%20%F0%9F%99%8F" target="_blank" rel="noopener" id="wa-float"
   title="Soporte por WhatsApp"
   style="position:fixed;bottom:24px;right:24px;z-index:9000;width:52px;height:52px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.5);text-decoration:none;transition:transform .2s,box-shadow .2s"
   onmouseenter="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 24px rgba(37,211,102,.65)'"
