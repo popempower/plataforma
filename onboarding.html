@@ -423,10 +423,38 @@ const STRIPE_LINKS = {
   },
 };
 
-function doPay(){
+async function doPay(){
   const link = STRIPE_LINKS[S.cat]?.[S.planId];
   if(!link){ alert('Plan no disponible'); return; }
-  const url = link + '?prefilled_email=' + encodeURIComponent(S.email);
+  if(!S.userId){ alert('Sesión expirada, vuelve a empezar el registro'); return; }
+  const btn = document.getElementById('payBtn');
+  if(btn){ btn.disabled=true; btn.textContent='Preparando pago...'; }
+  // Crear paciente en Supabase con estado pendiente_pago
+  const tipoTerapia = S.cat==='pareja' ? 'pareja' : 'individual';
+  const { error } = await sb.from('patients').upsert({
+    id: S.userId,
+    nombre: S.nombre,
+    apellidos: S.apellidos,
+    email: S.email,
+    phone: S.phone,
+    fecha_nac: S.fechaNac || null,
+    motivos: S.motivos,
+    disponibilidad: S.disponibilidad,
+    prev_psych: S.prevPsych,
+    categoria: S.cat,
+    plan_elegido: S.planId,
+    tipo_terapia: tipoTerapia,
+    status: 'pendiente_pago',
+  }, { onConflict: 'id' });
+  if(error){
+    if(btn){ btn.disabled=false; btn.textContent=`Pagar ${getTotal()}€ con Stripe →`; }
+    alert('Error guardando datos: '+error.message);
+    return;
+  }
+  // Redirigir a Stripe pasando el patient_id como client_reference_id
+  const url = link
+    + '?prefilled_email=' + encodeURIComponent(S.email)
+    + '&client_reference_id=' + encodeURIComponent(S.userId);
   window.location.href = url;
 }
 
