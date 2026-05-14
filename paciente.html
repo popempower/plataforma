@@ -1062,6 +1062,12 @@ function tabDocumentos() {
 }
 
 function tabAjustes() {
+  // Si tenemos datos reales, usar _patState; si no, mock
+  const useReal = _patState.loaded && _patState.id;
+  const fullName = useReal ? `${_patState.nombre} ${_patState.apellidos}`.trim() : 'Ana Martínez';
+  const email = useReal ? _patState.email : 'ana.martinez@email.com';
+  const phone = useReal ? (_patState.phone || '+34') : '+34612345678';
+  const fechaNac = useReal ? (_patState.fechaNac || '') : '1990-05-15';
   return `<div style="flex:1;overflow:auto;padding:24px 28px" class="fadeUp">
     <h2 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:20px">Ajustes</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
@@ -1069,12 +1075,13 @@ function tabAjustes() {
       <div class="card" style="grid-column:span 2">
         <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:16px">Información personal</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-          <div><label class="field-label">Nombre completo</label><input class="field-input" value="Ana Martínez"/></div>
-          <div><label class="field-label">Email</label><input class="field-input" type="email" value="ana.martinez@email.com"/></div>
-          <div><label class="field-label">Teléfono</label>${phoneInputHTML('pat-tel','+34612345678')}</div>
-          <div><label class="field-label">Fecha de nacimiento</label><input class="field-input" type="date" value="1990-05-15"/></div>
+          <div><label class="field-label">Nombre</label><input id="ajp-nombre" class="field-input" value="${_patState.nombre||''}"/></div>
+          <div><label class="field-label">Apellidos</label><input id="ajp-apellidos" class="field-input" value="${_patState.apellidos||''}"/></div>
+          <div><label class="field-label">Email</label><input id="ajp-email" class="field-input" type="email" value="${email}" disabled style="background:#f9fafb;color:#9ca3af"/></div>
+          <div><label class="field-label">Teléfono</label>${phoneInputHTML('ajp-tel', phone)}</div>
+          <div><label class="field-label">Fecha de nacimiento</label><input id="ajp-fechanac" class="field-input" type="date" value="${fechaNac}"/></div>
         </div>
-        <button id="save-btn" onclick="saveProfile()" class="btn-green" style="margin-top:8px">Guardar cambios</button>
+        <button id="save-btn" onclick="savePatientProfile()" class="btn-green" style="margin-top:8px">Guardar cambios</button>
       </div>
 
       <div class="card">
@@ -1088,15 +1095,21 @@ function tabAjustes() {
 
       <div class="card">
         <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:14px">Mi plan</div>
-        <div style="background:#f0fdf8;border-radius:9px;padding:14px 16px;margin-bottom:14px">
-          <div style="font-weight:700;font-size:15px;color:#065f46;margin-bottom:4px">Terapia Individual · Mensual</div>
-          <div style="font-size:12px;color:#065f46;opacity:.7">4 sesiones · 232€/bono</div>
-        </div>
-        ${[['Psicólogo asignado','Dra. Elena García'],['Sesiones restantes',`${BONO.total-BONO.used} de ${BONO.total}`],['Bono caduca',BONO.expiry]].map(([k,v])=>`
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:12px;color:#6b7280">${k}</span>
-            <span style="font-size:12px;color:#111827;font-weight:600">${v}</span>
-          </div>`).join('')}
+        ${(()=>{
+          const total = useReal ? _patState.bonoTotal : 4;
+          const used  = useReal ? _patState.bonoUsadas : 2;
+          const exp   = useReal && _patState.bonoCaducidad ? new Date(_patState.bonoCaducidad).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}) : '15 Jul 2026';
+          const psy   = _patState.psychFullName || 'Dra. Elena García';
+          return `<div style="background:#f0fdf8;border-radius:9px;padding:14px 16px;margin-bottom:14px">
+            <div style="font-weight:700;font-size:15px;color:#065f46;margin-bottom:4px">${_patState.categoria||'Terapia individual'}</div>
+            <div style="font-size:12px;color:#065f46;opacity:.7">${total} sesiones por bono</div>
+          </div>
+          ${[['Psicólogo asignado',psy],['Sesiones restantes',`${total-used} de ${total}`],['Bono caduca',exp]].map(([k,v])=>`
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:12px;color:#6b7280">${k}</span>
+              <span style="font-size:12px;color:#111827;font-weight:600">${v}</span>
+            </div>`).join('')}`;
+        })()}
         <button onclick="showCancelModal()" style="width:100%;margin-top:12px;padding:9px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;font-weight:600;font-size:12px">Cancelar suscripción</button>
       </div>
 
@@ -1127,10 +1140,11 @@ function tabAjustes() {
 
       <div class="card" style="grid-column:span 2">
         <div style="font-weight:700;font-size:14px;color:#111827;margin-bottom:14px">Seguridad</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-          ${['Contraseña actual','Nueva contraseña','Confirmar contraseña'].map(l=>`<div><label class="field-label">${l}</label><input class="field-input" type="password" placeholder="••••••••"/></div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div><label class="field-label">Nueva contraseña</label><input id="ajp-newpass" class="field-input" type="password" placeholder="Mínimo 8 caracteres"/></div>
+          <div><label class="field-label">Confirmar contraseña</label><input id="ajp-confpass" class="field-input" type="password" placeholder="Repite la contraseña"/></div>
         </div>
-        <button style="margin-top:10px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;padding:9px 18px;font-weight:600;font-size:12px">Cambiar contraseña</button>
+        <button onclick="changePatientPassword()" class="btn-green" style="margin-top:10px;padding:9px 18px;font-size:12px">Cambiar contraseña</button>
       </div>
 
       <!-- Zona de peligro -->
@@ -2402,7 +2416,42 @@ let _patState = {
   sesionesCompradas: 0,
   // Lista detallada de compras (para facturas)
   compras: [],
+  // Datos personales extra
+  phone:'', fechaNac:'', categoria:'',
 };
+
+async function savePatientProfile(){
+  const btn = document.getElementById('save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Guardando...'; }
+  const nombre = document.getElementById('ajp-nombre')?.value.trim();
+  const apellidos = document.getElementById('ajp-apellidos')?.value.trim();
+  const phone = getPhone('ajp-tel');
+  const fechaNac = document.getElementById('ajp-fechanac')?.value || null;
+  const { error } = await sb.from('patients').update({
+    nombre, apellidos, phone, fecha_nac: fechaNac,
+  }).eq('id', _patState.id);
+  if(btn){ btn.disabled=false; btn.textContent='Guardar cambios'; }
+  if(error){ showToast('Error: '+error.message); return; }
+  _patState.nombre = nombre;
+  _patState.apellidos = apellidos;
+  _patState.phone = phone;
+  _patState.fechaNac = fechaNac;
+  _patState.initials = _initials(nombre, apellidos);
+  applyPatientUI();
+  showToast('✓ Datos actualizados');
+}
+
+async function changePatientPassword(){
+  const newPass = document.getElementById('ajp-newpass')?.value;
+  const confPass = document.getElementById('ajp-confpass')?.value;
+  if(!newPass || newPass.length < 8){ showToast('La contraseña debe tener al menos 8 caracteres'); return; }
+  if(newPass !== confPass){ showToast('Las contraseñas no coinciden'); return; }
+  const { error } = await sb.auth.updateUser({ password: newPass });
+  if(error){ showToast('Error: '+error.message); return; }
+  document.getElementById('ajp-newpass').value = '';
+  document.getElementById('ajp-confpass').value = '';
+  showToast('✓ Contraseña actualizada');
+}
 
 function _initials(nombre, apellidos){
   return ((nombre||'').trim().charAt(0) + (apellidos||'').trim().charAt(0)).toUpperCase() || '?';
@@ -2414,7 +2463,7 @@ async function loadPatientState(){
 
   // Perfil + psicóloga asignada
   const { data: pat } = await sb.from('patients')
-    .select('id, nombre, apellidos, email, status, psychologist_id, psychologists(id, nombre, apellidos, colegiado)')
+    .select('id, nombre, apellidos, email, phone, fecha_nac, status, categoria, psychologist_id, psychologists(id, nombre, apellidos, colegiado)')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -2423,6 +2472,9 @@ async function loadPatientState(){
     _patState.nombre = pat.nombre || '';
     _patState.apellidos = pat.apellidos || '';
     _patState.email = pat.email || user.email || '';
+    _patState.phone = pat.phone || '';
+    _patState.fechaNac = pat.fecha_nac || '';
+    _patState.categoria = pat.categoria || '';
     _patState.initials = _initials(pat.nombre, pat.apellidos);
     _patState.status = pat.status;
     if(pat.psychologists){
@@ -3039,9 +3091,16 @@ function showDeleteAccountModal(){
   ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
   document.body.appendChild(ov);
 }
-function submitDeleteAccount(){
+async function submitDeleteAccount(){
+  // Marcar paciente como 'baja' (RGPD: derecho de supresión — el equipo procesará en 72h)
+  if(_patState.id){
+    await sb.from('patients').update({ status: 'baja', fecha_cancelacion: new Date().toISOString().slice(0,10) }).eq('id', _patState.id);
+  }
   document.getElementById('delete-account-modal').remove();
   showToast('Solicitud enviada. Recibirás confirmación en tu email en menos de 72 h.');
+  setTimeout(()=>{
+    sb.auth.signOut().then(()=>{ window.location.href='login.html'; });
+  }, 2500);
 }
 
 // Inicializar consentimiento al cargar la página
